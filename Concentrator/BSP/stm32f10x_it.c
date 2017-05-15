@@ -164,41 +164,22 @@ void SysTick_Handler(void)
   */ 
 
 
-/**
-  * @brief  This function handles PPP interrupt request.
-  * @param  None
-  * @retval None
-  */
+
 void USART1_IRQHandler(void)
 {
     USART1_Handler();
 }
 
-/**
-  * @brief  This function handles PPP interrupt request.
-  * @param  None
-  * @retval None
-  */
 void USART2_IRQHandler(void)
 {
     USART2_Handler();
 }
 
-/**
-  * @brief  This function handles PPP interrupt request.
-  * @param  None
-  * @retval None
-  */
-void USART3_IRQHandler(void)
+void UART4_IRQHandler(void)
 {
-    USART3_Handler();
+    UART4_Handler();
 }
 
 
-
-void EXTI15_10_IRQHandler(void){
-  
-  OverLoad();
-}
 
 /******************* (C) COPYRIGHT 2011 STMicroelectronics *****END OF FILE****/

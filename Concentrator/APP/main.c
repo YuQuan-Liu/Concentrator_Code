@@ -61,9 +61,9 @@ OS_MUTEX MUTEX_SENDSERVER;    //是否可以发送数据到服务器
 
 //OS_SEMs ;
 
-OS_SEM SEM_ServerTX;    //往服务器发送数据
-OS_SEM SEM_Slave_485TX;     //往采集器、表发送数据
-OS_SEM SEM_Slave_mbusTX;
+OS_SEM SEM_USART1_TX;    //往服务器发送数据
+OS_SEM SEM_USART2_TX;     //往采集器、表发送数据
+OS_SEM SEM_UART4_TX;
 
 OS_SEM SEM_HeartBeat;    //接收服务器数据Task to HeartBeat Task  接收到心跳的回应
 OS_SEM SEM_ACKData;    //服务器对数据的ACK
@@ -101,7 +101,7 @@ void ObjCreate(void);
 int main (void){
   OS_ERR err;
   CPU_IntDis();
-  
+  BSP_Init();
   OSInit(&err);
   
   OSTaskCreate((OS_TCB  *)&TCB_Start,
@@ -131,7 +131,6 @@ void TaskStart(void *p_arg){
   uint8_t test_write = 0;////
   uint32_t sectionaddr = 0x1FF000;////
   
-  BSP_Init();
   
   CPU_Init();
   
@@ -336,15 +335,7 @@ void ObjCreate(void){
   OSMutexCreate(&MUTEX_SENDSERVER,"",&err);
   
   //OS_SEM
-  OSSemCreate(&SEM_ServerTX,
-              "u3_tx",
-              0,
-              &err);
-  if(err != OS_ERR_NONE){
-    return;
-  }
-  
-  OSSemCreate(&SEM_Slave_485TX,
+  OSSemCreate(&SEM_USART1_TX,
               "u1_tx",
               0,
               &err);
@@ -352,8 +343,16 @@ void ObjCreate(void){
     return;
   }
   
-  OSSemCreate(&SEM_Slave_mbusTX,
+  OSSemCreate(&SEM_USART2_TX,
               "u2_tx",
+              0,
+              &err);
+  if(err != OS_ERR_NONE){
+    return;
+  }
+  
+  OSSemCreate(&SEM_UART4_TX,
+              "u4_tx",
               0,
               &err);
   if(err != OS_ERR_NONE){

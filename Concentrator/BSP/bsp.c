@@ -48,7 +48,7 @@ void BSP_Init(void){
   
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1,ENABLE);
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2,ENABLE);
-  RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3,ENABLE);
+  //RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3,ENABLE);
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART4,ENABLE);
   
   //RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2,ENABLE);
@@ -103,18 +103,18 @@ void BSP_GPIO_Init(void){
   GPIO_Init(GPIOA, &gpio_init);
   
   //USART3~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  /* Configure USART3 Rx as input floating */
+  /* Configure USART3 Rx as input floating 
   //GPIOB 11
   gpio_init.GPIO_Pin = GPIO_Pin_11;
   gpio_init.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-  GPIO_Init(GPIOB, &gpio_init);  
+  GPIO_Init(GPIOB, &gpio_init);  */
   
-  /* Configure USART3 Tx as alternate function push-pull */
+  /* Configure USART3 Tx as alternate function push-pull 
   //GPIOB 10
   gpio_init.GPIO_Pin = GPIO_Pin_10;
   gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
   gpio_init.GPIO_Mode = GPIO_Mode_AF_PP;
-  GPIO_Init(GPIOB, &gpio_init);
+  GPIO_Init(GPIOB, &gpio_init);*/
   
   //UART4~~~~~~~~~~~~~~~~~~~~~~~~~~~
   /* Configure UART4 Rx as input floating */
@@ -245,7 +245,7 @@ void BSP_USART_Init(void){
   USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
   
   
-  /*USART3  485CONF*/
+  /*USART3  485CONF
   usart_init.USART_BaudRate = 1200;
   usart_init.USART_WordLength = USART_WordLength_9b;
   usart_init.USART_Parity = USART_Parity_Even;
@@ -259,7 +259,7 @@ void BSP_USART_Init(void){
   USART_ITConfig(USART3, USART_IT_TC, DISABLE);
   USART_ITConfig(USART3, USART_IT_TXE, DISABLE);
   USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
-  
+  */
   
   /*UART4  LORA*/
   usart_init.USART_BaudRate = 115200;
@@ -295,11 +295,11 @@ void BSP_NVIC_Init(void){
   nvic_init.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&nvic_init);
   
-  /* Enable the USART3 Interrupt */
+  /* Enable the USART3 Interrupt 
   nvic_init.NVIC_IRQChannel = USART3_IRQn;
   nvic_init.NVIC_IRQChannelSubPriority = 2;
   nvic_init.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&nvic_init);
+  NVIC_Init(&nvic_init);*/
   
   /* Enable the UART4 Interrupt */
   nvic_init.NVIC_IRQChannel = UART4_IRQn;
