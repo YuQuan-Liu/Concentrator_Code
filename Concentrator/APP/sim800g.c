@@ -484,14 +484,14 @@ ErrorStatus Device_Cmd(FunctionalState NewState){
   
   if(NewState != DISABLE){
     //enable the power
-    GPIO_ResetBits(GPIOA,GPIO_Pin_8); 
+    PWR_GPRS_ON(); 
     //low the on_off
-    GPIO_ResetBits(GPIOA,GPIO_Pin_11);
+    GPRS_PWRKEY_L();
     OSTimeDly(1200,
                OS_OPT_TIME_DLY,
                &err);
     //high the on_off
-    GPIO_SetBits(GPIOA,GPIO_Pin_11);
+    GPRS_PWRKEY_H();
     
     OSTimeDly(3000,
                OS_OPT_TIME_DLY,
@@ -512,7 +512,7 @@ ErrorStatus Device_Cmd(FunctionalState NewState){
     return ERROR;
   }else{
     //disable the power
-    GPIO_SetBits(GPIOA,GPIO_Pin_8);
+    PWR_GPRS_OFF();
     OSTimeDly(3000,
                OS_OPT_TIME_DLY,
                &err);

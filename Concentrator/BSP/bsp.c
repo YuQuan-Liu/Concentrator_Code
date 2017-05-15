@@ -14,25 +14,24 @@ void BSP_Init(void){
   
   RCC_DeInit();
   
-  //RCC_HSEConfig(RCC_HSE_ON);
-  //RCC_WaitForHSEStartUp();
+  RCC_HSEConfig(RCC_HSE_ON);
+  RCC_WaitForHSEStartUp();
   
   //HSI = 8M
   
-  RCC_PLLConfig(RCC_PLLSource_HSI_Div2,RCC_PLLMul_16);  //PLL = HSI / 2 * 16 = 64M
+  RCC_PLLConfig(RCC_PLLSource_HSE_Div1,RCC_PLLMul_9);  //PLL = HSE / 1 * 9 = 72M
   RCC_PLLCmd(ENABLE);
   
-  RCC_SYSCLKConfig(RCC_SYSCLKSource_PLLCLK);    //SYSCLK = 64M
+  RCC_SYSCLKConfig(RCC_SYSCLKSource_PLLCLK);    //SYSCLK = 72M
   
   //if the HCLK is not div1 the flash prefetch and half cycle is 
-  RCC_HCLKConfig(RCC_SYSCLK_Div1);      //HCLK = 64M
+  RCC_HCLKConfig(RCC_SYSCLK_Div1);      //HCLK = 72M
   
-  RCC_PCLK1Config(RCC_HCLK_Div2);       //APB1 = 32M
+  RCC_PCLK1Config(RCC_HCLK_Div2);       //APB1 = 36M
   
-  RCC_PCLK2Config(RCC_HCLK_Div1);       //APB2 = 64M
+  RCC_PCLK2Config(RCC_HCLK_Div1);       //APB2 = 72M
   
   //wait PLL is ready
-  /*
   while(RCC_GetFlagStatus(RCC_FLAG_PLLRDY) == RESET){
     ;
   }
@@ -41,7 +40,7 @@ void BSP_Init(void){
   while(RCC_GetFlagStatus(RCC_FLAG_LSIRDY) == RESET){
     ;
   }
-  */
+  
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB,ENABLE);
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC,ENABLE);
@@ -50,8 +49,10 @@ void BSP_Init(void){
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1,ENABLE);
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2,ENABLE);
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3,ENABLE);
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART4,ENABLE);
   
-  RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2,ENABLE);
+  //RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2,ENABLE);
+  RCC_APB1PeriphClockCmd(RCC_APB2Periph_SPI1,ENABLE);
   
   
   BSP_GPIO_Init();
@@ -63,7 +64,6 @@ void BSP_Init(void){
 
 void BSP_GPIO_Init(void){
   GPIO_InitTypeDef gpio_init;
-  EXTI_InitTypeDef exti_init;
   
   //set all the gpio to push pull to low
   gpio_init.GPIO_Pin = GPIO_Pin_All;
@@ -116,7 +116,43 @@ void BSP_GPIO_Init(void){
   gpio_init.GPIO_Mode = GPIO_Mode_AF_PP;
   GPIO_Init(GPIOB, &gpio_init);
   
-  ///* configure SPI2 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+  //UART4~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  /* Configure UART4 Rx as input floating */
+  //GPIOC 11
+  gpio_init.GPIO_Pin = GPIO_Pin_11;
+  gpio_init.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+  GPIO_Init(GPIOC, &gpio_init);  
+  
+  /* Configure UART4 Tx as alternate function push-pull */
+  //GPIOC 10
+  gpio_init.GPIO_Pin = GPIO_Pin_10;
+  gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
+  gpio_init.GPIO_Mode = GPIO_Mode_AF_PP;
+  GPIO_Init(GPIOC, &gpio_init);
+  
+  ///* configure SPI1 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+  //SCK
+  gpio_init.GPIO_Pin = GPIO_Pin_5;
+  gpio_init.GPIO_Mode = GPIO_Mode_AF_PP;
+  gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_Init(GPIOA,&gpio_init);
+  //MISO
+  gpio_init.GPIO_Pin = GPIO_Pin_6;
+  gpio_init.GPIO_Mode = GPIO_Mode_IPU;
+  gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_Init(GPIOA,&gpio_init);
+  //MOSI
+  gpio_init.GPIO_Pin = GPIO_Pin_7;
+  gpio_init.GPIO_Mode = GPIO_Mode_AF_PP;
+  gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_Init(GPIOA,&gpio_init);
+  //NSS  Not used,used a gpio
+  gpio_init.GPIO_Pin = GPIO_Pin_4;
+  gpio_init.GPIO_Mode = GPIO_Mode_Out_PP;
+  gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_Init(GPIOA,&gpio_init);
+  
+  /* configure SPI2 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   //SCK
   gpio_init.GPIO_Pin = GPIO_Pin_13;
   gpio_init.GPIO_Mode = GPIO_Mode_AF_PP;
@@ -137,84 +173,63 @@ void BSP_GPIO_Init(void){
   gpio_init.GPIO_Mode = GPIO_Mode_Out_PP;
   gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(GPIOB,&gpio_init);
-  
-  //GPIOA
-  //GPIOA 0  DCDC_EN   L close the mbus power   H open the mbus power
-  //GPIOA 1  NET_INT  
-  //GPIOA 4  NET_RST  
-  //GPIOA 8  M590E_POWER_CON  L
-  //GPIOA 11  ON_OFF  L
-  //GPIOA 12  EMERGOFF  这个现在没用
-  //GPIOA 15  DELAY_1 L
-  /**/
-  gpio_init.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_4 | GPIO_Pin_8 | GPIO_Pin_11 | GPIO_Pin_12 | GPIO_Pin_15;
+  */
+    
+  /*
+  GPIOA
+  1 ~ LORAPOWER
+  8 ~ GPRSPOWER : L-ON H-OFF
+  11 ~ GPRSPWRKEY : L
+  */
+  gpio_init.GPIO_Pin = GPIO_Pin_1 | GPIO_Pin_8 | GPIO_Pin_11;
   gpio_init.GPIO_Mode = GPIO_Mode_Out_PP;
   gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(GPIOA,&gpio_init);
   
-  //GPIOA 15 default is JTDI
-  GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable, ENABLE);
-  GPIO_ResetBits(GPIOA,GPIO_Pin_15);
-  
-  //GPIOB
-  //GPIOB 0  NET_CS
-  //GPIOB 1  Relay 485 power  realy5   L
-  //GPIOB 2  485_CONTROL   L
-  //GPIOB 3  DELAY_2   L
-  //GPIOB 4  DELAY_3   L
-  //GPIOB 5  DELAY_4   L
-  //GPIOB 6  LED4   L  待定
-  //GPIOB 7  LED3   L  OverLoad
-  //GPIOB 8  LED2   L  抄表指示
-  //GPIOB 9  LED1   L  系统指示
-  gpio_init.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3 | GPIO_Pin_4 | GPIO_Pin_5 | GPIO_Pin_6 | GPIO_Pin_7 | GPIO_Pin_8 | GPIO_Pin_9;
+  GPIO_SetBits(GPIOA,GPIO_Pin_8); //OFF the GPRS PWR
+  /*
+  GPIOB
+  0 ~ 485POWER
+  1 ~ 485CTRL : L
+  */
+  gpio_init.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1;
   gpio_init.GPIO_Mode = GPIO_Mode_Out_PP;
   gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(GPIOB,&gpio_init);
   
-  //GPIOC
-  //GPIOC 14 BEEP  L 
-  gpio_init.GPIO_Pin = GPIO_Pin_14;
+  /*
+  GPIOC
+  0 ~ LED3
+  1 ~ LED2
+  2 ~ LED1
+  4 ~ 485CTRL2 : L
+  6 ~ BEEP
+  */
+  gpio_init.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_4 | GPIO_Pin_6;
   gpio_init.GPIO_Mode = GPIO_Mode_Out_PP;
   gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(GPIOC,&gpio_init);
-  
-  GPIO_ResetBits(GPIOC,GPIO_Pin_14);
-  
-  //GPIOC
-  //GPIOC 13 FEEDBACK
-  gpio_init.GPIO_Pin = GPIO_Pin_13;
-  gpio_init.GPIO_Mode = GPIO_Mode_IPU;
-  GPIO_Init(GPIOC,&gpio_init);
-  GPIO_EXTILineConfig(GPIO_PortSourceGPIOC, GPIO_PinSource13);
-  
-  /* Configure EXTI13 line */
-  exti_init.EXTI_Line = EXTI_Line13;
-  exti_init.EXTI_Mode = EXTI_Mode_Interrupt;
-  exti_init.EXTI_Trigger = EXTI_Trigger_Falling;  
-  exti_init.EXTI_LineCmd = ENABLE;
-  EXTI_Init(&exti_init);
 }
 
 void BSP_USART_Init(void){
   USART_InitTypeDef usart_init;
   
-  /*USART3  485*/
-  usart_init.USART_BaudRate = 2400;
-  usart_init.USART_WordLength = USART_WordLength_9b;
-  usart_init.USART_Parity = USART_Parity_Even;
+  /*USART1  SIM800G*/
+  usart_init.USART_BaudRate = 115200;
+  usart_init.USART_WordLength = USART_WordLength_8b;
+  usart_init.USART_Parity = USART_Parity_No;
   usart_init.USART_StopBits = USART_StopBits_1;
   usart_init.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
   usart_init.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
   
-  USART_Init(USART3, &usart_init);
-  USART_Cmd(USART3, ENABLE);
+  USART_Init(USART1, &usart_init);
+  USART_Cmd(USART1, ENABLE);
+    
+  USART_ITConfig(USART1, USART_IT_TC, DISABLE);
+  USART_ITConfig(USART1, USART_IT_TXE, DISABLE);
+  USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
   
-  USART_ITConfig(USART3, USART_IT_TC, DISABLE);
-  USART_ITConfig(USART3, USART_IT_TXE, DISABLE);
-  USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
-  
-  /*USART2  mbus*/
+  /*USART2  485READ*/
   usart_init.USART_BaudRate = 1200;
   usart_init.USART_WordLength = USART_WordLength_9b;
   usart_init.USART_Parity = USART_Parity_Even;
@@ -229,7 +244,24 @@ void BSP_USART_Init(void){
   USART_ITConfig(USART2, USART_IT_TXE, DISABLE);
   USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
   
-  /*USART1  m590e*/
+  
+  /*USART3  485CONF*/
+  usart_init.USART_BaudRate = 1200;
+  usart_init.USART_WordLength = USART_WordLength_9b;
+  usart_init.USART_Parity = USART_Parity_Even;
+  usart_init.USART_StopBits = USART_StopBits_1;
+  usart_init.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+  usart_init.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+  
+  USART_Init(USART3, &usart_init);
+  USART_Cmd(USART3, ENABLE);
+  
+  USART_ITConfig(USART3, USART_IT_TC, DISABLE);
+  USART_ITConfig(USART3, USART_IT_TXE, DISABLE);
+  USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
+  
+  
+  /*UART4  LORA*/
   usart_init.USART_BaudRate = 115200;
   usart_init.USART_WordLength = USART_WordLength_8b;
   usart_init.USART_Parity = USART_Parity_No;
@@ -237,12 +269,12 @@ void BSP_USART_Init(void){
   usart_init.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
   usart_init.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
   
-  USART_Init(USART1, &usart_init);
-  USART_Cmd(USART1, ENABLE);
-    
-  USART_ITConfig(USART1, USART_IT_TC, DISABLE);
-  USART_ITConfig(USART1, USART_IT_TXE, DISABLE);
-  USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
+  USART_Init(UART4, &usart_init);
+  USART_Cmd(UART4, ENABLE);
+  
+  USART_ITConfig(UART4, USART_IT_TC, DISABLE);
+  USART_ITConfig(UART4, USART_IT_TXE, DISABLE);
+  USART_ITConfig(UART4, USART_IT_RXNE, ENABLE);
 }
 
 void BSP_NVIC_Init(void){
@@ -257,37 +289,49 @@ void BSP_NVIC_Init(void){
   nvic_init.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&nvic_init);
   
-  /* Enable the USART3 Interrupt */
-  nvic_init.NVIC_IRQChannel = USART3_IRQn;
+  /* Enable the USART2 Interrupt */
+  nvic_init.NVIC_IRQChannel = USART2_IRQn;
   nvic_init.NVIC_IRQChannelSubPriority = 1;
   nvic_init.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&nvic_init);
   
-  /* Enable the USART2 Interrupt */
-  nvic_init.NVIC_IRQChannel = USART2_IRQn;
+  /* Enable the USART3 Interrupt */
+  nvic_init.NVIC_IRQChannel = USART3_IRQn;
   nvic_init.NVIC_IRQChannelSubPriority = 2;
   nvic_init.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&nvic_init);
   
-  /* Enable the EXTI0 Interrupt */
-  nvic_init.NVIC_IRQChannel = EXTI0_IRQn;
+  /* Enable the UART4 Interrupt */
+  nvic_init.NVIC_IRQChannel = UART4_IRQn;
   nvic_init.NVIC_IRQChannelSubPriority = 3;
   nvic_init.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&nvic_init);
-  
-  /*
-  nvic_init.NVIC_IRQChannel = SPI1_IRQn;
-  nvic_init.NVIC_IRQChannelSubPriority = 1;
-  nvic_init.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&nvic_init);
-  */
   
 }
 
 void BSP_SPI_Init(void){
   SPI_InitTypeDef spi_init;
   
-  //the APB1 is 32M
+  //the APB2 is 72M
+  spi_init.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4;
+  spi_init.SPI_CPHA = SPI_CPHA_2Edge;
+  spi_init.SPI_CPOL = SPI_CPOL_High;
+  spi_init.SPI_DataSize = SPI_DataSize_8b;
+  spi_init.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
+  
+  spi_init.SPI_FirstBit = SPI_FirstBit_MSB;
+  spi_init.SPI_NSS = SPI_NSS_Soft;
+  spi_init.SPI_Mode = SPI_Mode_Master;
+  spi_init.SPI_CRCPolynomial = 7;
+  SPI_Init(SPI1,&spi_init);
+  
+  SPI_I2S_ITConfig(SPI1,SPI_I2S_IT_TXE,DISABLE);
+  SPI_I2S_ITConfig(SPI1,SPI_I2S_IT_RXNE,DISABLE);
+  
+  SPI_Cmd(SPI1,ENABLE);
+  
+  /*
+  //the APB1 is 36M
   spi_init.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4;
   spi_init.SPI_CPHA = SPI_CPHA_2Edge;
   spi_init.SPI_CPOL = SPI_CPOL_High;
@@ -304,8 +348,10 @@ void BSP_SPI_Init(void){
   SPI_I2S_ITConfig(SPI2,SPI_I2S_IT_RXNE,DISABLE);
   
   SPI_Cmd(SPI2,ENABLE);
+  */
   
 }
+
 
 void BSP_IWDG_Init(void){
   /* Enable write access to IWDG_PR and IWDG_RLR registers */
@@ -317,12 +363,6 @@ void BSP_IWDG_Init(void){
   /* Enable IWDG (the LSI oscillator will be enabled by hardware) */
   IWDG_Enable();
 }
-
-
-
-
-
-
 
 
 //the uC OS need it

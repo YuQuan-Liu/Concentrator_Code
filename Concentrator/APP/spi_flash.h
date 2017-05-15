@@ -32,13 +32,13 @@
 /**
   * @brief  Deselect sFLASH: Chip Select pin low
   */
-#define sFLASH_CS_LOW()         GPIO_ResetBits(GPIOB, GPIO_Pin_12)
+#define sFLASH_CS_LOW()         GPIO_ResetBits(GPIOA, GPIO_Pin_4)
 /**
   * @brief  Deselect sFLASH: Chip Select pin high
   */
-#define sFLASH_CS_HIGH()        GPIO_SetBits(GPIOB, GPIO_Pin_12)
+#define sFLASH_CS_HIGH()        GPIO_SetBits(GPIOA, GPIO_Pin_4)
 
-#define sFLASH_SPI              SPI2    /*!<the spi flash use>*/
+#define sFLASH_SPI              SPI1    /*!<the spi flash use>*/
 #define sFLASH_DUMMY_BYTE       0xA5
 #define sFLASH_WIP_FLAG         0x01    /*!< Write In Progress (WIP) flag */
 #define sFLASH_SPI_PAGESIZE     0x100
