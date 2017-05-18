@@ -641,7 +641,7 @@
       <outputs>
         <tool>
           <name>ILINK</name>
-          <file> 247 245</file>
+          <file> 245 247</file>
         </tool>
       </outputs>
     </file>
