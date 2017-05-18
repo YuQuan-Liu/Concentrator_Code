@@ -9,7 +9,8 @@ extern OS_SEM SEM_USART1_TX;
 extern OS_SEM SEM_USART2_TX;
 extern OS_SEM SEM_UART4_TX;
 
-extern OS_Q Q_Slave;
+extern OS_Q Q_485_2;
+extern OS_Q Q_LORA;
 
 extern uint8_t * volatile server_ptr;      //中断中保存M590E 返回来的数据
 extern uint8_t * volatile server_ptr_;     //记录中断的开始指针
@@ -59,7 +60,7 @@ void USART2_Handler(void){
     
     if(err == OS_ERR_NONE){
       *mem_ptr = rx_byte;
-      OSQPost((OS_Q *)&Q_Slave,
+      OSQPost((OS_Q *)&Q_485_2,
               (void *)mem_ptr,
               1,
               OS_OPT_POST_FIFO,
@@ -99,7 +100,7 @@ void UART4_Handler(void){
     
     if(err == OS_ERR_NONE){
       *mem_ptr = rx_byte;
-      OSQPost((OS_Q *)&Q_Slave,
+      OSQPost((OS_Q *)&Q_LORA,
               (void *)mem_ptr,
               1,
               OS_OPT_POST_FIFO,

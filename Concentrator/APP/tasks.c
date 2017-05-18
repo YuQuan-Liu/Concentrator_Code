@@ -15,7 +15,7 @@
 extern OS_MEM MEM_Buf;
 extern OS_MEM MEM_ISR;
 
-extern OS_Q Q_Slave;            //采集器、表发送过来的数据
+extern OS_Q Q_485_2;            //采集器、表发送过来的数据
 extern OS_Q Q_Read;            //抄表任务Queue
 extern OS_Q Q_ReadData;        //发送抄表指令后  下层返回抄表数据
 extern OS_Q Q_Config;         //配置任务Queue
@@ -73,7 +73,7 @@ void Task_Slave(void *p_arg){
   
   while(DEF_TRUE){
     //收到0x68之后  如果200ms 没有收到数据  就认为超时了
-    mem_ptr = OSQPend(&Q_Slave,200,OS_OPT_PEND_BLOCKING,&msg_size,&ts,&err);
+    mem_ptr = OSQPend(&Q_485_2,200,OS_OPT_PEND_BLOCKING,&msg_size,&ts,&err);
     
     if(err == OS_ERR_TIMEOUT){
       if(start_slave == 1){
@@ -3365,54 +3365,4 @@ void ack_query_protocol(uint8_t desc,uint8_t server_seq_){
   
   OSMemPut(&MEM_Buf,buf_frame_,&err);
   
-}
-
-extern OS_FLAG_GRP FLAG_Event;
-void Task_OverLoad(void *p_arg){
-  OS_ERR err;
-  CPU_TS ts;
-  uint16_t cnt = 0;
-  
-  while(DEF_TRUE){
-    
-    OSFlagPend(&FLAG_Event,
-                OVERLOAD,
-                0,
-                OS_OPT_PEND_FLAG_SET_ANY + OS_OPT_PEND_FLAG_CONSUME+OS_OPT_PEND_BLOCKING,
-                &ts,
-                &err);
-    
-    OSTimeDly(500,
-                  OS_OPT_TIME_DLY,
-                  &err);
-    if(GPIO_ReadInputDataBit(GPIOC,GPIO_Pin_13)){
-      //enable the beep
-      GPIO_SetBits(GPIOC,GPIO_Pin_14);
-      //disable the mbus power
-      //GPIO_ResetBits(GPIOA,GPIO_Pin_0);
-      //关闭采集器
-      relay_1(DISABLE);
-      relay_2(DISABLE);
-      relay_3(DISABLE);
-      relay_4(DISABLE);
-      cjq_isopen = 0;
-      //Light the LED3
-      //蜂鸣器响20s
-      while(cnt < 100){
-        GPIO_ResetBits(GPIOB,GPIO_Pin_7);
-        OSTimeDly(100,
-                  OS_OPT_TIME_DLY,
-                  &err);
-        GPIO_SetBits(GPIOB,GPIO_Pin_7);
-        OSTimeDly(100,
-                  OS_OPT_TIME_DLY,
-                  &err);
-        cnt++;
-      }
-      cnt = 0;
-      //disable the beep
-      GPIO_ResetBits(GPIOC,GPIO_Pin_14);
-    }
-    
-  }
 }

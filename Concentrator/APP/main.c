@@ -71,7 +71,8 @@ OS_SEM SEM_Send;      //got the '>'  we can send the data now  可以发送数据
 OS_SEM SEM_SendOver;      //got the "+TCPSEND:0,"  the data is send over now  发送数据完成
 
 //OS_Qs
-OS_Q Q_Slave;            //采集器、表发送过来的数据
+OS_Q Q_485_2;            //采集器、表发送过来的数据
+OS_Q Q_LORA;
 OS_Q Q_Read;             //抄表任务Queue
 OS_Q Q_ReadData;        //发送抄表指令后  下层返回抄表数据
 OS_Q Q_Config;         //配置任务Queue
@@ -126,11 +127,6 @@ void TaskStart(void *p_arg){
   CPU_INT32U cpu_clk_freq;
   OS_ERR err;
   uint32_t flashid;
-  uint8_t * buf;////
-  uint8_t test = 0;////
-  uint8_t test_write = 0;////
-  uint32_t sectionaddr = 0x1FF000;////
-  
   
   CPU_Init();
   
@@ -152,18 +148,10 @@ void TaskStart(void *p_arg){
   
   sFLASH_PoolInit();
   */
-  TaskCreate();
+  //TaskCreate();
   ObjCreate();
   
-  if(test){
-    while(1){
-      asm("NOP");
-      sFLASH_ReadBuffer(config_flash,sectionaddr,0x1000);
-      if(test_write){
-        sFLASH_EraseWritePage(buf,sectionaddr,256);
-      }
-    }
-  }
+  
   //Open the IWDG;
   //BSP_IWDG_Init();
   
@@ -172,11 +160,11 @@ void TaskStart(void *p_arg){
     IWDG_ReloadCounter();
     
     //LED1
-    GPIO_SetBits(GPIOB,GPIO_Pin_9);
+    LED1_ON();
     OSTimeDly(1000,
                   OS_OPT_TIME_DLY,
                   &err);
-    GPIO_ResetBits(GPIOB,GPIO_Pin_9);
+    LED1_OFF();
     OSTimeDly(1000,
                   OS_OPT_TIME_DLY,
                   &err);
@@ -393,8 +381,16 @@ void ObjCreate(void){
   
   //OS_Q
   //data from slave
-  OSQCreate(&Q_Slave,
-            "slave",
+  OSQCreate(&Q_485_2,
+            "485_2",
+            4,
+            &err);
+  if(err != OS_ERR_NONE){
+    return;
+  }
+  
+  OSQCreate(&Q_LORA,
+            "lora",
             4,
             &err);
   if(err != OS_ERR_NONE){
