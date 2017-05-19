@@ -13,7 +13,6 @@ extern OS_MEM MEM_Buf;
 extern OS_MEM MEM_ISR;
 
 extern OS_SEM SEM_Send;      //got the '>'  we can send the data now  可以发送数据
-extern OS_SEM SEM_SendOver;      //got the "+TCPSEND:0,"  the data is send over now  发送数据完成
 extern OS_SEM SEM_Send_Online;   //发送数据时检测链路状态  "+IPSTATUS:0,CONNECT,TCP"
 
 
@@ -419,16 +418,7 @@ ErrorStatus send_server(uint8_t * send,uint16_t count){
   Server_Write(send,count);
   
   OSMutexPost(&MUTEX_SENDSERVER,OS_OPT_POST_NONE,&err);
-  /*
-  OSSemPend(&SEM_SendOver,
-            1000,
-            OS_OPT_PEND_BLOCKING,
-            &ts,
-            &err);
   
-  if(err != OS_ERR_NONE){
-    return ERROR;
-  }*/
   return SUCCESS;
 }
 

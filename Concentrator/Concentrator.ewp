@@ -1941,6 +1941,12 @@
     <file>
       <name>$PROJ_DIR$\APP\tasks.h</name>
     </file>
+    <file>
+      <name>$PROJ_DIR$\APP\utils.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\APP\utils.h</name>
+    </file>
   </group>
   <group>
     <name>BSP</name>

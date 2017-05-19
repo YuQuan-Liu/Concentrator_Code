@@ -18,8 +18,11 @@ OS_TCB TCB_Server;
 CPU_STK STK_Server[APP_START_TASK_STK_SIZE];
 
 //处理采集器、表发送过来的数据
-OS_TCB TCB_Slave;
-CPU_STK STK_Slave[APP_START_TASK_STK_SIZE];
+OS_TCB TCB_485_2;
+CPU_STK STK_485_2[APP_START_TASK_STK_SIZE];
+
+OS_TCB TCB_LORA;
+CPU_STK STK_LORA[APP_START_TASK_STK_SIZE];
 
 //设置任务
 OS_TCB TCB_Config;
@@ -68,7 +71,6 @@ OS_SEM SEM_UART4_TX;
 OS_SEM SEM_HeartBeat;    //接收服务器数据Task to HeartBeat Task  接收到心跳的回应
 OS_SEM SEM_ACKData;    //服务器对数据的ACK
 OS_SEM SEM_Send;      //got the '>'  we can send the data now  可以发送数据
-OS_SEM SEM_SendOver;      //got the "+TCPSEND:0,"  the data is send over now  发送数据完成
 
 //OS_Qs
 OS_Q Q_485_2;            //采集器、表发送过来的数据
@@ -84,6 +86,10 @@ OS_FLAG_GRP FLAG_Event;
 
 //OS_TMR
 OS_TMR TMR_CJQTIMEOUT;    //打开采集器通道之后 20分钟超时 自动关闭通道
+
+
+uint8_t * volatile server_ptr = 0;      //中断中保存M590E 返回来的数据
+uint8_t * volatile server_ptr_ = 0;     //记录中断的开始指针
 
 
 volatile uint8_t connectstate = 0;       //0 didn't connect to the server   1 connect to the server
@@ -133,7 +139,7 @@ void TaskStart(void *p_arg){
   cpu_clk_freq = BSP_CPU_ClkFreq();
   cnts = cpu_clk_freq / (CPU_INT32U)OS_CFG_TICK_RATE_HZ;
   OS_CPU_SysTickInit(cnts);
-  /*
+  
   while(DEF_TRUE){
     //check the w25x16 是否存在
     
@@ -145,9 +151,9 @@ void TaskStart(void *p_arg){
               OS_OPT_TIME_DLY,
               &err);
   }
-  
+  /**/
   sFLASH_PoolInit();
-  */
+  
   //TaskCreate();
   ObjCreate();
   
@@ -175,12 +181,12 @@ void TaskCreate(void){
   OS_ERR err;
   
   /*the data come from slave */
-  OSTaskCreate((OS_TCB  *)&TCB_Slave,
-               (CPU_CHAR *)"USART1",
-               (OS_TASK_PTR )Task_Slave,
+  OSTaskCreate((OS_TCB  *)&TCB_485_2,
+               (CPU_CHAR *)"U2",
+               (OS_TASK_PTR )Task_485_2,
                (void *) 0,
                (OS_PRIO )APP_START_TASK_PRIO + 1,
-               (CPU_STK *)&STK_Slave[0],
+               (CPU_STK *)&STK_485_2[0],
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
                (OS_MSG_QTY) 0u,
@@ -190,7 +196,7 @@ void TaskCreate(void){
                (OS_ERR *)&err);
   /*the data come from the server */
   OSTaskCreate((OS_TCB  *)&TCB_Server,
-               (CPU_CHAR *)"USART2",
+               (CPU_CHAR *)"U1",
                (OS_TASK_PTR )Task_Server,
                (void *) 0,
                (OS_PRIO )APP_START_TASK_PRIO + 2,
@@ -204,12 +210,26 @@ void TaskCreate(void){
                (OS_ERR *)&err);
   //OS_CFG_TICK_TASK_PRIO == 6 = APP_START_TASK_PRIO + 3
   
+  OSTaskCreate((OS_TCB  *)&TCB_LORA,
+               (CPU_CHAR *)"U4",
+               (OS_TASK_PTR )Task_LORA,
+               (void *) 0,
+               (OS_PRIO )APP_START_TASK_PRIO + 4,
+               (CPU_STK *)&STK_LORA[0],
+               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
+               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
+               (OS_MSG_QTY) 0u,
+               (OS_TICK) 0u,
+               (void *) 0,
+               (OS_OPT) (OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+               (OS_ERR *)&err);
+  
   /*deal the server data */
   OSTaskCreate((OS_TCB  *)&TCB_DealServer,
                (CPU_CHAR *)"deal",
                (OS_TASK_PTR )Task_DealServer,
                (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 4,
+               (OS_PRIO )APP_START_TASK_PRIO + 5,
                (CPU_STK *)&STK_DealServer[0],
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
@@ -223,7 +243,7 @@ void TaskCreate(void){
                (CPU_CHAR *)"read",
                (OS_TASK_PTR )Task_Read,
                (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 5,
+               (OS_PRIO )APP_START_TASK_PRIO + 6,
                (CPU_STK *)&STK_Read[0],
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE*3/10,
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE*3,
@@ -237,7 +257,7 @@ void TaskCreate(void){
                (CPU_CHAR *)"heart",
                (OS_TASK_PTR )Task_HeartBeat,
                (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 6,
+               (OS_PRIO )APP_START_TASK_PRIO + 7,
                (CPU_STK *)&STK_HeartBeat[0],
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
@@ -251,7 +271,7 @@ void TaskCreate(void){
                (CPU_CHAR *)"config",
                (OS_TASK_PTR )Task_Config,
                (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 7,
+               (OS_PRIO )APP_START_TASK_PRIO + 8,
                (CPU_STK *)&STK_Config[0],
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE*3/10,
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE*3,
@@ -266,7 +286,7 @@ void TaskCreate(void){
                (CPU_CHAR *)"LED",
                (OS_TASK_PTR )Task_LED,
                (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 8,
+               (OS_PRIO )APP_START_TASK_PRIO + 9,
                (CPU_STK *)&STK_LED[0],
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
@@ -276,21 +296,7 @@ void TaskCreate(void){
                (OS_OPT) (OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
                (OS_ERR *)&err);
   
-  //overload
-  /**/
-  OSTaskCreate((OS_TCB  *)&TCB_OverLoad,
-               (CPU_CHAR *)"OverLoad",
-               (OS_TASK_PTR )Task_OverLoad,
-               (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 9,
-               (CPU_STK *)&STK_OverLoad[0],
-               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
-               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
-               (OS_MSG_QTY) 0u,
-               (OS_TICK) 0u,
-               (void *) 0,
-               (OS_OPT) (OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
-               (OS_ERR *)&err);
+  
 }
 
 void ObjCreate(void){
@@ -371,14 +377,6 @@ void ObjCreate(void){
     return;
   }
   
-  OSSemCreate(&SEM_SendOver,
-              "sendover",
-              0,
-              &err);
-  if(err != OS_ERR_NONE){
-    return;
-  }
-  
   //OS_Q
   //data from slave
   OSQCreate(&Q_485_2,
@@ -430,11 +428,6 @@ void ObjCreate(void){
   }
   
   
-  //OS_FLAGS
-  OSFlagCreate(&FLAG_Event,
-               "",
-               (OS_FLAGS)0,
-               &err);
   
   //OS_TMRs
   OSTmrCreate(&TMR_CJQTIMEOUT,
