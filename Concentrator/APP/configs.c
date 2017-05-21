@@ -288,10 +288,10 @@ void param_query(uint8_t * buf_frame,uint8_t desc){
     ack_query_addr(desc,server_seq_);
     break;
   case FN_METER:
-    ack_query_meter(*(buf_frame + DATA_POSITION),buf_frame + DATA_POSITION + 1,desc,server_seq_);
+    
     break;
   case FN_CJQ:
-    ack_query_cjq(desc,server_seq_);
+    
     break;
   case FN_MBUS:
     ack_query_mbus(desc,server_seq_);

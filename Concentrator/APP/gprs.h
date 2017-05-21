@@ -4,6 +4,8 @@
 #ifndef __GPRS_H__
 #define __GPRS_H__
 
+#include "bsp.h"
+
 #define USE_DNS          //使用DNS获取IP地址   
 
 

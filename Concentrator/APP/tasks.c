@@ -990,10 +990,10 @@ void Task_Read(void *p_arg){
       }*/
       break;
     case 0x01:
-      //EG 
-      power_cmd(ENABLE);
-      meter_read_eg(buf_frame,*(buf_frame+msg_size));
-      power_cmd(DISABLE);
+      //EG  TODO
+      //power_cmd(ENABLE);
+      //meter_read_eg(buf_frame,*(buf_frame+msg_size));
+      //power_cmd(DISABLE);
       break;
     }
     

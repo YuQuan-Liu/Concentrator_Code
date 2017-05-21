@@ -484,6 +484,7 @@ void sFLASH_PoolInit(void){
     sFLASH_EraseBulk();    //erase the chip
     //只初始化前面511个  最后一个保存各种配置信息
     //sFLASH_POOL_NUM == 2044       sFLASH_POOL_SIZE == 1K 
+    /*
     for(i = 0;i < sFLASH_POOL_NUM;i++){
       sectionaddr = sFLASH_START_ADDR + sFLASH_POOL_SIZE * i;
       nextaddr = sectionaddr + sFLASH_POOL_SIZE;
@@ -494,7 +495,7 @@ void sFLASH_PoolInit(void){
       sFLASH_WritePage((uint8_t *)&nextaddr,sectionaddr+3,3);
       
     }
-    
+    */
     //the pool start
     nextaddr = 0x000000;
     sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_POOL,3);
@@ -524,8 +525,11 @@ void sFLASH_PoolInit(void){
     nextaddr = 0xABCDAA;
     sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_POOL_INIT,1);
     
-    //the slave is mbus default
+    //the slave is cjq default
+    nextaddr = 0xABCDBB;
     sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_METER_MBUS,1);
+    nextaddr = 0x000001;
+    sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_PROTOCOL,1);
   }
   //the flash is inited
   param_conf();  //read the param from the flash

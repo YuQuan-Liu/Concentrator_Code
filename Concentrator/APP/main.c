@@ -10,12 +10,6 @@
 OS_TCB  TCB_Start;
 CPU_STK STK_Start[APP_START_TASK_STK_SIZE];
 
-OS_TCB TCB_LED;
-CPU_STK STK_LED[APP_START_TASK_STK_SIZE];
-
-//处理服务器发送过来的数据
-OS_TCB TCB_Server;
-CPU_STK STK_Server[APP_START_TASK_STK_SIZE];
 
 //处理采集器、表发送过来的数据
 OS_TCB TCB_485_2;
@@ -24,26 +18,33 @@ CPU_STK STK_485_2[APP_START_TASK_STK_SIZE];
 OS_TCB TCB_LORA;
 CPU_STK STK_LORA[APP_START_TASK_STK_SIZE];
 
-//设置任务
-OS_TCB TCB_Config;
-CPU_STK STK_Config[APP_START_TASK_STK_SIZE*3];
-
-//抄表任务
-OS_TCB TCB_Read;
-CPU_STK STK_Read[APP_START_TASK_STK_SIZE*3];
-
-//the heartbeat task
-OS_TCB TCB_HeartBeat;
-CPU_STK STK_HeartBeat[APP_START_TASK_STK_SIZE];
+//处理服务器发送过来的数据
+OS_TCB TCB_Server;
+CPU_STK STK_Server[APP_START_TASK_STK_SIZE];
 
 //task deal the data "+TCPRECV"
 OS_TCB TCB_DealServer;
 CPU_STK STK_DealServer[APP_START_TASK_STK_SIZE];
 
-//task deal the overload
-OS_TCB TCB_OverLoad;
-CPU_STK STK_OverLoad[APP_START_TASK_STK_SIZE];
+//the heartbeat task
+OS_TCB TCB_HeartBeat;
+CPU_STK STK_HeartBeat[APP_START_TASK_STK_SIZE];
 
+//task deal the overload
+OS_TCB TCB_LORA_Check;
+CPU_STK STK_LORA_Check[APP_START_TASK_STK_SIZE];
+
+//抄表任务
+OS_TCB TCB_Read;
+CPU_STK STK_Read[APP_START_TASK_STK_SIZE*3];
+
+//设置任务
+OS_TCB TCB_Config;
+CPU_STK STK_Config[APP_START_TASK_STK_SIZE*3];
+
+
+OS_TCB TCB_LED;
+CPU_STK STK_LED[APP_START_TASK_STK_SIZE];
 
 //OS_MEMs
 //receive the data from the ISR    put the data in the mem to deal buf
@@ -81,10 +82,6 @@ OS_Q Q_ReadData;        //发送抄表指令后  下层返回抄表数据
 OS_Q Q_Config;         //配置任务Queue
 OS_Q Q_Deal;         //处理接收到的服务器发送过来的数据
 
-
-//OS_FLAG
-OS_FLAG_GRP FLAG_Event;
-
 //OS_TMR
 OS_TMR TMR_CJQTIMEOUT;    //打开采集器通道之后 20分钟超时 自动关闭通道
 
@@ -99,9 +96,9 @@ volatile uint8_t reading = 0;   //0 didn't reading meters    1  reading meters
 volatile uint8_t lora_send = 0;  //每3s发送TEST到LORA
 
 uint8_t ack_action = 0xff;  //先应答后操作~0xaa    先操作后应答~0xff
-uint8_t slave_mbus = 0xaa; //0xaa~mbus   0xff~485   0xbb~采集器
+uint8_t slave_mbus = 0xbb; //0xaa~mbus   0xff~485   0xbb~采集器
 uint8_t di_seq; //DI0 DI1 顺序   0xAA~DI1在前(千宝通)   0xFF~DI0在前(default)  
-uint8_t protocol = 0xFF;  //协议类型 0xFF~188(Default)  1~EG 
+uint8_t protocol = 0x01;  //协议类型 0xFF~188(Default)  1~EG 
 
 void TaskStart(void *p_arg);
 void TaskCreate(void);
@@ -157,7 +154,7 @@ void TaskStart(void *p_arg){
   
   sFLASH_PoolInit();
   /**/
-  //TaskCreate();
+  TaskCreate();
   ObjCreate();
   
   
@@ -269,12 +266,28 @@ void TaskCreate(void){
                (void *) 0,
                (OS_OPT) (OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
                (OS_ERR *)&err);
+  
+  /*LORA Check */
+  OSTaskCreate((OS_TCB  *)&TCB_LORA_Check,
+               (CPU_CHAR *)"lora_check",
+               (OS_TASK_PTR )Task_LORA_Check,
+               (void *) 0,
+               (OS_PRIO )APP_START_TASK_PRIO + 8,
+               (CPU_STK *)&STK_LORA_Check[0],
+               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
+               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
+               (OS_MSG_QTY) 0u,
+               (OS_TICK) 0u,
+               (void *) 0,
+               (OS_OPT) (OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+               (OS_ERR *)&err);
+  
   /*config */
   OSTaskCreate((OS_TCB  *)&TCB_Config,
                (CPU_CHAR *)"config",
                (OS_TASK_PTR )Task_Config,
                (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 8,
+               (OS_PRIO )APP_START_TASK_PRIO + 9,
                (CPU_STK *)&STK_Config[0],
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE*3/10,
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE*3,
@@ -289,7 +302,7 @@ void TaskCreate(void){
                (CPU_CHAR *)"LED",
                (OS_TASK_PTR )Task_LED,
                (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 9,
+               (OS_PRIO )APP_START_TASK_PRIO + 10,
                (CPU_STK *)&STK_LED[0],
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
