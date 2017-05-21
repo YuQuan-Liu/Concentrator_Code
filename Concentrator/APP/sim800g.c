@@ -17,7 +17,7 @@ extern OS_SEM SEM_Send_Online;   //发送数据时检测链路状态  "+IPSTATUS:0,CONNECT,
 
 
 extern volatile uint8_t connectstate;
-extern uint8_t * volatile server_ptr;      //中断中保存M590E 返回来的数据
+extern uint8_t * volatile server_ptr;      //中断中保存GPRS 返回来的数据
 extern uint8_t * volatile server_ptr_;     //记录中断的开始指针
 
 uint8_t ip[17] = "139.129.40.74";                 //the server ip

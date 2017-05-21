@@ -68,6 +68,7 @@ OS_SEM SEM_USART1_TX;    //往服务器发送数据
 OS_SEM SEM_USART2_TX;     //往采集器、表发送数据
 OS_SEM SEM_UART4_TX;
 
+OS_SEM SEM_LORA_OK;   //接收到LORA返回的  0D 0A 4F 4B 0D 0A 
 OS_SEM SEM_HeartBeat;    //接收服务器数据Task to HeartBeat Task  接收到心跳的回应
 OS_SEM SEM_ACKData;    //服务器对数据的ACK
 OS_SEM SEM_Send;      //got the '>'  we can send the data now  可以发送数据
@@ -88,12 +89,14 @@ OS_FLAG_GRP FLAG_Event;
 OS_TMR TMR_CJQTIMEOUT;    //打开采集器通道之后 20分钟超时 自动关闭通道
 
 
-uint8_t * volatile server_ptr = 0;      //中断中保存M590E 返回来的数据
+uint8_t * volatile server_ptr = 0;      //中断中保存GPRS 返回来的数据
 uint8_t * volatile server_ptr_ = 0;     //记录中断的开始指针
 
 
 volatile uint8_t connectstate = 0;       //0 didn't connect to the server   1 connect to the server
 volatile uint8_t reading = 0;   //0 didn't reading meters    1  reading meters
+
+volatile uint8_t lora_send = 0;  //每3s发送TEST到LORA
 
 uint8_t ack_action = 0xff;  //先应答后操作~0xaa    先操作后应答~0xff
 uint8_t slave_mbus = 0xaa; //0xaa~mbus   0xff~485   0xbb~采集器
@@ -151,9 +154,9 @@ void TaskStart(void *p_arg){
               OS_OPT_TIME_DLY,
               &err);
   }
-  /**/
-  sFLASH_PoolInit();
   
+  sFLASH_PoolInit();
+  /**/
   //TaskCreate();
   ObjCreate();
   
@@ -168,12 +171,12 @@ void TaskStart(void *p_arg){
     //LED1
     LED1_ON();
     OSTimeDly(1000,
-                  OS_OPT_TIME_DLY,
-                  &err);
+              OS_OPT_TIME_DLY,
+              &err);
     LED1_OFF();
     OSTimeDly(1000,
-                  OS_OPT_TIME_DLY,
-                  &err);
+              OS_OPT_TIME_DLY,
+              &err);
   }
 }
 
@@ -353,6 +356,14 @@ void ObjCreate(void){
     return;
   }
   
+  OSSemCreate(&SEM_LORA_OK,
+              "lora_ok",
+              0,
+              &err);
+  if(err != OS_ERR_NONE){
+    return;
+  }
+    
   OSSemCreate(&SEM_HeartBeat,
               "heart",
               0,
@@ -430,6 +441,7 @@ void ObjCreate(void){
   
   
   //OS_TMRs
+  /*
   OSTmrCreate(&TMR_CJQTIMEOUT,
               "",
               12000,
@@ -438,6 +450,7 @@ void ObjCreate(void){
               cjq_timeout,
               0,
               &err);
+  */
 }
 
 

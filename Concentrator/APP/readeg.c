@@ -45,78 +45,30 @@ void meter_cjq_eg(u8 *deal_ptr){
   u8 toslave[10];
   u8 done = 0;
   
-  switch(slave_mbus){
-    case 0xBB:
-      //采集器
-      //测试前3快表
-      for(i = 1;i <= 3;i++){
-        done = read_single_eg(cjq_h,cjq_l,i,0);
-        if(done){
-          break;
-        }
-      }
-      
-      if(done){
-        //采集器没问题  可以去抄采集器
-        memset(meterdata,0x00,600);
-        meterdata[0] = cjq_h;
-        meterdata[1] = cjq_l;
-        meterdata[2] = allmeters;
-        toslave[0] = 0x0E;
-        toslave[1] = 0x0D;
-        toslave[2] = 0x0C;
-        toslave[3] = 0x01;
-        toslave[4] = allmeters;
-        toslave[5] = cjq_h;
-        toslave[6] = cjq_l;
-        toslave[7] = 0xFF;
-        toslave[8] = 0xFF;
-        toslave[9] = 0x0E^toslave[4]^toslave[5]^toslave[6];
-        
-        Slave_Write(toslave,10);
-        
-        while(tmr_count < 65){
-          buf_readdata = OSQPend(&Q_ReadData,1000,OS_OPT_PEND_BLOCKING,&msg_size,&ts,&err);
-          if(err != OS_ERR_NONE){
-            tmr_count++;
-          }else{
-            //check the addr
-            meter_addr = *(buf_readdata + 4);
-            if(meter_addr > 0 && meter_addr <200){
-              meterdata[3*meter_addr] = meter_addr;
-              meterdata[3*meter_addr+1] = *(buf_readdata + 7);
-              meterdata[3*meter_addr+2] = *(buf_readdata + 8);
-            }
-            OSMemPut(&MEM_Buf,buf_readdata,&err);
-            if(meter_addr == allmeters){
-              break;
-            }
-          }
-        }
-        if(tmr_count == 65){
-          //sorry 采集器故障
-          meterdata[0] = cjq_h;
-          meterdata[1] = cjq_l;
-          meterdata[2] = 0xFF;
-        }
-      }else{
-        //sorry 采集器故障
-        meterdata[0] = cjq_h;
-        meterdata[1] = cjq_l;
-        meterdata[2] = 0xFF;
-      }
-      
-    break;
-    default:
-      
-      meterdata[0] = cjq_h;
-      meterdata[1] = cjq_l;
-      meterdata[2] = 0x00;  
-      
-      for(i = 1;i <= allmeters;i++){
-        read_single_eg(cjq_h,cjq_l,i,1);
-      }
-    break;
+  
+  for(i = 1;i <= 3;i++){
+    done = read_single_eg(cjq_h,cjq_l,i,0);
+    if(done){
+      break;
+    }
+  }
+  
+  if(done){
+    //采集器到表没问题  可以去抄采集器
+    memset(meterdata,0x00,600);
+    
+    meterdata[0] = cjq_h;
+    meterdata[1] = cjq_l;
+    meterdata[2] = 0x00;  
+    
+    for(i = 1;i <= allmeters;i++){
+      read_single_eg(cjq_h,cjq_l,i,1);
+    }
+  }else{
+    //sorry 采集器故障
+    meterdata[0] = cjq_h;
+    meterdata[1] = cjq_l;
+    meterdata[2] = 0xFF;
   }
 }
 
@@ -136,82 +88,40 @@ u8 read_single_eg(u8 cjq_h,u8 cjq_l,u8 meter_addr,u8 all){
   u8 toslave[10];
   u8 done = 0;
   
-  switch(slave_mbus){
-    case 0xBB:
-      //采集器
-      toslave[0] = 0x0E;
-      toslave[1] = 0x0D;
-      toslave[2] = 0x0C;
-      toslave[3] = 0x02;
-      toslave[4] = meter_addr;
-      toslave[5] = cjq_h;
-      toslave[6] = cjq_l;
-      toslave[7] = 0xFF;
-      toslave[8] = 0xFF;
-      toslave[9] = 0x0D^toslave[4]^toslave[5]^toslave[6];
-    break;
-    default:
-      //表
-      toslave[0] = 0x0E;
-      toslave[1] = 0x0D;
-      toslave[2] = 0x0B;
-      toslave[3] = 0x02;
-      toslave[4] = meter_addr;
-      toslave[5] = 0xAA;
-      toslave[6] = 0xAA;
-      toslave[7] = 0xAA;
-      toslave[8] = 0xA0^toslave[4];
-    break;
-  }
+  //表
+  toslave[0] = 0x0E;
+  toslave[1] = 0x0D;
+  toslave[2] = 0x0B;
+  toslave[3] = 0x02;
+  toslave[4] = meter_addr;
+  toslave[5] = 0xAA;
+  toslave[6] = 0xAA;
+  toslave[7] = 0xAA;
+  toslave[8] = 0xA0^toslave[4];
   
   for(i = 0;i< 3;i++){
-    if(slave_mbus == 0xBB){
-      //底层采集器
-      Slave_Write(toslave,10);
-      buf_readdata = OSQPend(&Q_ReadData,3000,OS_OPT_PEND_BLOCKING,&msg_size,&ts,&err);
-      if(err != OS_ERR_NONE){
-        continue;
-      }
-      //check the addr
-      if(*(buf_readdata + 4)== meter_addr){
-        if(all){
-          meterdata[3*meter_addr] = meter_addr;
-          meterdata[3*meter_addr+1] = *(buf_readdata + 7);
-          meterdata[3*meter_addr+2] = *(buf_readdata + 8);
-        }else{
-          meterdata[3] = meter_addr;
-          meterdata[4] = *(buf_readdata + 7);
-          meterdata[5] = *(buf_readdata + 8);
-        }
-        
-      }
-      OSMemPut(&MEM_Buf,buf_readdata,&err);
-      done = 1;
-      break;
-    }else{
-      //底层表  0xAA
-      Slave_Write(toslave,9);
-      buf_readdata = OSQPend(&Q_ReadData,1000,OS_OPT_PEND_BLOCKING,&msg_size,&ts,&err);
-      if(err != OS_ERR_NONE){
-        continue;
-      }
-      //check the addr
-      if(*(buf_readdata + 4)== meter_addr){
-        if(all){
-          meterdata[3*meter_addr] = meter_addr;
-          meterdata[3*meter_addr+1] = *(buf_readdata + 6);
-          meterdata[3*meter_addr+2] = *(buf_readdata + 7);
-        }else{
-          meterdata[3] = meter_addr;
-          meterdata[4] = *(buf_readdata + 6);
-          meterdata[5] = *(buf_readdata + 7);
-        }
-        
-      }
-      OSMemPut(&MEM_Buf,buf_readdata,&err);
-      done = 1;
-      break;
+    //底层表  0xAA
+    Write_485_2(toslave,9);
+    buf_readdata = OSQPend(&Q_ReadData,1000,OS_OPT_PEND_BLOCKING,&msg_size,&ts,&err);
+    if(err != OS_ERR_NONE){
+      continue;
     }
+    //check the addr
+    if(*(buf_readdata + 4)== meter_addr){
+      if(all){
+        meterdata[3*meter_addr] = meter_addr;
+        meterdata[3*meter_addr+1] = *(buf_readdata + 6);
+        meterdata[3*meter_addr+2] = *(buf_readdata + 7);
+      }else{
+        meterdata[3] = meter_addr;
+        meterdata[4] = *(buf_readdata + 6);
+        meterdata[5] = *(buf_readdata + 7);
+      }
+      
+    }
+    OSMemPut(&MEM_Buf,buf_readdata,&err);
+    done = 1;
+    break;
   }
   if(!done){
     if(all){
@@ -307,8 +217,8 @@ void send_data_eg(u8 metercount,uint8_t desc){
         }
       }
       
-      data_seq = local_seq;
-      addSEQ();
+      data_seq = addSEQ();
+      
       
       *buf_ptr++ = FN_CURRENT_METER;
       *buf_ptr++ = meterdata[0];
@@ -378,7 +288,7 @@ void send_data_eg(u8 metercount,uint8_t desc){
           break;
         }
       }else{
-        Server_Write_485(buf_ptr_,buf_ptr-buf_ptr_);
+        Write_485_2(buf_ptr_,buf_ptr-buf_ptr_);
       }
     }
     OSMemPut(&MEM_Buf,buf_ptr_,&err);
@@ -412,8 +322,8 @@ void send_cjqtimeout_eg(uint8_t desc){
     *buf_ptr++ = AFN_CURRENT;
     *buf_ptr++ = ZERO_BYTE |SINGLE | CONFIRM | local_seq;
     
-    data_seq = local_seq;
-    addSEQ();
+    data_seq = addSEQ();
+    
       
     *buf_ptr++ = FN_CURRENT_METER;
     *buf_ptr++ = meterdata[0];
@@ -437,7 +347,7 @@ void send_cjqtimeout_eg(uint8_t desc){
       }
     }else{
       //to 485
-      Server_Write_485(buf_ptr_,buf_ptr-buf_ptr_);
+      Write_485_2(buf_ptr_,buf_ptr-buf_ptr_);
     }
     
     

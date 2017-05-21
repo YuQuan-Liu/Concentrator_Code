@@ -1900,6 +1900,12 @@
   <group>
     <name>APP</name>
     <file>
+      <name>$PROJ_DIR$\APP\configs.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\APP\configs.h</name>
+    </file>
+    <file>
       <name>$PROJ_DIR$\APP\frame.h</name>
     </file>
     <file>
