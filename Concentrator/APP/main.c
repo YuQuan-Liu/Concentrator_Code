@@ -42,6 +42,8 @@ CPU_STK STK_Read[APP_START_TASK_STK_SIZE*3];
 OS_TCB TCB_Config;
 CPU_STK STK_Config[APP_START_TASK_STK_SIZE*3];
 
+OS_TCB TCB_LORA_Send;
+CPU_STK STK_LORA_Send[APP_START_TASK_STK_SIZE];
 
 OS_TCB TCB_LED;
 CPU_STK STK_LED[APP_START_TASK_STK_SIZE];
@@ -296,13 +298,29 @@ void TaskCreate(void){
                (void *) 0,
                (OS_OPT) (OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
                (OS_ERR *)&err);
-  //blink the led 1
+  
+  /*blink the led 3*/
+  OSTaskCreate((OS_TCB  *)&TCB_LORA_Send,
+               (CPU_CHAR *)"lora_send",
+               (OS_TASK_PTR )Task_LORA_Send,
+               (void *) 0,
+               (OS_PRIO )APP_START_TASK_PRIO + 10,
+               (CPU_STK *)&STK_LORA_Send[0],
+               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
+               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
+               (OS_MSG_QTY) 0u,
+               (OS_TICK) 0u,
+               (void *) 0,
+               (OS_OPT) (OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+               (OS_ERR *)&err);
+  
+  //blink the led 2
   /**/
   OSTaskCreate((OS_TCB  *)&TCB_LED,
                (CPU_CHAR *)"LED",
                (OS_TASK_PTR )Task_LED,
                (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 10,
+               (OS_PRIO )APP_START_TASK_PRIO + 11,
                (CPU_STK *)&STK_LED[0],
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
