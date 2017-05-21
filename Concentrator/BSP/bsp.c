@@ -187,6 +187,7 @@ void BSP_GPIO_Init(void){
   GPIO_Init(GPIOA,&gpio_init);
   
   GPIO_SetBits(GPIOA,GPIO_Pin_8); //OFF the GPRS PWR
+  GPIO_SetBits(GPIOA,GPIO_Pin_1); //ON the LORA PWR
   /*
   GPIOB
   0 ~ 485POWER
