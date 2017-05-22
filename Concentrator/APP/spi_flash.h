@@ -91,6 +91,8 @@
 #define sFLASH_ACK_ACTION    sFLASH_READMETER_DI_SEQ + 0x01     //先应答后操作~0xaa    先操作后应答~0xff   
 #define sFLASH_PROTOCOL    sFLASH_ACK_ACTION + 0x01     //协议类型 0xFF~188(Default)  1~EG  
 
+#define sFLASH_CJQ_ADDR         sFLASH_PROTOCOL+0x01     //采集器地址  占五个字节
+
 void sFLASH_DeInit(void);
 void sFLASH_Init(void);
 void sFLASH_EraseSector(uint32_t SectorAddr);

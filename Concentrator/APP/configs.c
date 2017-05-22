@@ -17,6 +17,7 @@ extern uint8_t ip4;
 extern uint16_t port_;
 
 extern uint8_t deviceaddr[5];
+extern uint8_t cjqaddr[5];
 extern volatile uint8_t lora_send;
 
 extern uint8_t slave_mbus; //0xaa mbus   0xff  485   0xBB~采集器
@@ -121,6 +122,30 @@ void param_config(uint8_t * buf_frame,uint8_t desc){
     //处理Config Flash 块
     sFLASH_ReadBuffer(config_flash,sFLASH_CON_START_ADDR,256);
     Mem_Copy(config_flash + (sFLASH_DEVICE_ADDR - sFLASH_CON_START_ADDR),deviceaddr,5);
+    sFLASH_EraseWritePage(config_flash,sFLASH_CON_START_ADDR,256);
+    OSMutexPost(&MUTEX_CONFIGFLASH,OS_OPT_POST_NONE,&err);
+    
+    device_ack(desc,server_seq_);
+    
+    break;
+  case FN_ADDRCJQ:
+    Mem_Clr(cjqaddr,5);
+    cjqaddr[0] = *(buf_frame + DATA_POSITION);
+    cjqaddr[1] = *(buf_frame + DATA_POSITION + 1);
+    cjqaddr[2] = *(buf_frame + DATA_POSITION + 2);
+    cjqaddr[3] = *(buf_frame + DATA_POSITION + 3);
+    cjqaddr[4] = *(buf_frame + DATA_POSITION + 4);  
+    
+    OSMutexPend(&MUTEX_CONFIGFLASH,1000,OS_OPT_PEND_BLOCKING,&ts,&err);
+    
+    if(err != OS_ERR_NONE){
+      //获取MUTEX过程中 出错了...
+      //return 0xFFFFFF;
+      return;
+    }
+    //处理Config Flash 块
+    sFLASH_ReadBuffer(config_flash,sFLASH_CON_START_ADDR,256);
+    Mem_Copy(config_flash + (sFLASH_CJQ_ADDR - sFLASH_CON_START_ADDR),cjqaddr,5);
     sFLASH_EraseWritePage(config_flash,sFLASH_CON_START_ADDR,256);
     OSMutexPost(&MUTEX_CONFIGFLASH,OS_OPT_POST_NONE,&err);
     

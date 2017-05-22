@@ -36,6 +36,7 @@ extern volatile uint8_t reading;
 extern volatile uint8_t connectstate; 
 extern volatile uint8_t lora_send;
 extern uint8_t deviceaddr[5];
+extern uint8_t cjqaddr[5];
 
 extern uint8_t slave_mbus; //0xaa mbus   0xff  485   0xBB~采集器
 
@@ -121,51 +122,6 @@ void Task_485_2(void *p_arg){
       switch(protocol){
       case 0xFF:
         //188
-        /*
-        if(start_recv == 0){
-          if(data == 0x68){
-            *buf++ = data;
-            frame_len = 0;
-            start_recv = 1;
-          }
-        }else{
-          *buf++ = data;
-          if((buf-buf_) == 11){
-            frame_len = *(buf_+10)+13;
-          }
-          if(frame_len > 0 && (buf-buf_) >= frame_len){
-            //if it is the end of the frame
-            if(*(buf-1) == 0x16){
-              //check the frame cs
-              if(*(buf-2) == check_cs(buf_,frame_len-2)){
-                //the frame is ok;
-                OSQPost(&Q_ReadData,
-                        buf_,
-                        frame_len,
-                        OS_OPT_POST_FIFO,
-                        &err);
-                if(err == OS_ERR_NONE){
-                  buf_ = 0;
-                  buf = 0;
-                  start_recv = 0;
-                  frame_len = 0;
-                }else{
-                  buf = buf_;
-                  start_recv = 0;
-                  frame_len = 0;
-                }
-              }else{
-                buf = buf_;
-                start_recv = 0;
-                frame_len = 0;
-              }
-            }else{
-              buf = buf_;
-              start_recv = 0;
-              frame_len = 0;
-            }
-          }
-        }*/
         break;
       case 0x01:
         if(start_recv == 0){
@@ -208,8 +164,6 @@ void Task_485_2(void *p_arg){
         }
         break;
       }
-      
-      
     }else{
       //it is the frame come from programmer
       if(start_recv == 0){
@@ -552,6 +506,7 @@ void Task_DealServer(void *p_arg){
   uint8_t * start = 0;
   uint8_t server_seq_ = 0;
   uint16_t len = 0;
+  uint8_t desc = 0;
   
   while(DEF_TRUE){
     /*
@@ -569,59 +524,54 @@ void Task_DealServer(void *p_arg){
     //check the frame
     len = check_frame(start);
     
+    //首先判断是不是找自己的
+    //如果是找自己 判断自己是否在抄表  
+    //如果不在抄表  去抄表
+    //如果在抄表   直接返回ACK
     if(len){
-      //the frame is ok
-      switch(*(start+AFN_POSITION)){
-      case AFN_ACK:
-        //the ack of the Concentrator
-        
-        server_seq_ = *(start+SEQ_POSITION) & 0x0F;  //获得该帧的序列号
-        
-        if(server_seq_ == data_seq){
-          OSSemPost(&SEM_ACKData,
-                    OS_OPT_POST_1,
-                    &err);
-        }else{
-          //抛弃此应答帧
-        }
-        break;
-      case AFN_CONTROL:
-      case AFN_CURRENT:
-        
-        //首先判断是不是找自己的
-        
-        //如果是找自己 判断自己是否在抄表  
-        //如果不在抄表  去抄表
-        //如果在抄表   直接返回ACK
-        
-        
-        
-        server_seq_ = *(start + SEQ_POSITION) & 0x0F;
-        if(*(start+FN_POSITION) == 0x05){
-          //匹配序列号
-          server_seq = server_seq_;
-          device_ack(0x01,server_seq_);
-        }else{
-          if(server_seq != server_seq_){
-            //新的抄表指令  ack & read
-            buf_copy = OSMemGet(&MEM_Buf,&err);
-            if(buf_copy != 0){
-              Mem_Copy(buf_copy,start,len);
-              *(buf_copy + len) = 0x01;  //标识这一帧来自服务器
-              server_seq = server_seq_;
-              device_ack(0x01,server_seq_);
-              OSQPost(&Q_Read,buf_copy,len,OS_OPT_POST_1,&err);
-              if(err != OS_ERR_NONE){
-                OSMemPut(&MEM_Buf,buf_copy,&err);
+      desc = *(buf_ptr_ + len);
+      //判断集中器地址
+      if(Mem_Cmp(deviceaddr,buf_ptr_+ADDR_POSITION,5) == DEF_YES){
+        //集中器地址正确
+        //判断采集器地址
+        if(cjqaddr[0] == *(buf_ptr_+DATA_POSITION+1) && cjqaddr[1] == *(buf_ptr_+DATA_POSITION)){
+          server_seq_ = *(start+SEQ_POSITION) & 0x0F;  //获得该帧的序列号
+          switch(*(start+AFN_POSITION)){
+          case AFN_ACK:
+            //the ack of the Concentrator
+            if(server_seq_ == data_seq){
+              OSSemPost(&SEM_ACKData,
+                        OS_OPT_POST_1,
+                        &err);
+            }else{
+              //抛弃此应答帧
+            }
+            break;
+          case AFN_CONTROL:
+          case AFN_CURRENT:
+            if(reading){
+              //在抄表   直接返回ACK
+              device_ack(desc,server_seq_);
+            }else{
+              //不在抄表  去抄表
+              buf_copy = OSMemGet(&MEM_Buf,&err);
+              if(buf_copy != 0){
+                Mem_Copy(buf_copy,start,len);
+                *(buf_copy + len) = desc;  //标识这一帧来自LORA
+                device_ack(desc,server_seq_);
+                OSQPost(&Q_Read,buf_copy,len,OS_OPT_POST_1,&err);
+                if(err != OS_ERR_NONE){
+                  OSMemPut(&MEM_Buf,buf_copy,&err);
+                }
               }
             }
-          }else{
-            device_ack(0x01,server_seq_);
+            break;
           }
+        }else{
+           //不是找我的
         }
-        
-        
-        break;
+      }else{
+        //集中器地址不对  do nothing 
       }
     }
     OSMemPut(&MEM_Buf,buf_ptr_,&err);
@@ -645,7 +595,9 @@ void Task_LORA_Check(void *p_arg){
     OSTimeDly(120000,
               OS_OPT_TIME_DLY,
               &err);
-    
+    if(reading){
+      continue;
+    }
     //尝试3次
     for(i = 0; i < 3;i++){
       inat = 0;
@@ -738,74 +690,26 @@ void Task_Read(void *p_arg){
                         &msg_size,
                         &ts,
                         &err);
+    Device_Read(ENABLE);
     switch(protocol){
     case 0xFF:
       //188
-      /*
-      switch(*(buf_frame+AFN_POSITION)){
-        case AFN_CONTROL:
-          power_cmd(ENABLE);
-          meter_control(buf_frame,*(buf_frame+msg_size));
-          power_cmd(DISABLE);
-          break;
-        case AFN_CURRENT:
-          power_cmd(ENABLE);
-          meter_read_188(buf_frame,*(buf_frame+msg_size));
-          power_cmd(DISABLE);
-          break;
-      }*/
       break;
     case 0x01:
-      //EG  TODO
-      //power_cmd(ENABLE);
-      //meter_read_eg(buf_frame,*(buf_frame+msg_size));
-      //power_cmd(DISABLE);
+      //EG  
+      PWR_485_ON();
+      OSTimeDly(1000,
+                OS_OPT_TIME_DLY,
+                &err);
+      meter_read_eg(buf_frame,*(buf_frame+msg_size));
+      PWR_485_OFF();
       break;
     }
-    
-    
-    
+    Device_Read(DISABLE);
     OSMemPut(&MEM_Buf,buf_frame,&err);
   }
 }
 
-
-/**
- * 抄海大协议表
- */
-/*
-void meter_read_eg(uint8_t * buf_frame,uint8_t desc){
-  OS_ERR err;
-  CPU_TS ts;
-  //获取config_flash的使用权
-  OSMutexPend(&MUTEX_CONFIGFLASH,1000,OS_OPT_PEND_BLOCKING,&ts,&err);
-  if(err != OS_ERR_NONE){
-    //获取MUTEX过程中 出错了...
-    //return 0xFFFFFF;
-    return;
-  }
-  meterdata = config_flash; //将表返回的所有信息存放在config_flash
-  Device_Read(ENABLE);
-  switch (*(buf_frame + DATA_POSITION)){
-    case 0xAA:
-      meter_single_eg(buf_frame);
-      send_data_eg(1,desc);
-    break;
-    case 0x00:
-      meter_cjq_eg(buf_frame);
-      if(meterdata[2] != 0xFF){
-        send_data_eg(*(buf_frame + DATA_POSITION + 3),desc);
-      }else{
-        send_cjqtimeout_eg(desc);
-      }
-      
-    break;
-  }
-  Device_Read(DISABLE);
-  
-  OSMutexPost(&MUTEX_CONFIGFLASH,OS_OPT_POST_NONE,&err);
-}
-*/
 
 /**
  * config and query the parameter

@@ -3,6 +3,11 @@
 #ifndef _READ_G_H
 #define _READ_G_H
 
+/**
+ * 抄海大协议表
+ */
+void meter_read_eg(uint8_t * buf_frame,uint8_t desc);
+
 /*抄单个表*/
 void meter_single_eg(u8 *deal_ptr);
 /*抄采集器*/

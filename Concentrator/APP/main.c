@@ -102,6 +102,9 @@ uint8_t slave_mbus = 0xbb; //0xaa~mbus   0xff~485   0xbb~采集器
 uint8_t di_seq; //DI0 DI1 顺序   0xAA~DI1在前(千宝通)   0xFF~DI0在前(default)  
 uint8_t protocol = 0x01;  //协议类型 0xFF~188(Default)  1~EG 
 
+uint8_t deviceaddr[5] = {0x99,0x09,0x00,0x00,0x57};      //集中器地址
+uint8_t cjqaddr[5] = {0x00,0x00,0x00,0x00,0x01};     //采集器地址
+
 void TaskStart(void *p_arg);
 void TaskCreate(void);
 void ObjCreate(void);
@@ -196,20 +199,6 @@ void TaskCreate(void){
                (void *) 0,
                (OS_OPT) (OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
                (OS_ERR *)&err);
-  /*the data come from the server */
-  OSTaskCreate((OS_TCB  *)&TCB_Server,
-               (CPU_CHAR *)"U1",
-               (OS_TASK_PTR )Task_Server,
-               (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 2,
-               (CPU_STK *)&STK_Server[0],
-               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
-               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
-               (OS_MSG_QTY) 0u,
-               (OS_TICK) 0u,
-               (void *) 0,
-               (OS_OPT) (OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
-               (OS_ERR *)&err);
   //OS_CFG_TICK_TASK_PRIO == 6 = APP_START_TASK_PRIO + 3
   
   OSTaskCreate((OS_TCB  *)&TCB_LORA,
@@ -249,20 +238,6 @@ void TaskCreate(void){
                (CPU_STK *)&STK_Read[0],
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE*3/10,
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE*3,
-               (OS_MSG_QTY) 0u,
-               (OS_TICK) 0u,
-               (void *) 0,
-               (OS_OPT) (OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
-               (OS_ERR *)&err);
-  /*heart beat */
-  OSTaskCreate((OS_TCB  *)&TCB_HeartBeat,
-               (CPU_CHAR *)"heart",
-               (OS_TASK_PTR )Task_HeartBeat,
-               (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 7,
-               (CPU_STK *)&STK_HeartBeat[0],
-               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
-               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
                (OS_MSG_QTY) 0u,
                (OS_TICK) 0u,
                (void *) 0,

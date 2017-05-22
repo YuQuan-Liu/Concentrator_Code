@@ -646,6 +646,7 @@ void PutFlash(uint32_t put){
 extern uint8_t ip[17];                 //the server ip
 extern uint8_t port[8];                     //the server port
 extern uint8_t deviceaddr[5];      //设备地址
+extern uint8_t cjqaddr[5];       //采集器地址 
 
 extern uint8_t ip1;
 extern uint8_t ip2;
@@ -685,10 +686,17 @@ void param_conf(void){
   sFLASH_ReadBuffer((uint8_t *)&ack_action,sFLASH_ACK_ACTION,1);
   //协议类型 0xFF~188(Default)  1~EG  
   sFLASH_ReadBuffer((uint8_t *)&protocol,sFLASH_PROTOCOL,1);
+  
   //the device 's addr
   temp[0] = 0x00;
   sFLASH_ReadBuffer(temp,sFLASH_DEVICE_ADDR,1);
   if(temp[0] != 0xFF){
     sFLASH_ReadBuffer(deviceaddr,sFLASH_DEVICE_ADDR,5);
+  }
+  
+  temp[0] = 0x00; //采集器地址
+  sFLASH_ReadBuffer(temp,sFLASH_CJQ_ADDR,1);
+  if(temp[0] != 0xFF){
+    sFLASH_ReadBuffer(cjqaddr,sFLASH_CJQ_ADDR,5);
   }
 }

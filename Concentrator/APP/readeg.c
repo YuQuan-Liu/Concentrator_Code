@@ -14,7 +14,43 @@ extern OS_MEM MEM_Buf;
 extern OS_Q Q_ReadData;        //发送抄表指令后  下层返回抄表数据
 extern uint8_t deviceaddr[5];
 extern uint8_t slave_mbus; //0xaa mbus   0xff  485   0xBB~采集器
+extern OS_MUTEX MUTEX_CONFIGFLASH;
+extern uint8_t config_flash[];
 
+/**
+ * 抄海大协议表
+ */
+void meter_read_eg(uint8_t * buf_frame,uint8_t desc){
+  OS_ERR err;
+  CPU_TS ts;
+  //获取config_flash的使用权
+  OSMutexPend(&MUTEX_CONFIGFLASH,1000,OS_OPT_PEND_BLOCKING,&ts,&err);
+  if(err != OS_ERR_NONE){
+    //获取MUTEX过程中 出错了...
+    //return 0xFFFFFF;
+    return;
+  }
+  meterdata = config_flash; //将表返回的所有信息存放在config_flash
+  
+  switch (*(buf_frame + DATA_POSITION)){
+    case 0xAA:
+      meter_single_eg(buf_frame);
+      send_data_eg(1,desc);
+    break;
+    case 0x00:
+      meter_cjq_eg(buf_frame);
+      if(meterdata[2] != 0xFF){
+        send_data_eg(*(buf_frame + DATA_POSITION + 3),desc);
+      }else{
+        send_cjqtimeout_eg(desc);
+      }
+      
+    break;
+  }
+  
+  
+  OSMutexPost(&MUTEX_CONFIGFLASH,OS_OPT_POST_NONE,&err);
+}
 
 
 //抄单个表
@@ -141,8 +177,8 @@ void send_data_eg(u8 metercount,uint8_t desc){
   //需要有确认实现
   OS_ERR err;
   CPU_TS ts;
-  uint8_t times = metercount/20;
-  uint8_t remain = metercount%20;
+  uint8_t times = metercount/10;
+  uint8_t remain = metercount%10;
   uint8_t times_  = 0;
   uint8_t k = 0;  //计数这个帧中的数据
   uint8_t i = 0;   //计数这是第几帧
