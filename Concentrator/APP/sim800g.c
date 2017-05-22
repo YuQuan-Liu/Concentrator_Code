@@ -38,8 +38,8 @@ u8 *ats[20]={
 	"AT+CREG?\r",  //检查网络注册状态
 	"AT+CGATT?\r",  //检查GPRS附着状态
 	"AT+CIPMUX=1\r",  //设置成多链路模式
-	//"AT+CSTT=\"3GWAP\"\r",  //设置APN
-        "AT+CSTT=\"CMNET\"\r",  //设置APN
+	"AT+CSTT=\"3GWAP\"\r",  //设置APN
+        //"AT+CSTT=\"CMNET\"\r",  //设置APN
 	"AT+CIICR\r",   //建立PPP连接
 	"AT+CIFSR\r",    //获取本地IP地址
 	"AT+CIPSTART=0,\"TCP\",",   //+ip+port 建立TCP连接
@@ -370,10 +370,14 @@ ErrorStatus at_tcpsetup(void){
     Server_Post2Buf(0);   //停止接收数据
     
     check_str(buf_server_,buf_server);  //屏蔽掉数据前的0x00
-    if(Str_Str(buf_server_,"CONNECT OK")){
+    if(Str_Str(buf_server_,"OK")){
       OSMemPut(&MEM_Buf,buf_server_,&err);
       return SUCCESS;
     }
+    /*if(Str_Str(buf_server_,"CONNECT OK")){
+      OSMemPut(&MEM_Buf,buf_server_,&err);
+      return SUCCESS;
+    }*/
     OSMemPut(&MEM_Buf,buf_server_,&err);
   }
   return ERROR;
