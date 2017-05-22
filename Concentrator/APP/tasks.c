@@ -22,6 +22,7 @@ extern OS_Q Q_485_2;            //采集器、表发送过来的数据
 extern OS_Q Q_LORA;
 extern OS_Q Q_Read;            //抄表任务Queue
 extern OS_Q Q_ReadData;        //发送抄表指令后  下层返回抄表数据
+extern OS_Q Q_ReadData_LORA;   //通过LORA返回的抄表结果 应答
 extern OS_Q Q_Config;         //配置任务Queue
 extern OS_Q Q_Deal;         //处理接收到的服务器发送过来的数据
 
@@ -428,16 +429,12 @@ void Task_LORA(void *p_arg){
               //check the frame cs
               if(*(buf-2) == check_cs(buf_+6,frame_len-8)){
                 //the frame is ok;
-                switch(*(buf_+AFN_POSITION)){
-                case AFN_CONTROL:
-                case AFN_CURRENT:
-                  *buf = 0x02;//标识这一帧数据是来自LORA的
-                  OSQPost(&Q_Read,
-                          buf_,frame_len,
-                          OS_OPT_POST_FIFO,
-                          &err);
-                  break;
-                }
+                //采集器返回过来的数据帧  或者 应答帧
+                
+                OSQPost(&Q_ReadData_LORA,
+                        buf_,frame_len,
+                        OS_OPT_POST_FIFO,
+                        &err);
                 if(err == OS_ERR_NONE){
                   buf_ = 0;
                   buf = 0;
@@ -990,9 +987,9 @@ void Task_Read(void *p_arg){
       }*/
       break;
     case 0x01:
-      //EG  TODO
+      //EG  
       //power_cmd(ENABLE);
-      //meter_read_eg(buf_frame,*(buf_frame+msg_size));
+      meter_read_eg(buf_frame,msg_size,*(buf_frame+msg_size));
       //power_cmd(DISABLE);
       break;
     }
@@ -1007,10 +1004,49 @@ void Task_Read(void *p_arg){
 /**
  * 抄海大协议表
  */
-/*
-void meter_read_eg(uint8_t * buf_frame,uint8_t desc){
+void meter_read_eg(uint8_t * buf_frame,uint8_t frame_len,uint8_t desc){
   OS_ERR err;
   CPU_TS ts;
+  uint16_t msg_size;
+  uint8_t * lora_data;
+  uint8_t i;
+  uint8_t cjq_ok;
+  
+  for(i = 0;i < 3;i++){
+    cjq_ok = 0;
+    Write_LORA(buf_frame,frame_len-1);
+    lora_data = OSQPend(&Q_ReadData_LORA,
+                        5000,
+                        OS_OPT_PEND_BLOCKING,
+                        &msg_size,
+                        &ts,
+                        &err);
+    if(err != OS_ERR_NONE){
+      continue;
+    }
+    
+    //check the frame is the ack & the addr is ok
+    if(lora_data){   //TODO...
+      cjq_ok = 1;
+      OSMemPut(&MEM_Buf,lora_data,&err);
+      break;
+    }else{
+      OSMemPut(&MEM_Buf,lora_data,&err);
+    }
+  }
+  
+  if(cjq_ok){
+    //cjq is ok wait the data
+    
+    
+  }else{
+    //cjq is error send the overtime
+    
+    
+  }
+  
+  
+  
   //获取config_flash的使用权
   OSMutexPend(&MUTEX_CONFIGFLASH,1000,OS_OPT_PEND_BLOCKING,&ts,&err);
   if(err != OS_ERR_NONE){
@@ -1039,7 +1075,6 @@ void meter_read_eg(uint8_t * buf_frame,uint8_t desc){
   
   OSMutexPost(&MUTEX_CONFIGFLASH,OS_OPT_POST_NONE,&err);
 }
-*/
 
 /**
  * config and query the parameter

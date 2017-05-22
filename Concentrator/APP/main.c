@@ -81,6 +81,7 @@ OS_Q Q_485_2;            //采集器、表发送过来的数据
 OS_Q Q_LORA;
 OS_Q Q_Read;             //抄表任务Queue
 OS_Q Q_ReadData;        //发送抄表指令后  下层返回抄表数据
+OS_Q Q_ReadData_LORA;   //通过LORA返回的抄表结果 应答
 OS_Q Q_Config;         //配置任务Queue
 OS_Q Q_Deal;         //处理接收到的服务器发送过来的数据
 
@@ -447,6 +448,14 @@ void ObjCreate(void){
   
   OSQCreate(&Q_ReadData,
             "readdata",
+            4,
+            &err);
+  if(err != OS_ERR_NONE){
+    return;
+  }
+  
+  OSQCreate(&Q_ReadData_LORA,
+            "loradata",
             4,
             &err);
   if(err != OS_ERR_NONE){
