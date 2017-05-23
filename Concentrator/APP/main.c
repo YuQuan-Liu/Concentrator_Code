@@ -64,6 +64,7 @@ uint8_t *meterdata;  //使用海大协议抄表时存放返回的信息  使用config_flash
 //OS_MUTEXs;
 OS_MUTEX MUTEX_CONFIGFLASH;    //是否可以使用 config_flash  4K 数组配置FLASH
 OS_MUTEX MUTEX_SENDSERVER;    //是否可以发送数据到服务器
+OS_MUTEX MUTEX_SENDLORA;    //是否可以发送数据到LORA
 
 //OS_SEMs ;
 
@@ -94,8 +95,7 @@ uint8_t * volatile server_ptr_ = 0;     //记录中断的开始指针
 
 volatile uint8_t connectstate = 0;       //0 didn't connect to the server   1 connect to the server
 volatile uint8_t reading = 0;   //0 didn't reading meters    1  reading meters
-
-volatile uint8_t lora_send = 0;  //每3s发送TEST到LORA
+volatile uint8_t lora_send = 0;  //1 ~ 采集器在接收集中器发送过来的测试信号指令
 
 uint8_t ack_action = 0xff;  //先应答后操作~0xaa    先操作后应答~0xff
 uint8_t slave_mbus = 0xbb; //0xaa~mbus   0xff~485   0xbb~采集器
@@ -336,6 +336,7 @@ void ObjCreate(void){
   //OS_MUTEX MUTEX_CONFIGFLASH;    //是否可以使用 config_flash  4K 数组配置FLASH
   OSMutexCreate(&MUTEX_CONFIGFLASH,"",&err);
   OSMutexCreate(&MUTEX_SENDSERVER,"",&err);
+  OSMutexCreate(&MUTEX_SENDLORA,"",&err);
   
   //OS_SEM
   OSSemCreate(&SEM_USART1_TX,

@@ -30,6 +30,8 @@ extern uint8_t protocol;  //协议类型 0xFF~188(Default)  1~EG
 
 extern OS_MEM MEM_Buf;
 extern OS_MUTEX MUTEX_CONFIGFLASH;    //是否可以使用 config_flash  4K 数组配置FLASH
+extern OS_SEM SEM_LORA_OK;
+extern OS_MUTEX MUTEX_SENDLORA;
 
 void param_config(uint8_t * buf_frame,uint8_t desc){
   OS_ERR err;
@@ -299,6 +301,26 @@ void param_config(uint8_t * buf_frame,uint8_t desc){
     }
     device_ack(desc,server_seq_);
     break;
+  case FN_LORA_API:
+    OSMutexPend(&MUTEX_SENDLORA,3000,OS_OPT_PEND_BLOCKING,&ts,&err);
+    if(err != OS_ERR_NONE){
+      //获取MUTEX过程中 出错了...
+      //return 0xFFFFFF;
+      return;
+    }
+    
+    Write_LORA("===",3); //进入API模式
+    OSSemPend(&SEM_LORA_OK,
+              1000,
+              OS_OPT_PEND_BLOCKING,
+              &ts,
+              &err);
+    if(err == OS_ERR_NONE){
+      device_ack(desc,server_seq_);
+    }
+    
+    OSMutexPost(&MUTEX_SENDLORA,OS_OPT_POST_NONE,&err);
+    break;
   }
   
 }
@@ -333,7 +355,6 @@ void param_query(uint8_t * buf_frame,uint8_t desc){
   }
 }
 
-
 void device_ack(uint8_t desc,uint8_t server_seq_){
   uint8_t ack[17];
   uint8_t * buf_frame;
@@ -367,6 +388,49 @@ void device_ack(uint8_t desc,uint8_t server_seq_){
   }else{
     //to 485
     Write_485_2(ack,17);
+  }
+  
+}
+
+void device_ack_lora(uint8_t desc,uint8_t server_seq_){
+  uint8_t ack[17];
+  uint8_t * buf_frame;
+  
+  buf_frame = ack;
+  *buf_frame++ = FRAME_HEAD;
+  *buf_frame++ = 0x3B;//(14 << 2) | 0x03;
+  *buf_frame++ = 0x00;
+  *buf_frame++ = 0x3B;//(14 << 2) | 0x03;
+  *buf_frame++ = 0x00;
+  *buf_frame++ = FRAME_HEAD;
+  
+  *buf_frame++ = ZERO_BYTE | DIR_TO_SERVER | PRM_SLAVE | SLAVE_FUN_ACK;
+  /**/
+  *buf_frame++ = deviceaddr[0];
+  *buf_frame++ = deviceaddr[1];
+  *buf_frame++ = deviceaddr[2];
+  *buf_frame++ = deviceaddr[3];
+  *buf_frame++ = deviceaddr[4];
+  
+  *buf_frame++ = AFN_ACK;
+  *buf_frame++ = ZERO_BYTE |SINGLE | server_seq_;
+  *buf_frame++ = FN_ACK;
+  
+  *buf_frame++ = cjqaddr[0];
+  *buf_frame++ = cjqaddr[1];
+  *buf_frame++ = cjqaddr[2];
+  *buf_frame++ = cjqaddr[3];
+  *buf_frame++ = cjqaddr[4];
+  
+  *buf_frame++ = check_cs(ack+6,14);
+  *buf_frame++ = FRAME_END;
+  
+  if(desc){
+    //to gprs
+    send_server(ack,22);
+  }else{
+    //to 485
+    Write_485_2(ack,22);
   }
   
 }

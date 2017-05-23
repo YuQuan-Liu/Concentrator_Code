@@ -47,7 +47,7 @@ extern uint8_t di_seq; //DI0 DI1 顺序   0xAA~DI1在前(千宝通)   0xFF~DI0在前(defa
 extern uint8_t ack_action;  //先应答后操作~0xaa    先操作后应答~0xff
 extern uint8_t protocol;  //协议类型 0xFF~188(Default)  1~EG 
 
-
+extern OS_MUTEX MUTEX_SENDLORA;
 
 extern uint8_t * volatile server_ptr;      //中断中保存GPRS 返回来的数据
 extern uint8_t * volatile server_ptr_;     //记录中断的开始指针
@@ -551,14 +551,14 @@ void Task_DealServer(void *p_arg){
           case AFN_CURRENT:
             if(reading){
               //在抄表   直接返回ACK
-              device_ack(desc,server_seq_);
+              device_ack_lora(desc,server_seq_);
             }else{
               //不在抄表  去抄表
               buf_copy = OSMemGet(&MEM_Buf,&err);
               if(buf_copy != 0){
                 Mem_Copy(buf_copy,start,len);
                 *(buf_copy + len) = desc;  //标识这一帧来自LORA
-                device_ack(desc,server_seq_);
+                device_ack_lora(desc,server_seq_);
                 OSQPost(&Q_Read,buf_copy,len,OS_OPT_POST_1,&err);
                 if(err != OS_ERR_NONE){
                   OSMemPut(&MEM_Buf,buf_copy,&err);
@@ -598,6 +598,11 @@ void Task_LORA_Check(void *p_arg){
     if(reading){
       continue;
     }
+    OSMutexPend(&MUTEX_SENDLORA,3000,OS_OPT_PEND_BLOCKING,&ts,&err);
+    if(err != OS_ERR_NONE){
+      //获取MUTEX过程中 出错了...
+      continue;
+    }
     //尝试3次
     for(i = 0; i < 3;i++){
       inat = 0;
@@ -630,6 +635,7 @@ void Task_LORA_Check(void *p_arg){
         continue;
       }
     }
+    OSMutexPost(&MUTEX_SENDLORA,OS_OPT_POST_NONE,&err);
     //检测失败
     if(inat == 0 || outat == 0){
       //restart LORA

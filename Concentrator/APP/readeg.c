@@ -16,7 +16,7 @@ extern uint8_t deviceaddr[5];
 extern uint8_t slave_mbus; //0xaa mbus   0xff  485   0xBB~采集器
 extern OS_MUTEX MUTEX_CONFIGFLASH;
 extern uint8_t config_flash[];
-
+extern OS_MUTEX MUTEX_SENDLORA;
 /**
  * 抄海大协议表
  */
@@ -30,6 +30,14 @@ void meter_read_eg(uint8_t * buf_frame,uint8_t desc){
     //return 0xFFFFFF;
     return;
   }
+  
+  OSMutexPend(&MUTEX_SENDLORA,3000,OS_OPT_PEND_BLOCKING,&ts,&err);
+  if(err != OS_ERR_NONE){
+    //获取MUTEX过程中 出错了...
+    //return 0xFFFFFF;
+    return;
+  }
+  
   meterdata = config_flash; //将表返回的所有信息存放在config_flash
   
   switch (*(buf_frame + DATA_POSITION)){
@@ -48,8 +56,8 @@ void meter_read_eg(uint8_t * buf_frame,uint8_t desc){
     break;
   }
   
-  
   OSMutexPost(&MUTEX_CONFIGFLASH,OS_OPT_POST_NONE,&err);
+  OSMutexPost(&MUTEX_SENDLORA,OS_OPT_POST_NONE,&err);
 }
 
 
@@ -307,7 +315,7 @@ void send_data_eg(u8 metercount,uint8_t desc){
       if(desc){
         for(j = 0;j<3;j++){
           ack = 0;
-          send_server(buf_ptr_,buf_ptr-buf_ptr_);
+          Write_LORA(buf_ptr_,buf_ptr-buf_ptr_);
           OSSemPend(&SEM_ACKData,
                     5000,
                     OS_OPT_PEND_BLOCKING,
@@ -371,7 +379,7 @@ void send_cjqtimeout_eg(uint8_t desc){
     
     if(desc){
       for(j = 0;j<3;j++){
-        send_server(buf_ptr_,buf_ptr-buf_ptr_);
+        Write_LORA(buf_ptr_,buf_ptr-buf_ptr_);
         OSSemPend(&SEM_ACKData,
                   5000,
                   OS_OPT_PEND_BLOCKING,

@@ -74,6 +74,9 @@
 #define FN_PROTOCOL                   18  //协议类型 0xFF~188(Default)  1~EG  
 #define FN_LORA_SEND                   19  //发送供采集器测试信号使用指令  
 #define FN_ADDRCJQ                        20  //设置采集器地址
+#define FN_LORA_API                      21   //设置LORA进入API模式
+
+
 
 //Fn  AFN == 0x04
 #define FN_CLOSE                      2
