@@ -17,6 +17,7 @@ extern uint8_t ip4;
 extern uint16_t port_;
 
 extern uint8_t deviceaddr[5];
+extern uint8_t cjqaddr[5];
 extern volatile uint8_t lora_send;
 
 extern uint8_t slave_mbus; //0xaa mbus   0xff  485   0xBB~²É¼¯Æ÷
@@ -342,6 +343,49 @@ void device_ack(uint8_t desc,uint8_t server_seq_){
   }else{
     //to 485
     Write_485_2(ack,17);
+  }
+  
+}
+
+void device_ack_lora(uint8_t desc,uint8_t server_seq_){
+  uint8_t ack[17];
+  uint8_t * buf_frame;
+  
+  buf_frame = ack;
+  *buf_frame++ = FRAME_HEAD;
+  *buf_frame++ = 0x3B;//(14 << 2) | 0x03;
+  *buf_frame++ = 0x00;
+  *buf_frame++ = 0x3B;//(14 << 2) | 0x03;
+  *buf_frame++ = 0x00;
+  *buf_frame++ = FRAME_HEAD;
+  
+  *buf_frame++ = ZERO_BYTE | DIR_TO_SERVER | PRM_SLAVE | SLAVE_FUN_ACK;
+  /**/
+  *buf_frame++ = deviceaddr[0];
+  *buf_frame++ = deviceaddr[1];
+  *buf_frame++ = deviceaddr[2];
+  *buf_frame++ = deviceaddr[3];
+  *buf_frame++ = deviceaddr[4];
+  
+  *buf_frame++ = AFN_ACK;
+  *buf_frame++ = ZERO_BYTE |SINGLE | server_seq_;
+  *buf_frame++ = FN_ACK;
+  
+  *buf_frame++ = cjqaddr[0];
+  *buf_frame++ = cjqaddr[1];
+  *buf_frame++ = cjqaddr[2];
+  *buf_frame++ = cjqaddr[3];
+  *buf_frame++ = cjqaddr[4];
+  
+  *buf_frame++ = check_cs(ack+6,14);
+  *buf_frame++ = FRAME_END;
+  
+  if(desc){
+    //to gprs
+    send_server(ack,22);
+  }else{
+    //to 485
+    Write_485_2(ack,22);
   }
   
 }

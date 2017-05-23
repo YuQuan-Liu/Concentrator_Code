@@ -64,6 +64,7 @@ uint8_t *meterdata;  //使用海大协议抄表时存放返回的信息  使用config_flash
 //OS_MUTEXs;
 OS_MUTEX MUTEX_CONFIGFLASH;    //是否可以使用 config_flash  4K 数组配置FLASH
 OS_MUTEX MUTEX_SENDSERVER;    //是否可以发送数据到服务器
+OS_MUTEX MUTEX_SENDLORA;    //是否可以发送数据到LORA
 
 //OS_SEMs ;
 
@@ -102,6 +103,9 @@ uint8_t ack_action = 0xff;  //先应答后操作~0xaa    先操作后应答~0xff
 uint8_t slave_mbus = 0xbb; //0xaa~mbus   0xff~485   0xbb~采集器
 uint8_t di_seq; //DI0 DI1 顺序   0xAA~DI1在前(千宝通)   0xFF~DI0在前(default)  
 uint8_t protocol = 0x01;  //协议类型 0xFF~188(Default)  1~EG 
+
+uint8_t deviceaddr[5] = {0x99,0x09,0x00,0x00,0x57};      //集中器地址
+uint8_t cjqaddr[5] = {0x00,0x00,0x00,0x00,0x01};     //正在抄表的采集器地址
 
 void TaskStart(void *p_arg);
 void TaskCreate(void);
@@ -362,7 +366,7 @@ void ObjCreate(void){
   //OS_MUTEX MUTEX_CONFIGFLASH;    //是否可以使用 config_flash  4K 数组配置FLASH
   OSMutexCreate(&MUTEX_CONFIGFLASH,"",&err);
   OSMutexCreate(&MUTEX_SENDSERVER,"",&err);
-  
+  OSMutexCreate(&MUTEX_SENDLORA,"",&err);
   //OS_SEM
   OSSemCreate(&SEM_USART1_TX,
               "u1_tx",

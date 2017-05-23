@@ -27,5 +27,6 @@ void ack_query_protocol(uint8_t desc,uint8_t server_seq_);
 
 
 void device_ack(uint8_t desc,uint8_t server_seq_);  //发送确认帧  1 发送给M590E服务器  0 发送给485
+void device_ack_lora(uint8_t desc,uint8_t server_seq_); //通过LORA返回确认指令
 
 #endif

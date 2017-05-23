@@ -22,7 +22,7 @@ extern uint8_t * volatile server_ptr_;     //记录中断的开始指针
 
 uint8_t ip[17] = "139.129.40.74";                 //the server ip
 uint8_t port[8] = ",3333\r";                     //the server port
-uint8_t deviceaddr[5] = {0x99,0x09,0x00,0x00,0x57};      //设备地址
+extern uint8_t deviceaddr[5];      //设备地址
 
 uint8_t ip1 = 139;
 uint8_t ip2 = 129;

@@ -37,6 +37,7 @@ extern volatile uint8_t reading;
 extern volatile uint8_t connectstate; 
 extern volatile uint8_t lora_send;
 extern uint8_t deviceaddr[5];
+extern uint8_t cjqaddr[5];
 
 extern uint8_t slave_mbus; //0xaa mbus   0xff  485   0xBB~采集器
 
@@ -122,95 +123,11 @@ void Task_485_2(void *p_arg){
       switch(protocol){
       case 0xFF:
         //188
-        /*
-        if(start_recv == 0){
-          if(data == 0x68){
-            *buf++ = data;
-            frame_len = 0;
-            start_recv = 1;
-          }
-        }else{
-          *buf++ = data;
-          if((buf-buf_) == 11){
-            frame_len = *(buf_+10)+13;
-          }
-          if(frame_len > 0 && (buf-buf_) >= frame_len){
-            //if it is the end of the frame
-            if(*(buf-1) == 0x16){
-              //check the frame cs
-              if(*(buf-2) == check_cs(buf_,frame_len-2)){
-                //the frame is ok;
-                OSQPost(&Q_ReadData,
-                        buf_,
-                        frame_len,
-                        OS_OPT_POST_FIFO,
-                        &err);
-                if(err == OS_ERR_NONE){
-                  buf_ = 0;
-                  buf = 0;
-                  start_recv = 0;
-                  frame_len = 0;
-                }else{
-                  buf = buf_;
-                  start_recv = 0;
-                  frame_len = 0;
-                }
-              }else{
-                buf = buf_;
-                start_recv = 0;
-                frame_len = 0;
-              }
-            }else{
-              buf = buf_;
-              start_recv = 0;
-              frame_len = 0;
-            }
-          }
-        }*/
         break;
       case 0x01:
-        if(start_recv == 0){
-          if(data == 0x0E){
-            *buf++ = data;
-            frame_len = 0;
-            start_recv = 1;
-          }
-        }else{
-          *buf++ = data;
-          if((buf-buf_) > 8){
-            if(*(buf_+2) == 0x0B){
-              //the slave is meter
-              //post to the reading_q
-              frame_len = 9;
-              if(check_eor(buf_,9) == 0x00){
-                //the frame is ok;
-                OSQPost(&Q_ReadData,
-                        buf_,
-                        frame_len,
-                        OS_OPT_POST_FIFO,
-                        &err);
-                if(err == OS_ERR_NONE){
-                  buf_ = 0;
-                  buf = 0;
-                  start_recv = 0;
-                  frame_len = 0;
-                }else{
-                  buf = buf_;
-                  start_recv = 0;
-                  frame_len = 0;
-                }
-              }else{
-                buf = buf_;
-                start_recv = 0;
-                frame_len = 0;
-              }
-            }
-          }
-        }
+        //EG
         break;
       }
-      
-      
     }else{
       //it is the frame come from programmer
       if(start_recv == 0){
@@ -373,14 +290,6 @@ void Task_LORA(void *p_arg){
         header_ok = 0;
         start_recv = 1;
         break;
-      case 0xFE:
-        lora_model = 3;
-        *buf++ = data;
-        frame_len = 0;
-        header_count = 1;
-        header_ok = 0;
-        start_recv = 1;
-        break;
       case 0x0D:
         lora_model = 2;
         *buf++ = data;
@@ -430,19 +339,28 @@ void Task_LORA(void *p_arg){
               if(*(buf-2) == check_cs(buf_+6,frame_len-8)){
                 //the frame is ok;
                 //采集器返回过来的数据帧  或者 应答帧
-                
-                OSQPost(&Q_ReadData_LORA,
-                        buf_,frame_len,
-                        OS_OPT_POST_FIFO,
-                        &err);
-                if(err == OS_ERR_NONE){
-                  buf_ = 0;
-                  buf = 0;
-                  start_recv = 0;
-                  frame_len = 0;
-                  header_count = 0;
-                  header_ok = 0;
+                if(reading){
+                  //抄表状态下  采集器返回过来的数据帧 或者应答帧
+                  OSQPost(&Q_ReadData_LORA,
+                          buf_,frame_len,
+                          OS_OPT_POST_FIFO,
+                          &err);
+                  if(err == OS_ERR_NONE){
+                    buf_ = 0;
+                    buf = 0;
+                    start_recv = 0;
+                    frame_len = 0;
+                    header_count = 0;
+                    header_ok = 0;
+                  }else{
+                    buf = buf_;
+                    start_recv = 0;
+                    frame_len = 0;
+                    header_count = 0;
+                    header_ok = 0;
+                  }
                 }else{
+                  //放弃此帧
                   buf = buf_;
                   start_recv = 0;
                   frame_len = 0;
@@ -471,7 +389,8 @@ void Task_LORA(void *p_arg){
         if(header_count == 6){
           if(*(buf_+5) ==0x0A){
             if(*(buf_+2) ==0x4F && *(buf_+3) ==0x4B){
-              //get the OK 
+              //get the OK  
+              //+++/AT+ESC return
               OSSemPost(&SEM_LORA_OK,
                         OS_OPT_POST_1,
                         &err);
@@ -493,46 +412,7 @@ void Task_LORA(void *p_arg){
           }
         }
         break;
-      case 3:
-        if(header_ok == 0){
-          header_count++;
-          if(header_count == 4){
-            if(*(buf_+3) ==0x7F){
-              frame_len = *(buf_+1) + 5;
-              header_ok = 1;
-            }else{
-              //the frame is error
-              start_recv = 0;
-              frame_len = 0;
-              header_count = 0;
-              header_ok = 0;
-              buf = buf_;
-            }
-          }
-        }else{
-          if(frame_len > 0 && (buf-buf_) >= frame_len){
-            //if it is the end of the frame
-            if(*(buf-1) == check_cs(buf_+4,frame_len-5)){
-              //check the frame cs
-              //the frame is ok ,send the frame to 485_2
-              Write_485_2(buf_,frame_len);
-              buf = buf_;
-              start_recv = 0;
-              frame_len = 0;
-              header_count = 0;
-              header_ok = 0;
-            }else{
-              buf = buf_;
-              start_recv = 0;
-              frame_len = 0;
-              header_count = 0;
-              header_ok = 0;
-            }
-          }
-        }
-        break;
       }
-      
     }
   }
 }
