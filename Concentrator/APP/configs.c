@@ -380,13 +380,8 @@ void device_ack_lora(uint8_t desc,uint8_t server_seq_){
   *buf_frame++ = check_cs(ack+6,14);
   *buf_frame++ = FRAME_END;
   
-  if(desc){
-    //to gprs
-    send_server(ack,22);
-  }else{
-    //to 485
-    Write_485_2(ack,22);
-  }
+  
+  Write_LORA(ack,22);
   
 }
 
