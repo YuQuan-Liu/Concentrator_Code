@@ -334,6 +334,9 @@ void param_query(uint8_t * buf_frame,uint8_t desc){
   case FN_ADDR: 
     ack_query_addr(desc,server_seq_);
     break;
+  case FN_ADDRCJQ:
+    ack_query_cjqaddr(desc,server_seq_);
+    break;
   case FN_METER:
     
     break;
@@ -460,6 +463,50 @@ void ack_query_addr(uint8_t desc,uint8_t server_seq_){
   *buf_frame++ = deviceaddr[2];
   *buf_frame++ = deviceaddr[3];
   *buf_frame++ = deviceaddr[4];
+  
+  *buf_frame++ = AFN_QUERY;
+  *buf_frame++ = ZERO_BYTE |SINGLE | server_seq_;
+  *buf_frame++ = FN_ADDR;
+  
+  *buf_frame++ = check_cs(buf_frame_+6,9);
+  *buf_frame++ = FRAME_END;
+  
+  
+  if(desc){
+    //to gprs
+    send_server(buf_frame_,17);
+  }else{
+    //to 485
+    Write_485_2(buf_frame_,17);
+  }
+  
+  OSMemPut(&MEM_Buf,buf_frame_,&err);
+}
+
+void ack_query_cjqaddr(uint8_t desc,uint8_t server_seq_){
+  OS_ERR err;
+  uint8_t * buf_frame;
+  uint8_t * buf_frame_;
+  
+  buf_frame = OSMemGet(&MEM_Buf,&err);
+  if(buf_frame == 0){
+    return;
+  }
+  buf_frame_ = buf_frame;
+  *buf_frame++ = FRAME_HEAD;
+  *buf_frame++ = 0x27;//(9 << 2) | 0x03;
+  *buf_frame++ = 0x00;
+  *buf_frame++ = 0x27;//(9 << 2) | 0x03;
+  *buf_frame++ = 0x00;
+  *buf_frame++ = FRAME_HEAD;
+  
+  *buf_frame++ = ZERO_BYTE | DIR_TO_SERVER | PRM_SLAVE | SLAVE_FUN_DATA;
+  /**/
+  *buf_frame++ = cjqaddr[0];
+  *buf_frame++ = cjqaddr[1];
+  *buf_frame++ = cjqaddr[2];
+  *buf_frame++ = cjqaddr[3];
+  *buf_frame++ = cjqaddr[4];
   
   *buf_frame++ = AFN_QUERY;
   *buf_frame++ = ZERO_BYTE |SINGLE | server_seq_;
