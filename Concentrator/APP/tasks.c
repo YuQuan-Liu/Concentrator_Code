@@ -382,6 +382,7 @@ void Task_LORA(void *p_arg){
               //check the frame cs
               if(*(buf-2) == check_cs(buf_+6,frame_len-8)){
                 //the frame is ok;
+                lora_send=0;
                 *buf = 0x02;//标识这一帧数据是来自LORA的
                 OSQPost(&Q_Deal,
                         buf_,frame_len,
@@ -424,6 +425,7 @@ void Task_LORA(void *p_arg){
         if(header_count == 6){
           if(*(buf_+5) ==0x0A){
             if(*(buf_+2) ==0x4F && *(buf_+3) ==0x4B){
+              lora_send=0;
               //get the OK 
               OSSemPost(&SEM_LORA_OK,
                         OS_OPT_POST_1,
@@ -468,6 +470,7 @@ void Task_LORA(void *p_arg){
             if(*(buf-1) == check_cs(buf_+4,frame_len-5)){
               //check the frame cs
               //the frame is ok ,send the frame to 485_2
+              lora_send=1;
               Write_485_2(buf_,frame_len);
               buf = buf_;
               start_recv = 0;
@@ -558,11 +561,11 @@ void Task_DealServer(void *p_arg){
               if(buf_copy != 0){
                 Mem_Copy(buf_copy,start,len);
                 *(buf_copy + len) = desc;  //标识这一帧来自LORA
-                device_ack_lora(desc,server_seq_);
                 OSQPost(&Q_Read,buf_copy,len,OS_OPT_POST_1,&err);
                 if(err != OS_ERR_NONE){
                   OSMemPut(&MEM_Buf,buf_copy,&err);
                 }
+                device_ack_lora(desc,server_seq_);
               }
             }
             break;
@@ -640,7 +643,7 @@ void Task_LORA_Check(void *p_arg){
     if(inat == 0 || outat == 0){
       //restart LORA
       PWR_LORA_OFF();
-      OSTimeDly(1000,
+      OSTimeDly(10000,
                 OS_OPT_TIME_DLY,
                 &err);
       PWR_LORA_ON();
@@ -660,11 +663,11 @@ void Task_LORA_Send(void *p_arg){
     
     if(lora_send){
       LED3_ON();
-      OSTimeDly(500,
+      OSTimeDly(100,
                 OS_OPT_TIME_DLY,
                 &err);
       LED3_OFF();
-      OSTimeDly(500,
+      OSTimeDly(100,
                 OS_OPT_TIME_DLY,
                 &err);
     }else{

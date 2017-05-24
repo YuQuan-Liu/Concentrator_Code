@@ -46,7 +46,7 @@ void BSP_Init(void){
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC,ENABLE);
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO,ENABLE);
   
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1,ENABLE);
+  //RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1,ENABLE);
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2,ENABLE);
   //RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3,ENABLE);
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART4,ENABLE);
@@ -75,18 +75,18 @@ void BSP_GPIO_Init(void){
   GPIO_ResetBits(GPIOB,GPIO_Pin_All);
   
   //USART1~~~~~~~~~~~~~~~~~~~~~~~
-  /* Configure USART1 Rx as input floating */
+  /* Configure USART1 Rx as input floating 
   //GPIOA 10
   gpio_init.GPIO_Pin = GPIO_Pin_10;
   gpio_init.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-  GPIO_Init(GPIOA, &gpio_init);  
+  GPIO_Init(GPIOA, &gpio_init);  */
   
-  /* Configure USART1 Tx as alternate function push-pull */
+  /* Configure USART1 Tx as alternate function push-pull 
   //GPIOA 9
   gpio_init.GPIO_Pin = GPIO_Pin_9;
   gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
   gpio_init.GPIO_Mode = GPIO_Mode_AF_PP;
-  GPIO_Init(GPIOA, &gpio_init);
+  GPIO_Init(GPIOA, &gpio_init);*/
   
   //USART2~~~~~~~~~~~~~~~~~~~~~~~
   /* Configure USART1 Rx as input floating */
@@ -215,7 +215,7 @@ void BSP_GPIO_Init(void){
 void BSP_USART_Init(void){
   USART_InitTypeDef usart_init;
   
-  /*USART1  SIM800G*/
+  /*USART1  SIM800G
   usart_init.USART_BaudRate = 115200;
   usart_init.USART_WordLength = USART_WordLength_8b;
   usart_init.USART_Parity = USART_Parity_No;
@@ -228,7 +228,7 @@ void BSP_USART_Init(void){
     
   USART_ITConfig(USART1, USART_IT_TC, DISABLE);
   USART_ITConfig(USART1, USART_IT_TXE, DISABLE);
-  USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
+  USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);*/
   
   /*USART2  485READ*/
   usart_init.USART_BaudRate = 1200;
@@ -284,11 +284,11 @@ void BSP_NVIC_Init(void){
   /* Configure the NVIC Preemption Priority Bits */  
   NVIC_PriorityGroupConfig(NVIC_PriorityGroup_0);
   
-  /* Enable the USART1 Interrupt */
+  /* Enable the USART1 Interrupt 
   nvic_init.NVIC_IRQChannel = USART1_IRQn;
   nvic_init.NVIC_IRQChannelSubPriority = 0;
   nvic_init.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&nvic_init);
+  NVIC_Init(&nvic_init);*/
   
   /* Enable the USART2 Interrupt */
   nvic_init.NVIC_IRQChannel = USART2_IRQn;

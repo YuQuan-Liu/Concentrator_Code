@@ -35,6 +35,7 @@ void meter_read_eg(uint8_t * buf_frame,uint8_t desc){
   if(err != OS_ERR_NONE){
     //获取MUTEX过程中 出错了...
     //return 0xFFFFFF;
+    OSMutexPost(&MUTEX_CONFIGFLASH,OS_OPT_POST_NONE,&err);
     return;
   }
   
