@@ -103,7 +103,7 @@ uint8_t di_seq; //DI0 DI1 顺序   0xAA~DI1在前(千宝通)   0xFF~DI0在前(default)
 uint8_t protocol = 0x01;  //协议类型 0xFF~188(Default)  1~EG 
 
 uint8_t deviceaddr[5] = {0x99,0x09,0x00,0x00,0x57};      //集中器地址
-uint8_t cjqaddr[5] = {0x00,0x00,0x00,0x00,0x01};     //采集器地址
+uint8_t cjqaddr[5] = {0x01,0x00,0x00,0x00,0x00};     //采集器地址
 
 void TaskStart(void *p_arg);
 void TaskCreate(void);

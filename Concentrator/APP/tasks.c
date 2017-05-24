@@ -537,11 +537,12 @@ void Task_DealServer(void *p_arg){
       if(Mem_Cmp(deviceaddr,buf_ptr_+ADDR_POSITION,5) == DEF_YES){
         //集中器地址正确
         //判断采集器地址
-        if(cjqaddr[0] == *(buf_ptr_+DATA_POSITION+1) && cjqaddr[1] == *(buf_ptr_+DATA_POSITION)){
-          server_seq_ = *(start+SEQ_POSITION) & 0x0F;  //获得该帧的序列号
-          switch(*(start+AFN_POSITION)){
-          case AFN_ACK:
-            //the ack of the Concentrator
+        
+        server_seq_ = *(start+SEQ_POSITION) & 0x0F;  //获得该帧的序列号
+        switch(*(start+AFN_POSITION)){
+        case AFN_ACK:
+          //the ack of the Concentrator
+          if(cjqaddr[0] == *(buf_ptr_+DATA_POSITION) && cjqaddr[1] == *(buf_ptr_+DATA_POSITION+1)){
             if(server_seq_ == data_seq){
               OSSemPost(&SEM_ACKData,
                         OS_OPT_POST_1,
@@ -549,9 +550,11 @@ void Task_DealServer(void *p_arg){
             }else{
               //抛弃此应答帧
             }
-            break;
-          case AFN_CONTROL:
-          case AFN_CURRENT:
+          }
+          break;
+        case AFN_CONTROL:
+        case AFN_CURRENT:
+          if(cjqaddr[0] == *(buf_ptr_+DATA_POSITION+2) && cjqaddr[1] == *(buf_ptr_+DATA_POSITION+1)){
             if(reading){
               //在抄表   直接返回ACK
               device_ack_lora(desc,server_seq_);
@@ -568,11 +571,12 @@ void Task_DealServer(void *p_arg){
                 device_ack_lora(desc,server_seq_);
               }
             }
-            break;
+          }else{
+            //不是找我的
           }
-        }else{
-           //不是找我的
+          break;
         }
+        
       }else{
         //集中器地址不对  do nothing 
       }
