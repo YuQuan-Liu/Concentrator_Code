@@ -911,7 +911,7 @@ void meter_read_eg(uint8_t * buf_frame,uint8_t frame_len,uint8_t desc){
   
   for(i = 0;i < 3;i++){
     cjq_ok = 0;
-    Write_LORA(buf_frame,frame_len-1);
+    Write_LORA(buf_frame,frame_len);
     lora_data = OSQPend(&Q_ReadData_LORA,
                         5000,
                         OS_OPT_PEND_BLOCKING,
@@ -1004,7 +1004,10 @@ void meter_read_eg(uint8_t * buf_frame,uint8_t frame_len,uint8_t desc){
         
         lora_seq_ = *(lora_data + SEQ_POSITION);
         if(meter_recv == 0){
-          lora_seq = lora_seq_;
+          lora_seq = lora_seq_-1; //确保第一帧被接收
+          meterdata[0] = cjq_h;
+          meterdata[1] = cjq_l;
+          meterdata[2] = 0x00;  
         }
         device_ack_lora(desc,lora_seq_);
         
@@ -1022,9 +1025,9 @@ void meter_read_eg(uint8_t * buf_frame,uint8_t frame_len,uint8_t desc){
             //处理Frame 
             //正常的数据帧  
             for(i = 0;i < metercnt;i++){
-              meterdata[meter_recv*3+i*3] = lora_data[18+3*i];
-              meterdata[meter_recv*3+i*3+1] = lora_data[18+3*i+1];
-              meterdata[meter_recv*3+i*3+2] = lora_data[18+3*i+2];
+              meterdata[meter_recv*3+i*3+3] = lora_data[18+3*i];
+              meterdata[meter_recv*3+i*3+1+3] = lora_data[18+3*i+1];
+              meterdata[meter_recv*3+i*3+2+3] = lora_data[18+3*i+2];
             }
           }
           //放在往meterdata copy前不可以  导致数组错位

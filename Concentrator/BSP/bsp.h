@@ -25,8 +25,8 @@
 #define GPRS_PWRKEY_H()         GPIO_ResetBits(GPIOA, GPIO_Pin_11)
 #define GPRS_PWRKEY_L()         GPIO_SetBits(GPIOA, GPIO_Pin_11)
 
-#define PWR_485_ON()         GPIO_ResetBits(GPIOB, GPIO_Pin_0)
-#define PWR_485_OFF()         GPIO_SetBits(GPIOB, GPIO_Pin_0)
+#define PWR_485_ON()         GPIO_SetBits(GPIOB, GPIO_Pin_0)
+#define PWR_485_OFF()         GPIO_ResetBits(GPIOB, GPIO_Pin_0)
 
 #define PWR_LORA_ON()         GPIO_SetBits(GPIOA, GPIO_Pin_1)
 #define PWR_LORA_OFF()         GPIO_ResetBits(GPIOA, GPIO_Pin_1)
