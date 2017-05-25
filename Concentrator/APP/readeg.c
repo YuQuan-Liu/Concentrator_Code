@@ -186,8 +186,8 @@ void send_data_eg(u8 metercount,uint8_t desc){
   //需要有确认实现
   OS_ERR err;
   CPU_TS ts;
-  uint8_t times = metercount/10;
-  uint8_t remain = metercount%10;
+  uint8_t times = metercount/20;
+  uint8_t remain = metercount%20;
   uint8_t times_  = 0;
   uint8_t k = 0;  //计数这个帧中的数据
   uint8_t i = 0;   //计数这是第几帧
