@@ -467,7 +467,7 @@ void Task_LORA(void *p_arg){
         }else{
           if(frame_len > 0 && (buf-buf_) >= frame_len){
             //if it is the end of the frame
-            if(*(buf-1) == check_cs(buf_+4,frame_len-5)){
+            if(*(buf-1) == check_eor(buf_+1,frame_len-2)){
               //check the frame cs
               //the frame is ok ,send the frame to 485_2
               lora_send=1;
