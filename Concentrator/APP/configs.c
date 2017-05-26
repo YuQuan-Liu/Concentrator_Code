@@ -761,3 +761,43 @@ void ack_query_protocol(uint8_t desc,uint8_t server_seq_){
   OSMemPut(&MEM_Buf,buf_frame_,&err);
   
 }
+
+void ack_lora_rssi(uint8_t rssi){
+  OS_ERR err;
+  uint8_t * buf_frame = 0;
+  uint8_t * buf_frame_ = 0;
+  
+  buf_frame = OSMemGet(&MEM_Buf,&err);
+  if(buf_frame == 0){
+    return;
+  }
+  buf_frame_ = buf_frame;
+  *buf_frame++ = FRAME_HEAD;
+  *buf_frame++ = 0x2B;//(10 << 2) | 0x03;
+  *buf_frame++ = 0x00;
+  *buf_frame++ = 0x2B;//(10 << 2) | 0x03;
+  *buf_frame++ = 0x00;
+  *buf_frame++ = FRAME_HEAD;
+  
+  *buf_frame++ = ZERO_BYTE | DIR_TO_SERVER | PRM_SLAVE | SLAVE_FUN_DATA;
+  /**/
+  *buf_frame++ = deviceaddr[0];
+  *buf_frame++ = deviceaddr[1];
+  *buf_frame++ = deviceaddr[2];
+  *buf_frame++ = deviceaddr[3];
+  *buf_frame++ = deviceaddr[4];
+  
+  *buf_frame++ = AFN_QUERY;
+  *buf_frame++ = ZERO_BYTE |SINGLE;
+  *buf_frame++ = FN_LORA_RSSI;
+  
+  *buf_frame++ = rssi;
+  *buf_frame++ = check_cs(buf_frame_+6,10);
+  *buf_frame++ = FRAME_END;
+  
+  
+  Write_485_2(buf_frame_,18);
+  
+  OSMemPut(&MEM_Buf,buf_frame_,&err);
+  
+}

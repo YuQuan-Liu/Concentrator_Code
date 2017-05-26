@@ -471,7 +471,8 @@ void Task_LORA(void *p_arg){
               //check the frame cs
               //the frame is ok ,send the frame to 485_2
               lora_send=1;
-              Write_485_2(buf_,frame_len);
+              ack_lora_rssi(*(buf-2));
+              //Write_485_2(buf_,frame_len);
               buf = buf_;
               start_recv = 0;
               frame_len = 0;

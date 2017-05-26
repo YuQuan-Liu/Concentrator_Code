@@ -75,7 +75,7 @@
 #define FN_LORA_SEND                   19  //发送供采集器测试信号使用指令  
 #define FN_ADDRCJQ                        20  //设置采集器地址
 #define FN_LORA_API                      21   //设置LORA进入API模式
-
+#define FN_LORA_RSSI                      22   //LORA往485端口发送与集中器信号
 
 
 //Fn  AFN == 0x04
