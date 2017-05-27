@@ -82,7 +82,7 @@ ErrorStatus ate_(void){
     buf_server_ = buf_server;
     
     Mem_Set(buf_server_,0x00,256); //clear the buf
-    buf_server = Send_ReadATs(ats[1],buf_server_,100);
+    buf_server = Send_ReadATs(ats[1],buf_server_,200);
     check_str(buf_server_,buf_server);    //屏蔽掉数据前的0x00
     if(Str_Str(buf_server_,"OK")){
       OSMemPut(&MEM_Buf,buf_server_,&err);
