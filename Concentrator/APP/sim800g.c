@@ -38,8 +38,8 @@ u8 *ats[20]={
 	"AT+CREG?\r",  //检查网络注册状态
 	"AT+CGATT?\r",  //检查GPRS附着状态
 	"AT+CIPMUX=1\r",  //设置成多链路模式
-	"AT+CSTT=\"3GWAP\"\r",  //设置APN
-        //"AT+CSTT=\"CMNET\"\r",  //设置APN
+	//"AT+CSTT=\"3GWAP\"\r",  //设置APN
+        "AT+CSTT=\"CMNET\"\r",  //设置APN
 	"AT+CIICR\r",   //建立PPP连接
 	"AT+CIFSR\r",    //获取本地IP地址
 	"AT+CIPSTART=0,\"TCP\",",   //+ip+port 建立TCP连接
@@ -370,7 +370,7 @@ ErrorStatus at_tcpsetup(void){
     Server_Post2Buf(0);   //停止接收数据
     
     check_str(buf_server_,buf_server);  //屏蔽掉数据前的0x00
-    if(Str_Str(buf_server_,"OK")){
+    if(Str_Str(buf_server_,"CONNECT OK")){
       OSMemPut(&MEM_Buf,buf_server_,&err);
       return SUCCESS;
     }
@@ -482,8 +482,8 @@ ErrorStatus Device_Cmd(FunctionalState NewState){
     //low the on_off
     GPRS_PWRKEY_L();
     OSTimeDly(1200,
-               OS_OPT_TIME_DLY,
-               &err);
+              OS_OPT_TIME_DLY,
+              &err);
     //high the on_off
     GPRS_PWRKEY_H();
     
@@ -491,7 +491,7 @@ ErrorStatus Device_Cmd(FunctionalState NewState){
                OS_OPT_TIME_DLY,
                &err);
     
-    while(cnt < 250){
+    while(cnt < 100){
       
       if(ate_() == SUCCESS){
         return SUCCESS;
@@ -507,7 +507,7 @@ ErrorStatus Device_Cmd(FunctionalState NewState){
   }else{
     //disable the power
     PWR_GPRS_OFF();
-    OSTimeDly(3000,
+    OSTimeDly(5000,
                OS_OPT_TIME_DLY,
                &err);
     return SUCCESS;
