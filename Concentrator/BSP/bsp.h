@@ -6,7 +6,7 @@
 #include "stm32f10x_conf.h"
 
 
-#define  APP_START_TASK_STK_SIZE      255u
+#define  APP_START_TASK_STK_SIZE      256u
 #define  APP_START_TASK_PRIO      3u
 
 

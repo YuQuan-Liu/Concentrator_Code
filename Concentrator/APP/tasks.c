@@ -913,7 +913,7 @@ void meter_read_eg(uint8_t * buf_frame,uint8_t frame_len,uint8_t desc){
     cjq_ok = 0;
     Write_LORA(buf_frame,frame_len);
     lora_data = OSQPend(&Q_ReadData_LORA,
-                        5000,
+                        10000,
                         OS_OPT_PEND_BLOCKING,
                         &msg_size,
                         &ts,
