@@ -321,7 +321,7 @@ void send_data_eg(u8 metercount,uint8_t desc){
           ack = 0;
           Write_LORA(buf_ptr_,buf_ptr-buf_ptr_);
           OSSemPend(&SEM_ACKData,
-                    5000,
+                    10000,
                     OS_OPT_PEND_BLOCKING,
                     &ts,
                     &err);
@@ -385,7 +385,7 @@ void send_cjqtimeout_eg(uint8_t desc){
       for(j = 0;j<3;j++){
         Write_LORA(buf_ptr_,buf_ptr-buf_ptr_);
         OSSemPend(&SEM_ACKData,
-                  5000,
+                  10000,
                   OS_OPT_PEND_BLOCKING,
                   &ts,
                   &err);
