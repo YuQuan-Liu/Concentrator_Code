@@ -186,8 +186,8 @@ void send_data_eg(u8 metercount,uint8_t desc){
   //需要有确认实现
   OS_ERR err;
   CPU_TS ts;
-  uint8_t times = metercount/20;
-  uint8_t remain = metercount%20;
+  uint8_t times = metercount/10;
+  uint8_t remain = metercount%10;
   uint8_t times_  = 0;
   uint8_t k = 0;  //计数这个帧中的数据
   uint8_t i = 0;   //计数这是第几帧
@@ -214,19 +214,22 @@ void send_data_eg(u8 metercount,uint8_t desc){
       }else{
         if(i == 0){
           //头帧
-          len = 0x123;  //(72<<2) |0x03
+          //len = 0x123;  //(72<<2) |0x03
+          len = 0xAB;  //(42<<2) | 0x03
         }else{
           if(i == times_-1){
             //尾帧
             if(remain > 0){
               len = ((remain*3+12)<<2) |0x03;
             }else{
-              len = 0x123;  //(72<<2) |0x03
+              //len = 0x123;  //(72<<2) |0x03
+              len = 0xAB;  //(42<<2) | 0x03
             }
             
           }else{
             //中间帧
-            len = 0x123;  //(72<<2) |0x03
+            //len = 0x123;  //(72<<2) |0x03
+            len = 0xAB;  //(42<<2) | 0x03
           }
         }
       }
@@ -279,7 +282,7 @@ void send_data_eg(u8 metercount,uint8_t desc){
       }else{
         if(i == 0){
           //头帧
-          for(k = 1;k <= 20;k++){
+          for(k = 1;k <= 10;k++){
             *buf_ptr++ = meterdata[3*k];
             *buf_ptr++ = meterdata[3*k+1];
             *buf_ptr++ = meterdata[3*k+2];
@@ -289,24 +292,24 @@ void send_data_eg(u8 metercount,uint8_t desc){
             //尾帧
             if(remain > 0){
               for(k = 1;k <= remain;k++){
-                *buf_ptr++ = meterdata[3*k+i*60];
-                *buf_ptr++ = meterdata[3*k+1+i*60];
-                *buf_ptr++ = meterdata[3*k+2+i*60];
+                *buf_ptr++ = meterdata[3*k+i*30];
+                *buf_ptr++ = meterdata[3*k+1+i*30];
+                *buf_ptr++ = meterdata[3*k+2+i*30];
               }
             }else{
-              for(k = 1;k <= 20;k++){
-                *buf_ptr++ = meterdata[3*k+i*60];
-                *buf_ptr++ = meterdata[3*k+1+i*60];
-                *buf_ptr++ = meterdata[3*k+2+i*60];
+              for(k = 1;k <= 10;k++){
+                *buf_ptr++ = meterdata[3*k+i*30];
+                *buf_ptr++ = meterdata[3*k+1+i*30];
+                *buf_ptr++ = meterdata[3*k+2+i*30];
               }
             }
             
           }else{
             //中间帧
-            for(k = 1;k <= 20;k++){
-              *buf_ptr++ = meterdata[3*k+i*60];
-              *buf_ptr++ = meterdata[3*k+1+i*60];
-              *buf_ptr++ = meterdata[3*k+2+i*60];
+            for(k = 1;k <= 10;k++){
+              *buf_ptr++ = meterdata[3*k+i*30];
+              *buf_ptr++ = meterdata[3*k+1+i*30];
+              *buf_ptr++ = meterdata[3*k+2+i*30];
             }
           }
         }
