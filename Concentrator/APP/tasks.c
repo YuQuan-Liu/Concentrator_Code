@@ -543,7 +543,7 @@ void Task_DealServer(void *p_arg){
         switch(*(start+AFN_POSITION)){
         case AFN_ACK:
           //the ack of the Concentrator
-          if(cjqaddr[0] == *(buf_ptr_+DATA_POSITION+2) && cjqaddr[1] == *(buf_ptr_+DATA_POSITION+1)){
+          if(cjqaddr[0] == *(buf_ptr_+DATA_POSITION) && cjqaddr[1] == *(buf_ptr_+DATA_POSITION+1)){
             if(server_seq_ == data_seq){
               OSSemPost(&SEM_ACKData,
                         OS_OPT_POST_1,
