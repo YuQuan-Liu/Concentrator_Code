@@ -343,21 +343,28 @@ void Task_LORA(void *p_arg){
                 if(reading){
                   //抄表状态下  采集器返回过来的数据帧 或者应答帧                  
                   //判断当前帧是否是针对当前抄表的采集器                  
-                  //check the frame is the ack & the addr is ok                  
-                  if(cjqaddr[0] == *(buf_ + DATA_POSITION + 1) && cjqaddr[1] == *(buf_ + DATA_POSITION)){
-                    //当前采集器
-                    //ACK to SEM_CJQLORAACK
-                    //DATA to Queue
-                    if(*(buf_+AFN_POSITION) == AFN_ACK){
-                      OSSemPost(&SEM_LORA_OK,
+                  //check the frame is the ack & the addr is ok    
+                  
+                  if(*(buf_+AFN_POSITION) == AFN_ACK){
+                    //ACK
+                    //当前采集器  ACK to SEM_CJQLORAACK
+                    //非当前采集器  放弃
+                    if(cjqaddr[0] == *(buf_ + DATA_POSITION ) && cjqaddr[1] == *(buf_ + DATA_POSITION+ 1)){
+                      OSSemPost(&SEM_CJQLORAACK,
                                 OS_OPT_POST_1,
                                 &err);
-                      buf = buf_;
-                      start_recv = 0;
-                      frame_len = 0;
-                      header_count = 0;
-                      header_ok = 0;
-                    }else{
+                    }
+                    buf = buf_;
+                    start_recv = 0;
+                    frame_len = 0;
+                    header_count = 0;
+                    header_ok = 0;
+                  }else{
+                    //DATA 
+                    //当前采集器   ACK   DATA to Queue
+                    //非当前采集器  放弃
+                    if(cjqaddr[0] == *(buf_ + DATA_POSITION + 1) && cjqaddr[1] == *(buf_ + DATA_POSITION)){
+                      device_ack_lora(0,*(buf_ + SEQ_POSITION));
                       OSQPost(&Q_ReadData_LORA,
                               buf_,frame_len,
                               OS_OPT_POST_FIFO,
@@ -376,19 +383,13 @@ void Task_LORA(void *p_arg){
                         header_count = 0;
                         header_ok = 0;
                       }
+                    }else{
+                      buf = buf_;
+                      start_recv = 0;
+                      frame_len = 0;
+                      header_count = 0;
+                      header_ok = 0;
                     }
-                  }else{
-                    //非当前采集器
-                    //ACK 放弃 
-                    //DATA ack
-                    if(*(buf_+AFN_POSITION) != AFN_ACK){
-                      device_ack_lora(0,*(buf_ + SEQ_POSITION));
-                    }
-                    buf = buf_;
-                    start_recv = 0;
-                    frame_len = 0;
-                    header_count = 0;
-                    header_ok = 0;
                   }
                   
                 }else{
@@ -958,10 +959,8 @@ void meter_read_eg(uint8_t * buf_frame,uint8_t frame_len,uint8_t desc){
     if(err != OS_ERR_NONE){
       continue;
     }
-    
-    if(cjq_ok){
-      break;
-    }
+    cjq_ok = 1;
+    break;
   }
   
   
@@ -984,7 +983,7 @@ void meter_read_eg(uint8_t * buf_frame,uint8_t frame_len,uint8_t desc){
     case 0xAA:
       for(i = 0;i < 3;i++){
         lora_data = OSQPend(&Q_ReadData_LORA,
-                            1500,
+                            5000,
                             OS_OPT_PEND_BLOCKING,
                             &msg_size,
                             &ts,
@@ -994,7 +993,7 @@ void meter_read_eg(uint8_t * buf_frame,uint8_t frame_len,uint8_t desc){
         }
         
         lora_seq_ = *(lora_data + SEQ_POSITION);
-        device_ack_lora(desc,lora_seq_);
+        //device_ack_lora(desc,lora_seq_);
         //get the data
         recv_ok=1;
         //判断采集器地址  判断表地址
@@ -1040,7 +1039,7 @@ void meter_read_eg(uint8_t * buf_frame,uint8_t frame_len,uint8_t desc){
           meterdata[1] = cjq_l;
           meterdata[2] = 0x00;  
         }
-        device_ack_lora(desc,lora_seq_);
+        //device_ack_lora(desc,lora_seq_);
         
         data_len = (lora_data[1]&0xFF) | ((lora_data[2]&0xFF)<<8);
         data_len = data_len >> 2;
