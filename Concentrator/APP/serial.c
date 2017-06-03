@@ -31,6 +31,7 @@ void USART1_Handler(void){
     }
   }
   
+  /*
   if(USART_GetFlagStatus(USART1,USART_FLAG_TC)){
     //It must clear the TC 
     //if not it will stay here 
@@ -43,6 +44,7 @@ void USART1_Handler(void){
       asm("NOP");
     }
   }
+  */
 }
 
 
@@ -74,6 +76,7 @@ void USART2_Handler(void){
     }
   }
   
+  /*
   if(USART_GetFlagStatus(USART2,USART_FLAG_TC)){
     
     USART_ClearITPendingBit(USART2,USART_IT_TC);
@@ -85,6 +88,7 @@ void USART2_Handler(void){
       asm("NOP");
     }
   }
+  */
 }
 
 //LORA
@@ -115,6 +119,7 @@ void UART4_Handler(void){
   }
   
   //send the data
+  /*
   if(USART_GetFlagStatus(UART4,USART_FLAG_TC)){
     
     USART_ClearITPendingBit(UART4,USART_IT_TC);
@@ -126,6 +131,7 @@ void UART4_Handler(void){
       asm("NOP");
     }
   }
+  */
 }
 
 
@@ -134,20 +140,10 @@ ErrorStatus Write_LORA(uint8_t * data,uint16_t count){
   CPU_TS ts;
   OS_ERR err;
   
-  USART_ITConfig(UART4,USART_IT_TC,ENABLE);
   for(i = 0;i < count;i++){
-    OSSemPend(&SEM_UART4_TX,
-              100,
-              OS_OPT_PEND_BLOCKING,
-              &ts,
-              &err);
-    if(err != OS_ERR_NONE){
-      return ERROR;
-    }
     USART_SendData(UART4,*(data+i));
+    while(USART_GetFlagStatus(UART4, USART_FLAG_TC) == RESET){}
   }
-  USART_ITConfig(UART4,USART_IT_TC,DISABLE);
-  
   return SUCCESS;
 }
 
@@ -157,22 +153,11 @@ ErrorStatus Write_485_2(uint8_t * data,uint16_t count){
   OS_ERR err;
   
   CTRL_485_2_SEND();
-  USART_ITConfig(USART2,USART_IT_TC,ENABLE);
   
   for(i = 0;i < count;i++){
-    err = OS_ERR_NONE;
-    OSSemPend(&SEM_USART2_TX,
-              500,
-              OS_OPT_PEND_BLOCKING,
-              &ts,
-              &err);
-    
     USART_SendData(USART2,*(data+i));
+    while(USART_GetFlagStatus(USART2, USART_FLAG_TC) == RESET){}
   }
-  
-  
-  USART_ITConfig(USART2,USART_IT_TC,DISABLE);
-  while(USART_GetFlagStatus(USART2, USART_FLAG_TC) == RESET);
   
   CTRL_485_2_RECV();
   return SUCCESS;
@@ -184,20 +169,10 @@ ErrorStatus Server_Write(uint8_t * data,uint16_t count){
   CPU_TS ts;
   OS_ERR err;
   
-  USART_ITConfig(USART1,USART_IT_TC,ENABLE);
   for(i = 0;i < count;i++){
-    OSSemPend(&SEM_USART1_TX,
-              100,
-              OS_OPT_PEND_BLOCKING,
-              &ts,
-              &err);
-    if(err != OS_ERR_NONE){
-      return ERROR;
-    }
     USART_SendData(USART1,*(data+i));
+    while(USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET){}
   }
-  USART_ITConfig(USART1,USART_IT_TC,DISABLE);
-  
   return SUCCESS;
 }
 
@@ -206,22 +181,12 @@ ErrorStatus Server_WriteStr(uint8_t * data){
   OS_ERR err;
   uint8_t * str = data;
   
-  USART_ITConfig(USART1,USART_IT_TC,ENABLE);
-  USART_ClearITPendingBit(USART1,USART_IT_TC);
   while(*str != '\0'){
-    OSSemPend(&SEM_USART1_TX,
-              100,
-              OS_OPT_PEND_BLOCKING,
-              &ts,
-              &err);
-    if(err != OS_ERR_NONE){
-      return ERROR;
-    }
     USART_SendData(USART1,*str);
     str++;
+    while(USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET){}
   }
   
-  USART_ITConfig(USART1,USART_IT_TC,DISABLE);
   return SUCCESS;
 }
 
