@@ -30,6 +30,7 @@ extern OS_SEM SEM_LORA_OK;
 extern OS_SEM SEM_HeartBeat;    //接收服务器数据Task to HeartBeat Task  接收到心跳的回应
 extern OS_SEM SEM_ACKData;     //服务器对数据的ACK
 extern OS_SEM SEM_Send;      //got the '>'  we can send the data now  可以发送数据
+extern OS_SEM SEM_CJQLORAACK;
 
 extern OS_TMR TMR_CJQTIMEOUT;    //打开采集器之后 20分钟超时 自动关闭通道
 
@@ -340,25 +341,56 @@ void Task_LORA(void *p_arg){
                 //the frame is ok;
                 //采集器返回过来的数据帧  或者 应答帧
                 if(reading){
-                  //抄表状态下  采集器返回过来的数据帧 或者应答帧
-                  OSQPost(&Q_ReadData_LORA,
-                          buf_,frame_len,
-                          OS_OPT_POST_FIFO,
-                          &err);
-                  if(err == OS_ERR_NONE){
-                    buf_ = 0;
-                    buf = 0;
-                    start_recv = 0;
-                    frame_len = 0;
-                    header_count = 0;
-                    header_ok = 0;
+                  //抄表状态下  采集器返回过来的数据帧 或者应答帧                  
+                  //判断当前帧是否是针对当前抄表的采集器                  
+                  //check the frame is the ack & the addr is ok                  
+                  if(cjqaddr[0] == *(buf_ + DATA_POSITION + 1) && cjqaddr[1] == *(buf_ + DATA_POSITION)){
+                    //当前采集器
+                    //ACK to SEM_CJQLORAACK
+                    //DATA to Queue
+                    if(*(buf_+AFN_POSITION) == AFN_ACK){
+                      OSSemPost(&SEM_LORA_OK,
+                                OS_OPT_POST_1,
+                                &err);
+                      buf = buf_;
+                      start_recv = 0;
+                      frame_len = 0;
+                      header_count = 0;
+                      header_ok = 0;
+                    }else{
+                      OSQPost(&Q_ReadData_LORA,
+                              buf_,frame_len,
+                              OS_OPT_POST_FIFO,
+                              &err);
+                      if(err == OS_ERR_NONE){
+                        buf_ = 0;
+                        buf = 0;
+                        start_recv = 0;
+                        frame_len = 0;
+                        header_count = 0;
+                        header_ok = 0;
+                      }else{
+                        buf = buf_;
+                        start_recv = 0;
+                        frame_len = 0;
+                        header_count = 0;
+                        header_ok = 0;
+                      }
+                    }
                   }else{
+                    //非当前采集器
+                    //ACK 放弃 
+                    //DATA ack
+                    if(*(buf_+AFN_POSITION) != AFN_ACK){
+                      device_ack_lora(0,*(buf_ + SEQ_POSITION));
+                    }
                     buf = buf_;
                     start_recv = 0;
                     frame_len = 0;
                     header_count = 0;
                     header_ok = 0;
                   }
+                  
                 }else{
                   //放弃此帧
                   buf = buf_;
@@ -909,24 +941,23 @@ void meter_read_eg(uint8_t * buf_frame,uint8_t frame_len,uint8_t desc){
   uint16_t data_len = 0;
   uint8_t metercnt = 0;
   
+  //标示正在抄的采集器
+  cjqaddr[0] = cjq_l;
+  cjqaddr[1] = cjq_h;
+  
   for(i = 0;i < 3;i++){
     cjq_ok = 0;
     Write_LORA(buf_frame,frame_len);
-    lora_data = OSQPend(&Q_ReadData_LORA,
-                        10000,
-                        OS_OPT_PEND_BLOCKING,
-                        &msg_size,
-                        &ts,
-                        &err);
+    
+    OSSemPend(&SEM_CJQLORAACK,
+              10000,
+              OS_OPT_PEND_BLOCKING,
+              &ts,
+              &err);
+    
     if(err != OS_ERR_NONE){
       continue;
     }
-    
-    //check the frame is the ack & the addr is ok
-    if(*(lora_data+AFN_POSITION) == AFN_ACK && cjq_l == *(lora_data + DATA_POSITION) && cjq_h == *(lora_data + DATA_POSITION + 1)){
-      cjq_ok = 1;
-    }
-    OSMemPut(&MEM_Buf,lora_data,&err);
     
     if(cjq_ok){
       break;

@@ -76,6 +76,7 @@ OS_SEM SEM_LORA_OK;   //接收到LORA返回的  0D 0A 4F 4B 0D 0A
 OS_SEM SEM_HeartBeat;    //接收服务器数据Task to HeartBeat Task  接收到心跳的回应
 OS_SEM SEM_ACKData;    //服务器对数据的ACK
 OS_SEM SEM_Send;      //got the '>'  we can send the data now  可以发送数据
+OS_SEM SEM_CJQLORAACK;    //采集器对抄表指令的ACK
 
 //OS_Qs
 OS_Q Q_485_2;            //采集器、表发送过来的数据
@@ -423,6 +424,15 @@ void ObjCreate(void){
   if(err != OS_ERR_NONE){
     return;
   }
+  
+  OSSemCreate(&SEM_CJQLORAACK,
+              "loraack",
+              0,
+              &err);
+  if(err != OS_ERR_NONE){
+    return;
+  }
+  
   
   //OS_Q
   //data from slave
