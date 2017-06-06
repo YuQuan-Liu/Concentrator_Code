@@ -31,6 +31,10 @@ void USART1_Handler(void){
     }
   }
   
+  if(USART_GetFlagStatus(USART1,USART_FLAG_ORE)){
+    rx_byte = USART_ReceiveData(USART1);
+  }
+  
   /*
   if(USART_GetFlagStatus(USART1,USART_FLAG_TC)){
     //It must clear the TC 
@@ -76,6 +80,10 @@ void USART2_Handler(void){
     }
   }
   
+  if(USART_GetFlagStatus(USART2,USART_FLAG_ORE)){
+    rx_byte = USART_ReceiveData(USART2);
+  }
+  
   /*
   if(USART_GetFlagStatus(USART2,USART_FLAG_TC)){
     
@@ -116,6 +124,10 @@ void UART4_Handler(void){
     }else{
       asm("NOP");
     }
+  }
+  
+  if(USART_GetFlagStatus(UART4,USART_FLAG_ORE)){
+    rx_byte = USART_ReceiveData(UART4);
   }
   
   //send the data
