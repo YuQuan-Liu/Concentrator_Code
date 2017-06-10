@@ -972,7 +972,7 @@ void meter_read_eg(uint8_t * buf_frame,uint8_t frame_len,uint8_t desc){
     return;
   }
   meterdata = config_flash; //将表返回的所有信息存放在config_flash
-  
+  Mem_Set(config_flash,0x00,0x1000); //clear the buf
   
   if(cjq_ok){
     //cjq is ok wait the data
