@@ -19,8 +19,8 @@
 #define LED3_ON()         GPIO_SetBits(GPIOC, GPIO_Pin_0)
 #define LED3_OFF()         GPIO_ResetBits(GPIOC, GPIO_Pin_0)
 
-#define PWR_GPRS_ON()         GPIO_SetBits(GPIOA, GPIO_Pin_8)
-#define PWR_GPRS_OFF()         GPIO_ResetBits(GPIOA, GPIO_Pin_8)
+#define PWR_GPRS_ON()         GPIO_ResetBits(GPIOA, GPIO_Pin_8)
+#define PWR_GPRS_OFF()         GPIO_SetBits(GPIOA, GPIO_Pin_8)
 
 #define GPRS_PWRKEY_H()         GPIO_ResetBits(GPIOA, GPIO_Pin_11)
 #define GPRS_PWRKEY_L()         GPIO_SetBits(GPIOA, GPIO_Pin_11)
