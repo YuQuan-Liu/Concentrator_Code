@@ -107,6 +107,7 @@ uint8_t protocol = 0x01;  //协议类型 0xFF~188(Default)  1~EG
 
 uint8_t deviceaddr[5] = {0x99,0x09,0x00,0x00,0x57};      //集中器地址
 uint8_t cjqaddr[5] = {0x01,0x00,0x00,0x00,0x00};     //正在抄表的采集器地址
+uint8_t cjqaddr_eg[2] = {0x01,0x00}; 
 
 void TaskStart(void *p_arg);
 void TaskCreate(void);
