@@ -568,7 +568,15 @@ void Task_DealServer(void *p_arg){
           break;
         case AFN_CONTROL:
         case AFN_CURRENT:
-          
+          if(protocol == 0x01){
+            if(cjqaddr_eg[0] == *(buf_ptr_+DATA_POSITION+2) && cjqaddr_eg[1] == *(buf_ptr_+DATA_POSITION+1)){
+              forme = 1;
+            }
+          }else{
+            if(cjqaddr[0] == *(buf_ptr_+DATA_POSITION+2) && cjqaddr[1] == *(buf_ptr_+DATA_POSITION+1)){
+              forme = 1;
+            }
+          }
           if(forme){
             if(reading){
               //在抄表   直接返回ACK
