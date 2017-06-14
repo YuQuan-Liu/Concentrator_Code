@@ -529,7 +529,6 @@ void Task_DealServer(void *p_arg){
     
     //check the frame
     len = check_frame(start);
-    forme = 0;
     //首先判断是不是找自己的
     //如果是找自己 判断自己是否在抄表  
     //如果不在抄表  去抄表
@@ -542,20 +541,22 @@ void Task_DealServer(void *p_arg){
         //判断采集器地址
         
         server_seq_ = *(start+SEQ_POSITION) & 0x0F;  //获得该帧的序列号
-        //判断是否是找我的
-        if(protocol == 0x01){
-          if(cjqaddr_eg[0] == *(buf_ptr_+DATA_POSITION) && cjqaddr_eg[1] == *(buf_ptr_+DATA_POSITION+1)){
-            forme = 1;
-          }
-        }else{
-          if(cjqaddr[0] == *(buf_ptr_+DATA_POSITION) && cjqaddr[1] == *(buf_ptr_+DATA_POSITION+1)){
-            forme = 1;
-          }
-        }
         
         switch(*(start+AFN_POSITION)){
         case AFN_ACK:
           //the ack of the Concentrator
+          //判断是否是找我的
+          forme = 0;
+          if(protocol == 0x01){
+            if(cjqaddr_eg[0] == *(buf_ptr_+DATA_POSITION) && cjqaddr_eg[1] == *(buf_ptr_+DATA_POSITION+1)){
+              forme = 1;
+            }
+          }else{
+            if(cjqaddr[0] == *(buf_ptr_+DATA_POSITION) && cjqaddr[1] == *(buf_ptr_+DATA_POSITION+1)){
+              forme = 1;
+            }
+          }
+          
           if(forme){
             if(server_seq_ == data_seq){
               OSSemPost(&SEM_ACKData,
@@ -568,6 +569,7 @@ void Task_DealServer(void *p_arg){
           break;
         case AFN_CONTROL:
         case AFN_CURRENT:
+          forme = 0;
           if(protocol == 0x01){
             if(cjqaddr_eg[0] == *(buf_ptr_+DATA_POSITION+2) && cjqaddr_eg[1] == *(buf_ptr_+DATA_POSITION+1)){
               forme = 1;
