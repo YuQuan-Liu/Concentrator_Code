@@ -698,5 +698,7 @@ void param_conf(void){
   sFLASH_ReadBuffer(temp,sFLASH_CJQ_ADDR,1);
   if(temp[0] != 0xFF){
     sFLASH_ReadBuffer(cjqaddr,sFLASH_CJQ_ADDR,5);
+    
+    cjqaddr2eg();
   }
 }

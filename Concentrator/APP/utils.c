@@ -3,7 +3,8 @@
 #include "os.h"
 
 uint8_t local_seq = 0;  //本地序列号
-
+extern uint8_t cjqaddr[5];
+extern uint8_t cjqaddr_eg[2];
 /**
  * 检查CS  + 
  */
@@ -64,4 +65,13 @@ uint8_t addSEQ(void){
   local_seq = local_seq & 0x0F;
   CPU_CRITICAL_EXIT();
   return seq_;
+}
+
+
+void cjqaddr2eg(void){
+  //6 55 35
+  uint32_t cjqaddr_eg_ = (cjqaddr[2]&0x0F) * 10000 + (cjqaddr[1]>>4) * 1000 + (cjqaddr[1]&0x0F) * 100 + (cjqaddr[0]>>4) * 10 + (cjqaddr[0]&0x0F) ;
+  
+  cjqaddr_eg[0] = *((uint8_t *)(&cjqaddr_eg_));
+  cjqaddr_eg[1] = *((uint8_t *)(&cjqaddr_eg_) + 1);
 }

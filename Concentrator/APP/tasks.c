@@ -37,6 +37,7 @@ extern volatile uint8_t connectstate;
 extern volatile uint8_t lora_send;
 extern uint8_t deviceaddr[5];
 extern uint8_t cjqaddr[5];
+extern uint8_t cjqaddr_eg[2];
 
 extern uint8_t slave_mbus; //0xaa mbus   0xff  485   0xBB~采集器
 
@@ -511,6 +512,7 @@ void Task_DealServer(void *p_arg){
   uint8_t server_seq_ = 0;
   uint16_t len = 0;
   uint8_t desc = 0;
+  uint8_t forme = 0;  //是否是找我的
   
   while(DEF_TRUE){
     /*
@@ -527,7 +529,7 @@ void Task_DealServer(void *p_arg){
     
     //check the frame
     len = check_frame(start);
-    
+    forme = 0;
     //首先判断是不是找自己的
     //如果是找自己 判断自己是否在抄表  
     //如果不在抄表  去抄表
@@ -540,10 +542,21 @@ void Task_DealServer(void *p_arg){
         //判断采集器地址
         
         server_seq_ = *(start+SEQ_POSITION) & 0x0F;  //获得该帧的序列号
+        //判断是否是找我的
+        if(protocol == 0x01){
+          if(cjqaddr_eg[0] == *(buf_ptr_+DATA_POSITION) && cjqaddr_eg[1] == *(buf_ptr_+DATA_POSITION+1)){
+            forme = 1;
+          }
+        }else{
+          if(cjqaddr[0] == *(buf_ptr_+DATA_POSITION) && cjqaddr[1] == *(buf_ptr_+DATA_POSITION+1)){
+            forme = 1;
+          }
+        }
+        
         switch(*(start+AFN_POSITION)){
         case AFN_ACK:
           //the ack of the Concentrator
-          if(cjqaddr[0] == *(buf_ptr_+DATA_POSITION) && cjqaddr[1] == *(buf_ptr_+DATA_POSITION+1)){
+          if(forme){
             if(server_seq_ == data_seq){
               OSSemPost(&SEM_ACKData,
                         OS_OPT_POST_1,
@@ -555,7 +568,8 @@ void Task_DealServer(void *p_arg){
           break;
         case AFN_CONTROL:
         case AFN_CURRENT:
-          if(cjqaddr[0] == *(buf_ptr_+DATA_POSITION+2) && cjqaddr[1] == *(buf_ptr_+DATA_POSITION+1)){
+          
+          if(forme){
             if(reading){
               //在抄表   直接返回ACK
               device_ack_lora(desc,server_seq_);
