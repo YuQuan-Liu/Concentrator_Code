@@ -18,6 +18,7 @@ extern uint16_t port_;
 
 extern uint8_t deviceaddr[5];
 extern uint8_t cjqaddr[5];
+extern uint8_t cjqaddr_eg[2];
 extern volatile uint8_t lora_send;
 
 extern uint8_t slave_mbus; //0xaa mbus   0xff  485   0xBB~²É¼¯Æ÷
@@ -371,11 +372,19 @@ void device_ack_lora(uint8_t desc,uint8_t server_seq_){
   *buf_frame++ = ZERO_BYTE |SINGLE | server_seq_;
   *buf_frame++ = FN_ACK;
   
-  *buf_frame++ = cjqaddr[0];
-  *buf_frame++ = cjqaddr[1];
-  *buf_frame++ = cjqaddr[2];
-  *buf_frame++ = cjqaddr[3];
-  *buf_frame++ = cjqaddr[4];
+  if(protocol == 0x01){
+    *buf_frame++ = cjqaddr_eg[0];
+    *buf_frame++ = cjqaddr_eg[1];
+    *buf_frame++ = 0x00;
+    *buf_frame++ = 0x00;
+    *buf_frame++ = 0x00;
+  }else{
+    *buf_frame++ = cjqaddr[0];
+    *buf_frame++ = cjqaddr[1];
+    *buf_frame++ = cjqaddr[2];
+    *buf_frame++ = cjqaddr[3];
+    *buf_frame++ = cjqaddr[4];
+  }
   
   *buf_frame++ = check_cs(ack+6,14);
   *buf_frame++ = FRAME_END;

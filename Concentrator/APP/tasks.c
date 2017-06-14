@@ -39,7 +39,7 @@ extern volatile uint8_t connectstate;
 extern volatile uint8_t lora_send;
 extern uint8_t deviceaddr[5];
 extern uint8_t cjqaddr[5];
-
+extern uint8_t cjqaddr_eg[2];
 extern uint8_t slave_mbus; //0xaa mbus   0xff  485   0xBB~采集器
 
 extern uint8_t config_flash[];  //配置处理Flash使用的数组  Sector==4K  需要一个4K的数组
@@ -248,6 +248,7 @@ void Task_LORA(void *p_arg){
   uint16_t len1;
   uint16_t len2;
   uint8_t lora_model;  //1~tran 2~api 3~ok
+  uint8_t forme = 0;  //是否是找我
   
   while(DEF_TRUE){
     //收到0x68之后  如果200ms 没有收到数据  就认为超时了
@@ -349,7 +350,18 @@ void Task_LORA(void *p_arg){
                     //ACK
                     //当前采集器  ACK to SEM_CJQLORAACK
                     //非当前采集器  放弃
-                    if(cjqaddr[0] == *(buf_ + DATA_POSITION ) && cjqaddr[1] == *(buf_ + DATA_POSITION+ 1)){
+                    forme = 0;
+                    if(protocol == 0x01){
+                      if(cjqaddr_eg[0] == *(buf_ + DATA_POSITION ) && cjqaddr_eg[1] == *(buf_ + DATA_POSITION+ 1)){
+                        forme = 1;
+                      }
+                    }else{
+                      if(cjqaddr[0] == *(buf_ + DATA_POSITION ) && cjqaddr[1] == *(buf_ + DATA_POSITION+ 1)){
+                        forme = 1;
+                      }
+                    }
+                    
+                    if(forme){
                       OSSemPost(&SEM_CJQLORAACK,
                                 OS_OPT_POST_1,
                                 &err);
@@ -363,7 +375,17 @@ void Task_LORA(void *p_arg){
                     //DATA 
                     //当前采集器   ACK   DATA to Queue
                     //非当前采集器  放弃
-                    if(cjqaddr[0] == *(buf_ + DATA_POSITION + 1) && cjqaddr[1] == *(buf_ + DATA_POSITION)){
+                    forme = 0;
+                    if(protocol == 0x01){
+                      if(cjqaddr_eg[0] == *(buf_ + DATA_POSITION + 1) && cjqaddr_eg[1] == *(buf_ + DATA_POSITION)){
+                        forme = 1;
+                      }
+                    }else{
+                      if(cjqaddr[0] == *(buf_ + DATA_POSITION + 1) && cjqaddr[1] == *(buf_ + DATA_POSITION)){
+                        forme = 1;
+                      }
+                    }
+                    if(forme){
                       device_ack_lora(0,*(buf_ + SEQ_POSITION));
                       OSQPost(&Q_ReadData_LORA,
                               buf_,frame_len,
@@ -943,8 +965,8 @@ void meter_read_eg(uint8_t * buf_frame,uint8_t frame_len,uint8_t desc){
   uint8_t metercnt = 0;
   
   //标示正在抄的采集器
-  cjqaddr[0] = cjq_l;
-  cjqaddr[1] = cjq_h;
+  cjqaddr_eg[0] = cjq_l;
+  cjqaddr_eg[1] = cjq_h;
   
   for(i = 0;i < 3;i++){
     cjq_ok = 0;
