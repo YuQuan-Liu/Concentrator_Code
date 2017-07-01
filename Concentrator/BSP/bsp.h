@@ -9,6 +9,9 @@
 #define  APP_START_TASK_STK_SIZE      256u
 #define  APP_START_TASK_PRIO      3u
 
+#define  CLK_OS_CFG_TASK_STK_SIZE               256u
+#define  CLK_OS_CFG_TASK_PRIO                   APP_START_TASK_PRIO + 15
+
 
 #define LED1_ON()         GPIO_SetBits(GPIOC, GPIO_Pin_2)
 #define LED1_OFF()         GPIO_ResetBits(GPIOC, GPIO_Pin_2)

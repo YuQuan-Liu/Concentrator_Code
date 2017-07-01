@@ -311,6 +311,8 @@
           <state>$PROJ_DIR$\..\STM32\src</state>
           <state>$PROJ_DIR$\..\STM32\startup\iar</state>
           <state>$PROJ_DIR$\..\STM32</state>
+          <state>$PROJ_DIR$\..\Micrium\uC-Clk\OS\uCOS-III</state>
+          <state>$PROJ_DIR$\..\Micrium\uC-Clk\Source</state>
         </option>
         <option>
           <name>CCStdIncCheck</name>
@@ -1975,7 +1977,22 @@
   <group>
     <name>Micrium</name>
     <group>
+      <name>uC-Clk</name>
+      <file>
+        <name>$PROJ_DIR$\..\Micrium\uC-Clk\Source\clk.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\..\Micrium\uC-Clk\Source\clk.h</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\..\Micrium\uC-Clk\OS\uCOS-III\clk_os.c</name>
+      </file>
+    </group>
+    <group>
       <name>uC-Config</name>
+      <file>
+        <name>$PROJ_DIR$\..\Micrium\uC-Config\clk_cfg.h</name>
+      </file>
       <file>
         <name>$PROJ_DIR$\..\Micrium\uC-Config\cpu_cfg.h</name>
       </file>

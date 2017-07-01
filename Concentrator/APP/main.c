@@ -143,11 +143,22 @@ void TaskStart(void *p_arg){
   OS_ERR err;
   uint32_t flashid;
   
+  CLK_ERR clk_err;
+  CLK_TS_SEC ts_sec;
+  CLK_DATE_TIME date_time;
+  uint8_t date_time_str[CLK_STR_FMT_YYYY_MM_DD_HH_MM_SS_LEN];
+  
+  
   CPU_Init();
   
   cpu_clk_freq = BSP_CPU_ClkFreq();
   cnts = cpu_clk_freq / (CPU_INT32U)OS_CFG_TICK_RATE_HZ;
   OS_CPU_SysTickInit(cnts);
+  
+  Clk_Init(&clk_err);
+  if(clk_err != CLK_ERR_NONE){
+    asm("NOP");
+  }
   
   while(DEF_TRUE){
     //check the w25x16 ÊÇ·ñ´æÔÚ
@@ -173,6 +184,14 @@ void TaskStart(void *p_arg){
   while(DEF_TRUE){
     /* Reload IWDG counter */
     IWDG_ReloadCounter();
+    
+    ts_sec = Clk_GetTS();
+    Clk_TS_ToDateTime(ts_sec,0,&date_time);
+    Clk_DateTimeToStr(&date_time,
+                      CLK_STR_FMT_YYYY_MM_DD_HH_MM_SS,
+                      date_time_str,
+                      CLK_STR_FMT_YYYY_MM_DD_HH_MM_SS_LEN);
+    Write_485_2(date_time_str,CLK_STR_FMT_YYYY_MM_DD_HH_MM_SS_LEN);
     
     //LED1
     LED1_ON();
