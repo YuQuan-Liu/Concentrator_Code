@@ -48,7 +48,7 @@ void BSP_Init(void){
   
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1,ENABLE);
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2,ENABLE);
-  //RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3,ENABLE);
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3,ENABLE);
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART4,ENABLE);
   
   //RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2,ENABLE);
@@ -64,6 +64,7 @@ void BSP_Init(void){
 
 void BSP_GPIO_Init(void){
   GPIO_InitTypeDef gpio_init;
+  EXTI_InitTypeDef exti_init;
   
   //set all the gpio to push pull to low
   gpio_init.GPIO_Pin = GPIO_Pin_All;
@@ -71,8 +72,10 @@ void BSP_GPIO_Init(void){
   gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(GPIOA,&gpio_init);
   GPIO_Init(GPIOB,&gpio_init);
+  GPIO_Init(GPIOC,&gpio_init);
   GPIO_ResetBits(GPIOA,GPIO_Pin_All);
   GPIO_ResetBits(GPIOB,GPIO_Pin_All);
+  GPIO_ResetBits(GPIOC,GPIO_Pin_All);
   
   //USART1~~~~~~~~~~~~~~~~~~~~~~~
   /* Configure USART1 Rx as input floating */
@@ -103,18 +106,18 @@ void BSP_GPIO_Init(void){
   GPIO_Init(GPIOA, &gpio_init);
   
   //USART3~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  /* Configure USART3 Rx as input floating 
+  /* Configure USART3 Rx as input floating */
   //GPIOB 11
   gpio_init.GPIO_Pin = GPIO_Pin_11;
   gpio_init.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-  GPIO_Init(GPIOB, &gpio_init);  */
+  GPIO_Init(GPIOB, &gpio_init);  
   
-  /* Configure USART3 Tx as alternate function push-pull 
+  /* Configure USART3 Tx as alternate function push-pull */
   //GPIOB 10
   gpio_init.GPIO_Pin = GPIO_Pin_10;
   gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
   gpio_init.GPIO_Mode = GPIO_Mode_AF_PP;
-  GPIO_Init(GPIOB, &gpio_init);*/
+  GPIO_Init(GPIOB, &gpio_init);
   
   //UART4~~~~~~~~~~~~~~~~~~~~~~~~~~~
   /* Configure UART4 Rx as input floating */
@@ -178,7 +181,8 @@ void BSP_GPIO_Init(void){
   /*
   GPIOA
   1 ~ LORAPOWER
-  8 ~ GPRSPOWER : L-ON H-OFF
+  4 ~ SPI1 CS(W25X16)
+  8 ~ GPRSPOWER : [L-ON H-OFF(LM2596)]
   11 ~ GPRSPWRKEY : L
   */
   gpio_init.GPIO_Pin = GPIO_Pin_1 | GPIO_Pin_8 | GPIO_Pin_11;
@@ -195,14 +199,15 @@ void BSP_GPIO_Init(void){
     GPIO_SetBits(GPIOA, GPIO_Pin_8);
   #endif
   
-  
   GPIO_SetBits(GPIOA,GPIO_Pin_1); //ON the LORA PWR
   /*
   GPIOB
-  0 ~ 485POWER
-  1 ~ 485CTRL : L
+  0 ~ RELAY2 
+  1 ~ RELAY3 
+  14 ~ 485CTRL : L
+  15 ~ RELAY_VALVE
   */
-  gpio_init.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1;
+  gpio_init.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_14 | GPIO_Pin_15;
   gpio_init.GPIO_Mode = GPIO_Mode_Out_PP;
   gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(GPIOB,&gpio_init);
@@ -212,13 +217,29 @@ void BSP_GPIO_Init(void){
   0 ~ LED3
   1 ~ LED2
   2 ~ LED1
-  4 ~ 485CTRL2 : L
-  6 ~ BEEP
+  
+  4 ~ 485 PWR CTRL
+  5 ~ RELAY1
+  6 ~ MBUS CURRENT OVER INPUT INPUT INPUT
+  
   */
-  gpio_init.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_4 | GPIO_Pin_6;
+  gpio_init.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_4 | GPIO_Pin_5;
   gpio_init.GPIO_Mode = GPIO_Mode_Out_PP;
   gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(GPIOC,&gpio_init);
+  
+  
+  gpio_init.GPIO_Pin = GPIO_Pin_6;
+  gpio_init.GPIO_Mode = GPIO_Mode_IPU;
+  GPIO_Init(GPIOC,&gpio_init);
+  GPIO_EXTILineConfig(GPIO_PortSourceGPIOC, GPIO_PinSource6);
+  
+  /* Configure EXTI6 line */
+  exti_init.EXTI_Line = EXTI_Line6;
+  exti_init.EXTI_Mode = EXTI_Mode_Interrupt;
+  exti_init.EXTI_Trigger = EXTI_Trigger_Falling;  
+  exti_init.EXTI_LineCmd = ENABLE;
+  EXTI_Init(&exti_init);
 }
 
 void BSP_USART_Init(void){
@@ -255,8 +276,8 @@ void BSP_USART_Init(void){
   USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
   
   
-  /*USART3  485CONF
-  usart_init.USART_BaudRate = 1200;
+  /*USART3  MBUS*/
+  usart_init.USART_BaudRate = 2400;
   usart_init.USART_WordLength = USART_WordLength_9b;
   usart_init.USART_Parity = USART_Parity_Even;
   usart_init.USART_StopBits = USART_StopBits_1;
@@ -269,7 +290,7 @@ void BSP_USART_Init(void){
   USART_ITConfig(USART3, USART_IT_TC, DISABLE);
   USART_ITConfig(USART3, USART_IT_TXE, DISABLE);
   USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
-  */
+  
   
   /*UART4  LORA*/
   usart_init.USART_BaudRate = 115200;
@@ -305,11 +326,11 @@ void BSP_NVIC_Init(void){
   nvic_init.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&nvic_init);
   
-  /* Enable the USART3 Interrupt 
+  /* Enable the USART3 Interrupt */
   nvic_init.NVIC_IRQChannel = USART3_IRQn;
   nvic_init.NVIC_IRQChannelSubPriority = 2;
   nvic_init.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&nvic_init);*/
+  NVIC_Init(&nvic_init);
   
   /* Enable the UART4 Interrupt */
   nvic_init.NVIC_IRQChannel = UART4_IRQn;
@@ -317,6 +338,11 @@ void BSP_NVIC_Init(void){
   nvic_init.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&nvic_init);
   
+  /* Enable the EXTI9_5 Interrupt */
+  nvic_init.NVIC_IRQChannel = EXTI9_5_IRQn;
+  nvic_init.NVIC_IRQChannelSubPriority = 4;
+  nvic_init.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&nvic_init);
 }
 
 void BSP_SPI_Init(void){

@@ -343,7 +343,7 @@ void device_ack(uint8_t desc,uint8_t server_seq_){
     send_server(ack,17);
   }else{
     //to 485
-    Write_485_2(ack,17);
+    Write_485(ack,17);
   }
   
 }
@@ -433,7 +433,7 @@ void ack_query_addr(uint8_t desc,uint8_t server_seq_){
     send_server(buf_frame_,17);
   }else{
     //to 485
-    Write_485_2(buf_frame_,17);
+    Write_485(buf_frame_,17);
   }
   
   OSMemPut(&MEM_Buf,buf_frame_,&err);
@@ -487,7 +487,7 @@ void ack_query_ip(uint8_t desc,uint8_t server_seq_){
     send_server(buf_frame_,23);
   }else{
     //to 485
-    Write_485_2(buf_frame_,23);
+    Write_485(buf_frame_,23);
   }
   
   OSMemPut(&MEM_Buf,buf_frame_,&err);
@@ -533,7 +533,7 @@ void ack_query_mbus(uint8_t desc,uint8_t server_seq_){
     send_server(buf_frame_,18);
   }else{
     //to 485
-    Write_485_2(buf_frame_,18);
+    Write_485(buf_frame_,18);
   }
   
   OSMemPut(&MEM_Buf,buf_frame_,&err);
@@ -579,7 +579,7 @@ void ack_query_di_seq(uint8_t desc,uint8_t server_seq_){
     send_server(buf_frame_,18);
   }else{
     //to 485
-    Write_485_2(buf_frame_,18);
+    Write_485(buf_frame_,18);
   }
   
   OSMemPut(&MEM_Buf,buf_frame_,&err);
@@ -626,7 +626,7 @@ void ack_query_ack_action(uint8_t desc,uint8_t server_seq_){
     send_server(buf_frame_,18);
   }else{
     //to 485
-    Write_485_2(buf_frame_,18);
+    Write_485(buf_frame_,18);
   }
   
   OSMemPut(&MEM_Buf,buf_frame_,&err);
@@ -673,7 +673,7 @@ void ack_query_protocol(uint8_t desc,uint8_t server_seq_){
     send_server(buf_frame_,18);
   }else{
     //to 485
-    Write_485_2(buf_frame_,18);
+    Write_485(buf_frame_,18);
   }
   
   OSMemPut(&MEM_Buf,buf_frame_,&err);

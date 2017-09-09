@@ -101,7 +101,7 @@ u8 read_single_eg(u8 cjq_h,u8 cjq_l,u8 meter_addr,u8 all){
   
   for(i = 0;i< 3;i++){
     //µ×²ã±í  0xAA
-    Write_485_2(toslave,9);
+    Write_485(toslave,9);
     buf_readdata = OSQPend(&Q_ReadData,1000,OS_OPT_PEND_BLOCKING,&msg_size,&ts,&err);
     if(err != OS_ERR_NONE){
       continue;
@@ -288,7 +288,7 @@ void send_data_eg(u8 metercount,uint8_t desc){
           break;
         }
       }else{
-        Write_485_2(buf_ptr_,buf_ptr-buf_ptr_);
+        Write_485(buf_ptr_,buf_ptr-buf_ptr_);
       }
     }
     OSMemPut(&MEM_Buf,buf_ptr_,&err);
@@ -347,7 +347,7 @@ void send_cjqtimeout_eg(uint8_t desc){
       }
     }else{
       //to 485
-      Write_485_2(buf_ptr_,buf_ptr-buf_ptr_);
+      Write_485(buf_ptr_,buf_ptr-buf_ptr_);
     }
     
     

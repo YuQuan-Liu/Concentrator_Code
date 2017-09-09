@@ -156,18 +156,18 @@ ErrorStatus Write_LORA(uint8_t * data,uint16_t count){
   return SUCCESS;
 }
 
-ErrorStatus Write_485_2(uint8_t * data,uint16_t count){
+ErrorStatus Write_485(uint8_t * data,uint16_t count){
   int16_t i;
   CPU_TS ts;
   OS_ERR err;
   
-  CTRL_485_2_SEND();
+  CTRL_485_SEND();
   for(i = 0;i < count;i++){
     USART_SendData(USART2,*(data+i));
     while(USART_GetFlagStatus(USART2, USART_FLAG_TC) == RESET){}
   }
   
-  CTRL_485_2_RECV();
+  CTRL_485_RECV();
   return SUCCESS;
 }
 

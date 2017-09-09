@@ -20,6 +20,19 @@
 #define LED3_ON()         GPIO_SetBits(GPIOC, GPIO_Pin_0)
 #define LED3_OFF()         GPIO_ResetBits(GPIOC, GPIO_Pin_0)
 
+#define RELAY1_ON()         GPIO_SetBits(GPIOC, GPIO_Pin_5)
+#define RELAY1_OFF()         GPIO_ResetBits(GPIOC, GPIO_Pin_5)
+
+#define RELAY2_ON()         GPIO_SetBits(GPIOB, GPIO_Pin_0)
+#define RELAY2_OFF()         GPIO_ResetBits(GPIOB, GPIO_Pin_0)
+
+#define RELAY3_ON()         GPIO_SetBits(GPIOB, GPIO_Pin_1)
+#define RELAY3_OFF()         GPIO_ResetBits(GPIOB, GPIO_Pin_1)
+
+
+#define RELAY_VALVE_ON()         GPIO_SetBits(GPIOB, GPIO_Pin_15)
+#define RELAY_VALVE_OFF()         GPIO_ResetBits(GPIOB, GPIO_Pin_15)
+
 #ifdef GPRS_MIC29302
   // MIC29302
   #define PWR_GPRS_ON()         GPIO_SetBits(GPIOA, GPIO_Pin_8)
@@ -33,20 +46,16 @@
 #define GPRS_PWRKEY_H()         GPIO_ResetBits(GPIOA, GPIO_Pin_11)
 #define GPRS_PWRKEY_L()         GPIO_SetBits(GPIOA, GPIO_Pin_11)
 
-#define PWR_485_ON()         GPIO_SetBits(GPIOB, GPIO_Pin_0)
-#define PWR_485_OFF()         GPIO_ResetBits(GPIOB, GPIO_Pin_0)
+#define PWR_485_ON()         GPIO_SetBits(GPIOC, GPIO_Pin_4)
+#define PWR_485_OFF()         GPIO_ResetBits(GPIOC, GPIO_Pin_4)
 
 #define PWR_LORA_ON()         GPIO_SetBits(GPIOA, GPIO_Pin_1)
 #define PWR_LORA_OFF()         GPIO_ResetBits(GPIOA, GPIO_Pin_1)
 
-#define CTRL_485_2_SEND()         GPIO_SetBits(GPIOC, GPIO_Pin_4)
-#define CTRL_485_2_RECV()         GPIO_ResetBits(GPIOC, GPIO_Pin_4)
+#define CTRL_485_SEND()         GPIO_SetBits(GPIOB, GPIO_Pin_14)
+#define CTRL_485_RECV()         GPIO_ResetBits(GPIOB, GPIO_Pin_14)
 
-#define CTRL_485_1_SEND()         GPIO_SetBits(GPIOB, GPIO_Pin_1)
-#define CTRL_485_1_RECV()         GPIO_ResetBits(GPIOB, GPIO_Pin_1)
 
-#define BEEP_ON()         GPIO_SetBits(GPIOC, GPIO_Pin_6)
-#define BEEP_OFF()         GPIO_ResetBits(GPIOC, GPIO_Pin_6)
 
 void BSP_Init(void);
 uint32_t BSP_CPU_ClkFreq(void);

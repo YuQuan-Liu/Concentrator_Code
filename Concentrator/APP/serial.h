@@ -12,7 +12,7 @@ void UART4_Handler(void);
 
 
 ErrorStatus Write_LORA(uint8_t * data,uint16_t count);
-ErrorStatus Write_485_2(uint8_t * data,uint16_t count);
+ErrorStatus Write_485(uint8_t * data,uint16_t count);
 ErrorStatus Server_Write(uint8_t * data,uint16_t count);  
 ErrorStatus Server_WriteStr(uint8_t * data);  
 
