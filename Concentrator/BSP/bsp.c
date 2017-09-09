@@ -186,7 +186,16 @@ void BSP_GPIO_Init(void){
   gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(GPIOA,&gpio_init);
   
-  GPIO_ResetBits(GPIOA,GPIO_Pin_8); //OFF the GPRS PWR
+  //OFF the GPRS PWR
+  #ifdef GPRS_MIC29302
+    // MIC29302
+    GPIO_ResetBits(GPIOA,GPIO_Pin_8); 
+  #else
+    // LM2596
+    GPIO_SetBits(GPIOA, GPIO_Pin_8);
+  #endif
+  
+  
   GPIO_SetBits(GPIOA,GPIO_Pin_1); //ON the LORA PWR
   /*
   GPIOB

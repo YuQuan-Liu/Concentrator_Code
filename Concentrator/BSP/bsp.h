@@ -9,6 +9,7 @@
 #define  APP_START_TASK_STK_SIZE      256u
 #define  APP_START_TASK_PRIO      3u
 
+//#define  GPRS_MIC29302  //当GPRS小板使用的电源芯片为MIC29302时使用 默认为LM2596
 
 #define LED1_ON()         GPIO_SetBits(GPIOC, GPIO_Pin_2)
 #define LED1_OFF()         GPIO_ResetBits(GPIOC, GPIO_Pin_2)
@@ -19,8 +20,15 @@
 #define LED3_ON()         GPIO_SetBits(GPIOC, GPIO_Pin_0)
 #define LED3_OFF()         GPIO_ResetBits(GPIOC, GPIO_Pin_0)
 
-#define PWR_GPRS_ON()         GPIO_SetBits(GPIOA, GPIO_Pin_8)
-#define PWR_GPRS_OFF()         GPIO_ResetBits(GPIOA, GPIO_Pin_8)
+#ifdef GPRS_MIC29302
+  // MIC29302
+  #define PWR_GPRS_ON()         GPIO_SetBits(GPIOA, GPIO_Pin_8)
+  #define PWR_GPRS_OFF()         GPIO_ResetBits(GPIOA, GPIO_Pin_8)
+#else
+  // LM2596
+  #define PWR_GPRS_ON()         GPIO_ResetBits(GPIOA, GPIO_Pin_8)
+  #define PWR_GPRS_OFF()         GPIO_SetBits(GPIOA, GPIO_Pin_8)
+#endif
 
 #define GPRS_PWRKEY_H()         GPIO_ResetBits(GPIOA, GPIO_Pin_11)
 #define GPRS_PWRKEY_L()         GPIO_SetBits(GPIOA, GPIO_Pin_11)
