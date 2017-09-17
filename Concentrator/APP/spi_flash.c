@@ -4,7 +4,8 @@
 #include "spi_flash.h"
 #include "stm32f10x_conf.h"
 #include "os.h"
-#include "gprs.h"
+#include "utils.h"
+#include "device_params.h"
 
 /**
   * @brief  Erases the specified FLASH sector.
@@ -465,7 +466,6 @@ void sFLASH_WaitForWriteEnd(void)
   sFLASH_CS_HIGH();
 }
 
-extern OS_MEM MEM_Buf;////
 void sFLASH_PoolInit(void){
   uint16_t i;
   uint8_t flashinit = 0x00;
@@ -484,7 +484,6 @@ void sFLASH_PoolInit(void){
     sFLASH_EraseBulk();    //erase the chip
     //只初始化前面511个  最后一个保存各种配置信息
     //sFLASH_POOL_NUM == 2044       sFLASH_POOL_SIZE == 1K 
-    /*
     for(i = 0;i < sFLASH_POOL_NUM;i++){
       sectionaddr = sFLASH_START_ADDR + sFLASH_POOL_SIZE * i;
       nextaddr = sectionaddr + sFLASH_POOL_SIZE;
@@ -493,9 +492,7 @@ void sFLASH_PoolInit(void){
       }
       sFLASH_WritePage((uint8_t *)&sectionaddr,sectionaddr,3);
       sFLASH_WritePage((uint8_t *)&nextaddr,sectionaddr+3,3);
-      
     }
-    */
     //the pool start
     nextaddr = 0x000000;
     sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_POOL,3);
@@ -528,7 +525,7 @@ void sFLASH_PoolInit(void){
     //the slave is cjq default
     nextaddr = 0xABCDBB;
     sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_METER_MBUS,1);
-    nextaddr = 0x000001;
+    nextaddr = 0x0000FF;
     sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_PROTOCOL,1);
   }
   //the flash is inited
@@ -536,159 +533,124 @@ void sFLASH_PoolInit(void){
   
 }
 
-extern OS_MEM MEM_Buf;
-
-
-extern uint8_t config_flash[];  //配置处理Flash使用的数组  Sector==4K  需要一个4K的数组
-extern OS_MUTEX MUTEX_CONFIGFLASH;    //是否可以使用 config_flash  4K 数组配置FLASH
 
 uint32_t GetFlash(void){
   uint32_t first = 0;//pool 中的第一个空闲块的地址
   uint32_t next = 0;//pool 中第二个空闲块的地址
   uint32_t free = 0;
   uint32_t used = 0;
-  OS_ERR err;
-  CPU_TS ts;
+  uint8_t * mem4k = 0;
   
   sFLASH_ReadBuffer((uint8_t *)&first,sFLASH_POOL,3);
-  sFLASH_ReadBuffer((uint8_t *)&next,first+3,3);
-  sFLASH_ReadBuffer((uint8_t *)&free,sFLASH_POOL_FREE,2);
-  sFLASH_ReadBuffer((uint8_t *)&used,sFLASH_POOL_USED,2);
   
+  //没有空闲块了
   if(first == 0xFFFFFF){
-    //没有空闲块了
+    return 0;
+  }
+  
+  if(lock_mem4k()){
+    mem4k = get_mem4k();
+    sFLASH_ReadBuffer((uint8_t *)&next,first+3,3);
+    sFLASH_ReadBuffer((uint8_t *)&free,sFLASH_POOL_FREE,2);
+    sFLASH_ReadBuffer((uint8_t *)&used,sFLASH_POOL_USED,2);
+    
+    free--;
+    used++;
+    
+    //处理Config Flash 块
+    //将next 的地址存到  sFLASH_POOL
+    sFLASH_ReadBuffer(mem4k,sFLASH_CON_START_ADDR,0x100);   //配置字段现在只使用了1个page 所以使用256
+    Mem_Copy(mem4k + (sFLASH_POOL - sFLASH_CON_START_ADDR),(uint8_t *)&next,3);
+    Mem_Copy(mem4k + (sFLASH_POOL_FREE - sFLASH_CON_START_ADDR),(uint8_t *)&free,2);
+    Mem_Copy(mem4k + (sFLASH_POOL_USED - sFLASH_CON_START_ADDR),(uint8_t *)&used,2);
+    sFLASH_EraseWritePage(mem4k,sFLASH_CON_START_ADDR,0x100);
+    
+    //处理得到的Flash块
+    sFLASH_ReadBuffer(mem4k,(first/0x1000)*0x1000,0x1000);  //读取所在Sector
+    
+    //将获得的Flash块清空为 0xFF  前面三个byte 设置为当前Flash块的地址
+    Mem_Set(mem4k+first%0x1000,0xFF,0x100);    
+    Mem_Copy(mem4k+first%0x1000,(uint8_t *)&first,3);
+    
+    //将配置好的Flash块重新写入到Flash中。
+    sFLASH_EraseSector((first/0x1000)*0x1000);
+    sFLASH_WriteBuffer(mem4k,(first/0x1000)*0x1000,0x1000);
+    
+    unlock_mem4k();
     return first;
+  }else{
+    return 0;
   }
-  
-  OSMutexPend(&MUTEX_CONFIGFLASH,1000,OS_OPT_PEND_BLOCKING,&ts,&err);
-  
-  if(err != OS_ERR_NONE){
-    //获取MUTEX过程中 出错了...
-    return 0xFFFFFF;
-  }
-  
-  free--;
-  used++;
-  
-  //处理Config Flash 块
-  //将next 的地址存到  sFLASH_POOL
-  sFLASH_ReadBuffer(config_flash,sFLASH_CON_START_ADDR,256);   //配置字段现在只使用了1个page 所以使用256
-  Mem_Copy(config_flash + (sFLASH_POOL - sFLASH_CON_START_ADDR),(uint8_t *)&next,3);
-  Mem_Copy(config_flash + (sFLASH_POOL_FREE - sFLASH_CON_START_ADDR),(uint8_t *)&free,2);
-  Mem_Copy(config_flash + (sFLASH_POOL_USED - sFLASH_CON_START_ADDR),(uint8_t *)&used,2);
-  sFLASH_EraseWritePage(config_flash,sFLASH_CON_START_ADDR,256);
-  
-  
-  //处理得到的Flash块
-  sFLASH_ReadBuffer(config_flash,(first/0x1000)*0x1000,sFLASH_SECTOR_SIZE);  //读取所在Sector
-  
-  //将获得的Flash块清空为 0xFF  前面三个byte 设置为当前Flash块的地址
-  Mem_Set(config_flash+first%0x1000,0xFF,256);    
-  Mem_Copy(config_flash+first%0x1000,(uint8_t *)&first,3);
-  
-  //将配置好的Flash块重新写入到Flash中。
-  sFLASH_EraseSector((first/0x1000)*0x1000);
-  sFLASH_WriteBuffer(config_flash,(first/0x1000)*0x1000,sFLASH_SECTOR_SIZE);
-  
-  OSMutexPost(&MUTEX_CONFIGFLASH,OS_OPT_POST_NONE,&err);
-  
-  return first;
 }
 
-void PutFlash(uint32_t put){
+uint8_t PutFlash(uint32_t put){
   uint32_t first = 0;//pool 中的第一个空闲块的地址
   uint32_t next = 0;//pool 中第二个空闲块的地址
   uint32_t free = 0;
   uint32_t used = 0;
-  CPU_TS ts;
-  OS_ERR err;
+  uint8_t * mem4k = 0;
   
   sFLASH_ReadBuffer((uint8_t *)&first,sFLASH_POOL,3);
   sFLASH_ReadBuffer((uint8_t *)&next,first+3,3);
   sFLASH_ReadBuffer((uint8_t *)&free,sFLASH_POOL_FREE,2);
   sFLASH_ReadBuffer((uint8_t *)&used,sFLASH_POOL_USED,2);
   
-  
-  OSMutexPend(&MUTEX_CONFIGFLASH,1000,OS_OPT_PEND_BLOCKING,&ts,&err);
-  
-  if(err != OS_ERR_NONE){
-    //获取MUTEX过程中 出错了...
-    //return 0xFFFFFF;
-    return;
+  if(lock_mem4k()){
+    mem4k = get_mem4k();
+    
+    //处理要放回去的flash块
+    sFLASH_ReadBuffer(mem4k,(put/0x1000)*0x1000,sFLASH_SECTOR_SIZE);  //读取所在Sector
+    //将放回的Flash块清空为 0xFF  前面三个byte 设置为当前Flash块的地址 后三个byte为下一个空闲Flash块地址
+    Mem_Set(mem4k+put%0x1000,0xFF,0x100);    
+    Mem_Copy(mem4k+put%0x1000,(uint8_t *)&put,3);
+    Mem_Copy(mem4k+put%0x1000+3,(uint8_t *)&first,3);
+    
+    //将配置好的Flash块重新写入到Flash中。
+    sFLASH_EraseSector((put/0x1000)*0x1000);
+    sFLASH_WriteBuffer(mem4k,(put/0x1000)*0x1000,0x1000);
+    
+    free++;
+    used--;
+    //处理Config Flash 块
+    sFLASH_ReadBuffer(mem4k,sFLASH_CON_START_ADDR,0x100);
+    Mem_Copy(mem4k + (sFLASH_POOL - sFLASH_CON_START_ADDR),(uint8_t *)&put,3);
+    Mem_Copy(mem4k + (sFLASH_POOL_FREE - sFLASH_CON_START_ADDR),(uint8_t *)&free,2);
+    Mem_Copy(mem4k + (sFLASH_POOL_USED - sFLASH_CON_START_ADDR),(uint8_t *)&used,2);
+    sFLASH_EraseWritePage(mem4k,sFLASH_CON_START_ADDR,0x100);
+    
+    unlock_mem4k();
+    return 1;
+  }else{
+    return 0;
   }
-  
-  //处理要放回去的flash块
-  sFLASH_ReadBuffer(config_flash,(put/0x1000)*0x1000,sFLASH_SECTOR_SIZE);  //读取所在Sector
-  //将放回的Flash块清空为 0xFF  前面三个byte 设置为当前Flash块的地址 后三个byte为下一个空闲Flash块地址
-  Mem_Set(config_flash+put%0x1000,0xFF,256);    
-  Mem_Copy(config_flash+put%0x1000,(uint8_t *)&put,3);
-  Mem_Copy(config_flash+put%0x1000+3,(uint8_t *)&first,3);
-  
-  //将配置好的Flash块重新写入到Flash中。
-  sFLASH_EraseSector((put/0x1000)*0x1000);
-  sFLASH_WriteBuffer(config_flash,(put/0x1000)*0x1000,sFLASH_SECTOR_SIZE);
-  
-  
-  free++;
-  used--;
-  //处理Config Flash 块
-  sFLASH_ReadBuffer(config_flash,sFLASH_CON_START_ADDR,256);
-  Mem_Copy(config_flash + (sFLASH_POOL - sFLASH_CON_START_ADDR),(uint8_t *)&put,3);
-  Mem_Copy(config_flash + (sFLASH_POOL_FREE - sFLASH_CON_START_ADDR),(uint8_t *)&free,2);
-  Mem_Copy(config_flash + (sFLASH_POOL_USED - sFLASH_CON_START_ADDR),(uint8_t *)&used,2);
-  sFLASH_EraseWritePage(config_flash,sFLASH_CON_START_ADDR,256);
-  
-  OSMutexPost(&MUTEX_CONFIGFLASH,OS_OPT_POST_NONE,&err);
   
 }
 
 
-extern uint8_t ip[17];                 //the server ip
-extern uint8_t port[8];                     //the server port
-extern uint8_t deviceaddr[5];      //设备地址
-
-extern uint8_t ip1;
-extern uint8_t ip2;
-extern uint8_t ip3;
-extern uint8_t ip4;
-extern uint16_t port_;
-
-extern uint8_t ack_action;  //先应答后操作~0xaa    先操作后应答~0xff
-extern uint8_t slave_mbus; //0xaa mbus   0xff  485
-extern uint8_t di_seq; //DI0 DI1 顺序   0xAA~DI1在前(千宝通)   0xFF~DI0在前(default) 
-extern uint8_t protocol;  //协议类型 0xFF~188(Default)  1~EG 
 void param_conf(void){
+  uint8_t * mem4k = 0;
   
-  uint8_t temp[2] = {0x00,0x00};
-  
-  temp[0] = 0x00;
-  sFLASH_ReadBuffer(temp,sFLASH_CON_IP,1);
-  if(temp[0] != 0xFF){
-    sFLASH_ReadStr(ip,sFLASH_CON_IP,17);
-    sFLASH_ReadBuffer(&ip1,sFLASH_CON_IP1,1);
-    sFLASH_ReadBuffer(&ip2,sFLASH_CON_IP2,1);
-    sFLASH_ReadBuffer(&ip3,sFLASH_CON_IP3,1);
-    sFLASH_ReadBuffer(&ip4,sFLASH_CON_IP4,1);
-  }
-  
-  temp[0] = 0x00;
-  sFLASH_ReadBuffer(temp,sFLASH_CON_PORT,1);
-  if(temp[0] != 0xFF){
-    sFLASH_ReadStr(port,sFLASH_CON_PORT,8);
-    sFLASH_ReadBuffer((uint8_t *)&port_,sFLASH_CON_PORT_,2);
-  }
-  //the type of the slave
-  sFLASH_ReadBuffer((uint8_t *)&slave_mbus,sFLASH_METER_MBUS,1);
-  //the seq of the di  数据标示的顺序
-  sFLASH_ReadBuffer((uint8_t *)&di_seq,sFLASH_READMETER_DI_SEQ,1);
-  //阀门是先操作还是先应答 ack_action
-  sFLASH_ReadBuffer((uint8_t *)&ack_action,sFLASH_ACK_ACTION,1);
-  //协议类型 0xFF~188(Default)  1~EG  
-  sFLASH_ReadBuffer((uint8_t *)&protocol,sFLASH_PROTOCOL,1);
-  //the device 's addr
-  temp[0] = 0x00;
-  sFLASH_ReadBuffer(temp,sFLASH_DEVICE_ADDR,1);
-  if(temp[0] != 0xFF){
-    sFLASH_ReadBuffer(deviceaddr,sFLASH_DEVICE_ADDR,5);
+  if(lock_mem4k()){
+    mem4k = get_mem4k();
+    sFLASH_ReadBuffer(mem4k,sFLASH_CON_START_ADDR,0x100);
+    if(*(mem4k + sFLASH_CON_IP1) != 0xFF){
+      set_ip(mem4k + sFLASH_CON_IP1);
+    }
+    
+    if(*(mem4k + sFLASH_CON_IP1) != 0xFF){
+      set_port(*(uint16_t *)(mem4k+sFLASH_CON_PORT_));
+    }
+    
+    if(*(mem4k + sFLASH_DEVICE_ADDR) != 0xFF){
+      set_addr(mem4k+sFLASH_DEVICE_ADDR);
+    }
+    
+    set_slave(*(mem4k+sFLASH_METER_MBUS));
+    set_di_seq(*(mem4k+sFLASH_READMETER_DI_SEQ));
+    set_ack_valve(*(mem4k+sFLASH_ACK_ACTION));
+    set_protocol(*(mem4k+sFLASH_PROTOCOL));
+    set_simcard(*(mem4k+sFLASH_SIMCARD));
+    
+    unlock_mem4k();
   }
 }

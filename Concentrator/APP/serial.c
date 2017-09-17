@@ -2,31 +2,29 @@
 #include "stm32f10x_conf.h"
 #include "os.h"
 #include "serial.h"
+#include "bsp.h"
+#include "utils.h"
 
+extern OS_Q Q_CJQ_USART;
+extern OS_Q Q_LORA_USART;
+extern OS_Q Q_METER_USART;
 
-extern OS_MEM MEM_ISR;
-extern OS_SEM SEM_USART1_TX;
-extern OS_SEM SEM_USART2_TX;
-extern OS_SEM SEM_UART4_TX;
+uint8_t * volatile p_server = 0;      //中断中保存GPRS 返回来的数据
+uint8_t * volatile p_server_ = 0;     //记录中断的开始指针
 
-extern OS_Q Q_485_2;
-extern OS_Q Q_LORA;
-
-extern uint8_t * volatile server_ptr;      //中断中保存GPRS 返回来的数据
-extern uint8_t * volatile server_ptr_;     //记录中断的开始指针
-//SIM800G
+/**
+ * 处理SIM800G GPRS
+ */
 void USART1_Handler(void){
-  OS_ERR err;
   uint8_t rx_byte;
-  uint8_t *mem_ptr;
   
   if(USART_GetFlagStatus(USART1,USART_FLAG_RXNE) && USART_GetITStatus(USART1,USART_IT_RXNE)){
     rx_byte = USART_ReceiveData(USART1);
     
-    if(server_ptr_ != 0){
-      if(server_ptr - server_ptr_ < 255){
-        *server_ptr = rx_byte;
-        server_ptr++;
+    if(p_server_ != 0){
+      if(p_server - p_server_ < 255){
+        *p_server = rx_byte;
+        p_server++;
       }
     }
   }
@@ -35,47 +33,31 @@ void USART1_Handler(void){
     rx_byte = USART_ReceiveData(USART1);
   }
   
-  /*
-  if(USART_GetFlagStatus(USART1,USART_FLAG_TC)){
-    //It must clear the TC 
-    //if not it will stay here 
-    USART_ClearITPendingBit(USART1,USART_IT_TC);
-    OSSemPost(&SEM_USART1_TX,
-              OS_OPT_POST_1,
-              &err);
-    
-    if(err != OS_ERR_NONE){
-      asm("NOP");
-    }
-  }*/
 }
 
-
-
-
-//485 READ
+/**
+ * 处理采集器  集中器之间通信
+ */
 void USART2_Handler(void){
   OS_ERR err;
   uint8_t rx_byte;
-  uint8_t *mem_ptr;
+  uint8_t *p_mem;
   
   if(USART_GetFlagStatus(USART2,USART_FLAG_RXNE) && USART_GetITStatus(USART2,USART_IT_RXNE)){
     rx_byte = USART_ReceiveData(USART2);
-    mem_ptr = OSMemGet(&MEM_ISR,&err);
     
-    if(err == OS_ERR_NONE){
+    p_mem = get_memisr();
+    if(p_mem){
       *mem_ptr = rx_byte;
-      OSQPost((OS_Q *)&Q_485_2,
-              (void *)mem_ptr,
+      OSQPost((OS_Q *)&Q_CJQ_USART,
+              (void *)p_mem,
               1,
               OS_OPT_POST_FIFO,
               &err);
       if(err != OS_ERR_NONE){
         //没有放进队列  放回MEMPool
-        OSMemPut(&MEM_ISR,mem_ptr,&err);
+        put_membuf(p_mem);
       }
-    }else{
-      asm("NOP");
     }
   }
   
@@ -83,44 +65,64 @@ void USART2_Handler(void){
     rx_byte = USART_ReceiveData(USART2);
   }
   
-  /*
-  if(USART_GetFlagStatus(USART2,USART_FLAG_TC)){
-    
-    USART_ClearITPendingBit(USART2,USART_IT_TC);
-    OSSemPost(&SEM_USART2_TX,
-              OS_OPT_POST_1,
-              &err);
-    
-    if(err != OS_ERR_NONE){
-      asm("NOP");
-    }
-  }*/
 }
 
-//LORA
-void UART4_Handler(void){
+/*
+* 处理MBUS 485 抄表
+*/
+void USART3_Handler(void){
   OS_ERR err;
   uint8_t rx_byte;
-  uint8_t *mem_ptr;
+  uint8_t *p_mem;
   
-  //receive the byte
-  if(USART_GetFlagStatus(UART4,USART_FLAG_RXNE) && USART_GetITStatus(UART4,USART_IT_RXNE)){
-    rx_byte = USART_ReceiveData(UART4);
-    mem_ptr = OSMemGet(&MEM_ISR,&err);
+  if(USART_GetFlagStatus(USART3,USART_FLAG_RXNE) && USART_GetITStatus(USART3,USART_IT_RXNE)){
+    rx_byte = USART_ReceiveData(USART3);
     
-    if(err == OS_ERR_NONE){
+    p_mem = get_memisr();
+    if(p_mem){
       *mem_ptr = rx_byte;
-      OSQPost((OS_Q *)&Q_LORA,
-              (void *)mem_ptr,
+      OSQPost((OS_Q *)&Q_METER_USART,
+              (void *)p_mem,
               1,
               OS_OPT_POST_FIFO,
               &err);
       if(err != OS_ERR_NONE){
         //没有放进队列  放回MEMPool
-        OSMemPut(&MEM_ISR,mem_ptr,&err);
+        put_membuf(p_mem);
       }
-    }else{
-      asm("NOP");
+    }
+  }
+  
+  if(USART_GetFlagStatus(USART3,USART_FLAG_ORE)){
+    rx_byte = USART_ReceiveData(USART3);
+  }
+  
+}
+
+/*
+* 处理LORA无线通信
+*/
+void UART4_Handler(void){
+  OS_ERR err;
+  uint8_t rx_byte;
+  uint8_t *p_mem;
+  
+  //receive the byte
+  if(USART_GetFlagStatus(UART4,USART_FLAG_RXNE) && USART_GetITStatus(UART4,USART_IT_RXNE)){
+    rx_byte = USART_ReceiveData(UART4);
+    
+    p_mem = get_memisr();
+    if(p_mem){
+      *mem_ptr = rx_byte;
+      OSQPost((OS_Q *)&Q_LORA_USART,
+              (void *)p_mem,
+              1,
+              OS_OPT_POST_FIFO,
+              &err);
+      if(err != OS_ERR_NONE){
+        //没有放进队列  放回MEMPool
+        put_membuf(p_mem);
+      }
     }
   }
   
@@ -128,66 +130,66 @@ void UART4_Handler(void){
     rx_byte = USART_ReceiveData(UART4);
   }
   
-  /*
-  //send the data
-  if(USART_GetFlagStatus(UART4,USART_FLAG_TC)){
-    
-    USART_ClearITPendingBit(UART4,USART_IT_TC);
-    OSSemPost(&SEM_UART4_TX,
-              OS_OPT_POST_1,
-              &err);
-    
-    if(err != OS_ERR_NONE){
-      asm("NOP");
-    }
-  }*/
 }
 
 
-ErrorStatus Write_LORA(uint8_t * data,uint16_t count){
+/*
+* 通过U4 往LORA发送数据
+*/
+uint8_t write_lora(uint8_t * data,uint16_t count){
   uint16_t i;
-  CPU_TS ts;
-  OS_ERR err;
   
   for(i = 0;i < count;i++){
     USART_SendData(UART4,*(data+i));
     while(USART_GetFlagStatus(UART4, USART_FLAG_TC) == RESET){}
   }
-  return SUCCESS;
+  return 1;
 }
 
-ErrorStatus Write_485(uint8_t * data,uint16_t count){
-  int16_t i;
-  CPU_TS ts;
-  OS_ERR err;
+/*
+* 通过U2 给采集器发送数据
+*/
+uint8_t write_cjq(uint8_t * data,uint16_t count){
+  uint16_t i;
   
-  CTRL_485_SEND();
+  CTRL_485_CJQ_SEND();
   for(i = 0;i < count;i++){
     USART_SendData(USART2,*(data+i));
     while(USART_GetFlagStatus(USART2, USART_FLAG_TC) == RESET){}
   }
   
-  CTRL_485_RECV();
-  return SUCCESS;
+  CTRL_485_CJQ_RECV();
+  return 1;
+}
+
+/*
+* 通过U3 给 MBUS 485 表发送数据
+*/
+uint8_t write_meter(uint8_t * data,uint16_t count){
+  uint16_t i;
+  
+  CTRL_485_METER_SEND();
+  for(i = 0;i < count;i++){
+    USART_SendData(USART3,*(data+i));
+    while(USART_GetFlagStatus(USART3, USART_FLAG_TC) == RESET){}
+  }
+  
+  CTRL_485_METER_RECV();
+  return 1;
 }
 
 
-ErrorStatus Server_Write(uint8_t * data,uint16_t count){
+uint8_t write_server(uint8_t * data,uint16_t count){
   uint16_t i;
-  CPU_TS ts;
-  OS_ERR err;
   
   for(i = 0;i < count;i++){
     USART_SendData(USART1,*(data+i));
     while(USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET){}
   }
-  
-  return SUCCESS;
+  return 1;
 }
 
-ErrorStatus Server_WriteStr(uint8_t * data){
-  CPU_TS ts;
-  OS_ERR err;
+uint8_t write_serverstr(uint8_t * data){
   uint8_t * str = data;
   
   while(*str != '\0'){
@@ -195,36 +197,24 @@ ErrorStatus Server_WriteStr(uint8_t * data){
     str++;
     while(USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET){}
   }
-  return SUCCESS;
+  return 1;
 }
 
 /**
 ptr == 0  中断中不放到buf中
 ptr != 0  中断中放到ptr开始的buf中
 */
-ErrorStatus Server_Post2Buf(uint8_t * ptr){
+uint8_t server_2buf(uint8_t * ptr){
   CPU_SR_ALLOC();
   CPU_CRITICAL_ENTER();
   
-  server_ptr = ptr;
-  server_ptr_ = ptr;
-    
+  p_server = ptr;
+  p_server_ = ptr;
+  
   CPU_CRITICAL_EXIT();
-  return SUCCESS;
+  return 1;
 }
 
-extern volatile uint8_t reading;
-ErrorStatus Device_Read(FunctionalState NewState){
-  CPU_SR_ALLOC();
-  if(NewState != DISABLE){
-    CPU_CRITICAL_ENTER();
-    reading = 1;
-    CPU_CRITICAL_EXIT();
-  }else{
-    CPU_CRITICAL_ENTER();
-    reading = 0;
-    CPU_CRITICAL_EXIT();
-  }
-  return SUCCESS;
-}
+
+
 

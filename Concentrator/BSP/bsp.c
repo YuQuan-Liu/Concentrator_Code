@@ -204,10 +204,11 @@ void BSP_GPIO_Init(void){
   GPIOB
   0 ~ RELAY2 
   1 ~ RELAY3 
-  14 ~ 485CTRL : L
+  13 ~ 485CTRL : L  Meter USART3
+  14 ~ 485CTRL : L  CJQ   USAER2
   15 ~ RELAY_VALVE
   */
-  gpio_init.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_14 | GPIO_Pin_15;
+  gpio_init.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15;
   gpio_init.GPIO_Mode = GPIO_Mode_Out_PP;
   gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(GPIOB,&gpio_init);
@@ -260,8 +261,8 @@ void BSP_USART_Init(void){
   USART_ITConfig(USART1, USART_IT_TXE, DISABLE);
   USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
   
-  /*USART2  485READ*/
-  usart_init.USART_BaudRate = 1200;
+  /*USART2  485 CJQ*/
+  usart_init.USART_BaudRate = 2400;
   usart_init.USART_WordLength = USART_WordLength_9b;
   usart_init.USART_Parity = USART_Parity_Even;
   usart_init.USART_StopBits = USART_StopBits_1;
@@ -276,7 +277,7 @@ void BSP_USART_Init(void){
   USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
   
   
-  /*USART3  MBUS*/
+  /*USART3  MBUS 485 Meter*/
   usart_init.USART_BaudRate = 2400;
   usart_init.USART_WordLength = USART_WordLength_9b;
   usart_init.USART_Parity = USART_Parity_Even;

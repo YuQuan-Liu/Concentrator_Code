@@ -43,8 +43,6 @@
 #define sFLASH_WIP_FLAG         0x01    /*!< Write In Progress (WIP) flag */
 #define sFLASH_SPI_PAGESIZE     0x100
 
-
-
 #define sFLASH_START_ADDR       0x000000
 #define sFLASH_END_ADDR         0x1FFFFF
 
@@ -85,11 +83,12 @@
 #define sFLASH_METER_Q_LAST     sFLASH_METER_COUNT + 2        //最后一个采集器的地址
     
 #define sFLASH_POOL_INIT        sFLASH_METER_Q_LAST + 3          //FLASH 初始化没有  0xAA 初始化了    0xFF 没有初始化
-    
+
 #define sFLASH_METER_MBUS    sFLASH_CON_START_ADDR + 0xC0     //是否采用MBUS   0xAA MBUS表   0xFF  没有MBUS表(default)   
 #define sFLASH_READMETER_DI_SEQ    sFLASH_METER_MBUS + 0x01     //DI0 DI1 顺序   0xAA~DI1在前(千宝通)   0xFF~DI0在前(default)   
 #define sFLASH_ACK_ACTION    sFLASH_READMETER_DI_SEQ + 0x01     //先应答后操作~0xaa    先操作后应答~0xff   
 #define sFLASH_PROTOCOL    sFLASH_ACK_ACTION + 0x01     //协议类型 0xFF~188(Default)  1~EG  
+#define sFLASH_SIMCARD    sFLASH_PROTOCOL + 0x01     //0xff~移动  0xaa~联通 
 
 void sFLASH_DeInit(void);
 void sFLASH_Init(void);
@@ -110,7 +109,7 @@ uint32_t GetFlash(void);
 /*
   将Flash块放回到sFLASH_POOL中
 */
-void PutFlash(uint32_t put);
+uint8_t PutFlash(uint32_t put);
 
 void param_conf(void);  //从Flash中读数参数的配置信息
 

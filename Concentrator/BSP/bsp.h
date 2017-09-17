@@ -52,9 +52,11 @@
 #define PWR_LORA_ON()         GPIO_SetBits(GPIOA, GPIO_Pin_1)
 #define PWR_LORA_OFF()         GPIO_ResetBits(GPIOA, GPIO_Pin_1)
 
-#define CTRL_485_SEND()         GPIO_SetBits(GPIOB, GPIO_Pin_14)
-#define CTRL_485_RECV()         GPIO_ResetBits(GPIOB, GPIO_Pin_14)
+#define CTRL_485_METER_SEND()         GPIO_SetBits(GPIOB, GPIO_Pin_13)
+#define CTRL_485_METER_RECV()         GPIO_ResetBits(GPIOB, GPIO_Pin_13)
 
+#define CTRL_485_CJQ_SEND()         GPIO_SetBits(GPIOB, GPIO_Pin_14)
+#define CTRL_485_CJQ_RECV()         GPIO_ResetBits(GPIOB, GPIO_Pin_14)
 
 
 void BSP_Init(void);
