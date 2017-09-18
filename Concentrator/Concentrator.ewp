@@ -1909,6 +1909,9 @@
       <name>$PROJ_DIR$\APP\device_params.c</name>
     </file>
     <file>
+      <name>$PROJ_DIR$\APP\device_params.h</name>
+    </file>
+    <file>
       <name>$PROJ_DIR$\APP\frame.h</name>
     </file>
     <file>

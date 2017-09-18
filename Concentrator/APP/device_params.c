@@ -9,7 +9,7 @@ uint8_t deviceaddr[5] = {0x99,0x09,0x00,0x00,0x57};      //集中器地址
 
 uint8_t simcard = 0xff;    //0xff~移动  0xaa~联通
 uint8_t ack_valve = 0xff;  //先应答后操作~0xaa    先操作后应答~0xff
-uint8_t slave_mbus = 0xbb; //0xaa~mbus   0xff~485   0xbb~有线采集器  0xcc~无线采集器
+uint8_t slave = 0xbb; //0xaa~mbus   0xff~485   0xbb~有线采集器  0xcc~无线采集器
 uint8_t di_seq = 0xff; //DI0 DI1 顺序   0xAA~DI1在前(千宝通)   0xFF~DI0在前(default)  
 uint8_t protocol = 0xff;  //协议类型 0xFF~188(Default)  0x11~EG 
 
@@ -17,12 +17,13 @@ volatile uint8_t connectstate = 0;       //0 didn't connect to the server   1 co
 volatile uint8_t reading = 0;   //0 didn't reading meters    1  reading meters
 volatile uint8_t lora_test = 0;  //每3s发送TEST到LORA
 
+uint8_t version = 100;    //版本从100开始算
 
 void set_ip(uint8_t * p_ip){
-  ip_[0] = *(p_ip);
-  ip_[1] = *(p_ip+1);
+  ip_[0] = *(p_ip+3);
+  ip_[1] = *(p_ip+2);
   ip_[2] = *(p_ip+2);
-  ip_[3] = *(p_ip+3);
+  ip_[3] = *(p_ip);
 }
 
 uint8_t *get_ip(){
@@ -118,4 +119,8 @@ void set_simcard(uint8_t simcard_){
 
 uint8_t get_simcard(){
   return simcard;
+}
+
+uint8_t get_version(){
+  return version;
 }

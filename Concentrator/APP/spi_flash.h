@@ -45,8 +45,10 @@
 
 #define sFLASH_START_ADDR       0x000000
 #define sFLASH_END_ADDR         0x1FFFFF
+#define sFLASH_POOL_START_ADDR       sFLASH_START_ADDR+sFLASH_SECTOR_SIZE
 
-#define sFLASH_CON_START_ADDR         0x1FF000   //最后的一个section保存需要的配置信息
+
+#define sFLASH_CON_START_ADDR         sFLASH_START_ADDR   //第一个section保存需要的配置信息
 #define sFLASH_CON_APN          sFLASH_CON_START_ADDR
 #define sFLASH_CON_USER         sFLASH_CON_START_ADDR + 0x10
 #define sFLASH_CON_PASSWORD     sFLASH_CON_START_ADDR + 0x20
@@ -67,8 +69,7 @@
 #define sFLASH_SECTOR_SIZE        0x1000  //4K
 #define sFLASH_SECTOR_NUM         (sFLASH_END_ADDR - sFLASH_START_ADDR + 1)/sFLASH_SECTOR_SIZE  //512
 
-//将511个Sector 分成2044个1k大小的存储块
-#define sFLASH_POOL_SIZE        0x400  //1K    
+#define sFLASH_POOL_SIZE        0x400  //1K    //将511个Sector 分成2044个1k大小的存储块
 #define sFLASH_POOL_NUM         (sFLASH_CON_START_ADDR - sFLASH_START_ADDR)/sFLASH_POOL_SIZE  //2044
     
 #define sFLASH_PAGE_SIZE        0x100  //256
@@ -90,6 +91,27 @@
 #define sFLASH_PROTOCOL    sFLASH_ACK_ACTION + 0x01     //协议类型 0xFF~188(Default)  1~EG  
 #define sFLASH_SIMCARD    sFLASH_PROTOCOL + 0x01     //0xff~移动  0xaa~联通 
 
+
+//*************************************************************
+#define CJQ_FLASH_INDEX_ADDR    6   //5byte  采集器地址
+#define CJQ_FLASH_INDEX_FIRSTMETER       CJQ_FLASH_INDEX_ADDR+5   //3byte  第一个表地址
+#define CJQ_FLASH_INDEX_LASTMETER        CJQ_FLASH_INDEX_FIRSTMETER+3  //3byte  最后一个表地址
+#define CJQ_FLASH_INDEX_METERCOUNT      CJQ_FLASH_INDEX_LASTMETER+3   //2byte 表数量
+#define CJQ_FLASH_INDEX_PREVCJQ         CJQ_FLASH_INDEX_METERCOUNT+2   //3byte 上一个采集器
+#define CJQ_FLASH_INDEX_CJQSTATE        CJQ_FLASH_INDEX_PREVCJQ+3   //1byte  采集器状态
+    
+
+#define METER_FLASH_INDEX_ADDR 6   //7byte  表地址
+#define METER_FLASH_INDEX_TYPE          METER_FLASH_INDEX_ADDR+7   //1byte  表类型
+#define METER_FLASH_INDEX_READ          METER_FLASH_INDEX_TYPE+1   //4byte  表读数
+#define METER_FLASH_INDEX_PREVMETER          METER_FLASH_INDEX_READ+4   //3byte  上一个表地址
+#define METER_FLASH_INDEX_DATA          METER_FLASH_INDEX_PREVMETER+3   //1byte  数据项
+#define METER_FLASH_INDEX_METERSTATE          METER_FLASH_INDEX_DATA+1   //2byte  表状态
+#define METER_FLASH_INDEX_HALFREAD          METER_FLASH_INDEX_METERSTATE+2   //4byte  半位
+
+
+
+    
 void sFLASH_DeInit(void);
 void sFLASH_Init(void);
 void sFLASH_EraseSector(uint32_t SectorAddr);
@@ -100,7 +122,9 @@ void sFLASH_WriteBuffer(uint8_t* pBuffer, uint32_t WriteAddr, uint16_t NumByteTo
 void sFLASH_ReadBuffer(uint8_t* pBuffer, uint32_t ReadAddr, uint16_t NumByteToRead);
 uint32_t sFLASH_ReadID(void);
 void sFLASH_StartReadSequence(uint32_t ReadAddr);
-void sFLASH_PoolInit(void);  //初始化flash模块
+void sFLASH_PoolInit(void);   //初始化flash块池
+void sFLASH_Init(void);   //初始化flash模块
+
 /*
   根据sFLASH_POOL的地址获取空闲块
   并返回空闲块的地址

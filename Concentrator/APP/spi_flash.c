@@ -466,11 +466,8 @@ void sFLASH_WaitForWriteEnd(void)
   sFLASH_CS_HIGH();
 }
 
-void sFLASH_PoolInit(void){
-  uint16_t i;
+void sFLASH_Init(void){
   uint8_t flashinit = 0x00;
-  uint32_t sectionaddr;
-  uint32_t nextaddr;
   
   //第一次读取的时候读的数据不对。  
   //这个是因为上电后 在一个指令被接收钱 /CS 必须由高变为低  （参见文档/CS 管脚介绍）
@@ -480,59 +477,62 @@ void sFLASH_PoolInit(void){
   //sFLASH_EraseBulk();    //erase the chip
   sFLASH_ReadBuffer(&flashinit,sFLASH_POOL_INIT,1);
   if(flashinit == 0xFF){
-    //the flash need init
-    sFLASH_EraseBulk();    //erase the chip
-    //只初始化前面511个  最后一个保存各种配置信息
-    //sFLASH_POOL_NUM == 2044       sFLASH_POOL_SIZE == 1K 
-    for(i = 0;i < sFLASH_POOL_NUM;i++){
-      sectionaddr = sFLASH_START_ADDR + sFLASH_POOL_SIZE * i;
-      nextaddr = sectionaddr + sFLASH_POOL_SIZE;
-      if(i == sFLASH_POOL_NUM - 1){
-        nextaddr = 0xFFFFFF;
-      }
-      sFLASH_WritePage((uint8_t *)&sectionaddr,sectionaddr,3);
-      sFLASH_WritePage((uint8_t *)&nextaddr,sectionaddr+3,3);
-    }
-    //the pool start
-    nextaddr = 0x000000;
-    sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_POOL,3);
-    //pool free
-    nextaddr = 2044;
-    sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_POOL_FREE,2);
-    //pool used
-    nextaddr = 0x000000;
-    sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_POOL_USED,2);
-    //pool all
-    nextaddr = 2044;
-    sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_POOL_ALL,2);
-    
-    //CJQ Q
-    nextaddr = 0xFFFFFF;
-    sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_CJQ_Q_START,3);
-    nextaddr = 0x000000;
-    sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_CJQ_COUNT,2);
-    nextaddr = 0xFFFFFF;
-    sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_CJQ_Q_LAST,3);
-    
-    //Meter Q
-    nextaddr = 0xFFFFFF;
-    sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_METER_Q_START,3);
-    nextaddr = 0x000000;
-    sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_METER_COUNT,2);
-    nextaddr = 0xABCDAA;
-    sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_POOL_INIT,1);
-    
-    //the slave is cjq default
-    nextaddr = 0xABCDBB;
-    sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_METER_MBUS,1);
-    nextaddr = 0x0000FF;
-    sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_PROTOCOL,1);
+    sFLASH_PoolInit();
   }
   //the flash is inited
   param_conf();  //read the param from the flash
   
 }
 
+uint8_t sFLASH_PoolInit(){
+  uint16_t i;
+  uint32_t sectionaddr;
+  uint32_t nextaddr;
+  
+  //the flash need init
+  sFLASH_EraseBulk();    //erase the chip
+  //只初始化前面511个  最后一个保存各种配置信息
+  //sFLASH_POOL_NUM == 2044       sFLASH_POOL_SIZE == 1K 
+  for(i = 0;i < sFLASH_POOL_NUM;i++){
+    sectionaddr = sFLASH_POOL_START_ADDR + sFLASH_POOL_SIZE * i;
+    nextaddr = sectionaddr + sFLASH_POOL_SIZE;
+    if(i == sFLASH_POOL_NUM - 1){
+      nextaddr = 0x000000;
+    }
+    sFLASH_WritePage((uint8_t *)&sectionaddr,sectionaddr,3);
+    sFLASH_WritePage((uint8_t *)&nextaddr,sectionaddr+3,3);
+  }
+  //the pool start
+  nextaddr = sFLASH_POOL_START_ADDR;
+  sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_POOL,3);
+  //pool free
+  nextaddr = 2044;
+  sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_POOL_FREE,2);
+  //pool used
+  nextaddr = 0x000000;
+  sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_POOL_USED,2);
+  //pool all
+  nextaddr = 2044;
+  sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_POOL_ALL,2);
+  
+  //CJQ Q
+  nextaddr = 0x000000;
+  sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_CJQ_Q_START,3);
+  nextaddr = 0x000000;
+  sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_CJQ_COUNT,2);
+  nextaddr = 0x000000;
+  sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_CJQ_Q_LAST,3);
+  
+  //Meter Q
+  nextaddr = 0x000000;
+  sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_METER_Q_START,3);
+  nextaddr = 0x000000;
+  sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_METER_COUNT,2);
+  
+  nextaddr = 0xABCDAA;
+  sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_POOL_INIT,1);
+  
+}
 
 uint32_t GetFlash(void){
   uint32_t first = 0;//pool 中的第一个空闲块的地址
@@ -544,8 +544,8 @@ uint32_t GetFlash(void){
   sFLASH_ReadBuffer((uint8_t *)&first,sFLASH_POOL,3);
   
   //没有空闲块了
-  if(first == 0xFFFFFF){
-    return 0;
+  if(first == 0x000000){
+    return 0x000000;
   }
   
   if(lock_mem4k()){
@@ -579,7 +579,7 @@ uint32_t GetFlash(void){
     unlock_mem4k();
     return first;
   }else{
-    return 0;
+    return 0x000000;
   }
 }
 
@@ -599,7 +599,7 @@ uint8_t PutFlash(uint32_t put){
     mem4k = get_mem4k();
     
     //处理要放回去的flash块
-    sFLASH_ReadBuffer(mem4k,(put/0x1000)*0x1000,sFLASH_SECTOR_SIZE);  //读取所在Sector
+    sFLASH_ReadBuffer(mem4k,(put/0x1000)*0x1000,0x1000);  //读取所在Sector
     //将放回的Flash块清空为 0xFF  前面三个byte 设置为当前Flash块的地址 后三个byte为下一个空闲Flash块地址
     Mem_Set(mem4k+put%0x1000,0xFF,0x100);    
     Mem_Copy(mem4k+put%0x1000,(uint8_t *)&put,3);

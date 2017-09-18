@@ -27,6 +27,6 @@ uint8_t get_connect_state();
 uint8_t get_readding();
 uint8_t get_lora_test();
 uint8_t get_simcard();
-
+uint8_t get_version();
 
 #endif

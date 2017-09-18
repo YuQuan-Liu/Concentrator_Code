@@ -884,24 +884,47 @@ void task_config(void *p_arg){
   OS_ERR err;
   CPU_TS ts;
   uint16_t msg_size;
-  uint8_t * buf_frame;
+  uint8_t * p_buf;
   
   while(DEF_TRUE){
-    buf_frame = OSQPend(&Q_Config,
-                        0,
-                        OS_OPT_PEND_BLOCKING,
-                        &msg_size,
-                        &ts,
-                        &err);
-    switch(*(buf_frame+AFN_POSITION)){
-      case AFN_CONFIG:
-        param_config(buf_frame,*(buf_frame+msg_size));
-        break;
-      case AFN_QUERY:
-        param_query(buf_frame,*(buf_frame+msg_size));
-        break;
+    p_buf = OSQPend(&Q_CONFIG,
+                    0,
+                    OS_OPT_PEND_BLOCKING,
+                    &msg_size,
+                    &ts,
+                    &err);
+    
+    switch(*(p_buf+msg_size)){
+    case 0x01:
+      if(lock_gprs()){
+        switch(*(p_buf+AFN_POSITION)){
+        case AFN_CONFIG:
+          param_config(p_buf,*(p_buf+msg_size));
+          break;
+        case AFN_QUERY:
+          param_query(p_buf,*(p_buf+msg_size));
+          break;
+        }
+        unlock_gprs();
+      }
+      break;
+    default:
+      if(lock_cjq()){
+        switch(*(p_buf+AFN_POSITION)){
+        case AFN_CONFIG:
+          param_config(p_buf,*(p_buf+msg_size));
+          break;
+        case AFN_QUERY:
+          param_query(p_buf,*(p_buf+msg_size));
+          break;
+        }
+        unlock_cjq();
+      }
+      break;
     }
-    OSMemPut(&MEM_Buf,buf_frame,&err);
+    
+    put_membuf(p_buf);
+    
   }
 }
 

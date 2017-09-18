@@ -127,7 +127,7 @@ void TaskStart(void *p_arg){
   OS_CPU_SysTickInit(cnts);
   
   //≥ı ºªØFLASH  w25x16
-  sFLASH_PoolInit();
+  sFLASH_Init();
   /**/
   TaskCreate();
   ObjCreate();
