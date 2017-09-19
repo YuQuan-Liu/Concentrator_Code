@@ -66,6 +66,8 @@
 #define FN_ADDR                         3
 #define FN_METER                        6
 #define FN_CJQ                          7
+#define FN_BAUD                         8  //设置抄表波特率
+#define FN_SYN                          9  //设置CJQ JZQ表同步
 #define FN_MBUS                         12  //底层表的类型   是否打开MBUS部分  发送信息
 #define FN_DI_SEQ                       14  //DI0 DI1 顺序   0xAA~DI1在前(千宝通)   0xFF~DI0在前(default)   只在抄表时使用
 #define FN_ERASE                        15  //将FLASH清空  重新初始化

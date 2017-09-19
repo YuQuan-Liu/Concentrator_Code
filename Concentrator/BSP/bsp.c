@@ -1,5 +1,6 @@
 
 #include "bsp.h"
+#include "device_params.h"
 
 void BSP_Init(void){
   
@@ -245,6 +246,7 @@ void BSP_GPIO_Init(void){
 
 void BSP_USART_Init(void){
   USART_InitTypeDef usart_init;
+  uint32_t meter_baud_ = 2400;
   
   /*USART1  SIM800G*/
   usart_init.USART_BaudRate = 115200;
@@ -278,7 +280,22 @@ void BSP_USART_Init(void){
   
   
   /*USART3  MBUS 485 Meter*/
-  usart_init.USART_BaudRate = 2400;
+  switch(get_meter_baud()){
+  case 0x12:
+    meter_baud_ = 1200;
+    break;
+  case 0x24:
+    meter_baud_ = 2400;
+    break;
+  case 0x48:
+    meter_baud_ = 4800;
+    break;
+  case 0x96:
+    meter_baud_ = 9600;
+    break;
+  }
+  
+  usart_init.USART_BaudRate = meter_baud_;
   usart_init.USART_WordLength = USART_WordLength_9b;
   usart_init.USART_Parity = USART_Parity_Even;
   usart_init.USART_StopBits = USART_StopBits_1;

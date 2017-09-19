@@ -642,7 +642,7 @@ void param_conf(void){
     }
     
     if(*(mem4k + sFLASH_DEVICE_ADDR) != 0xFF){
-      set_addr(mem4k+sFLASH_DEVICE_ADDR);
+      set_device_addr(mem4k+sFLASH_DEVICE_ADDR);
     }
     
     set_slave(*(mem4k+sFLASH_METER_MBUS));
@@ -650,7 +650,7 @@ void param_conf(void){
     set_ack_valve(*(mem4k+sFLASH_ACK_ACTION));
     set_protocol(*(mem4k+sFLASH_PROTOCOL));
     set_simcard(*(mem4k+sFLASH_SIMCARD));
-    
+    set_meter_baud(*(mem4k+sFLASH_METER_BAUD));
     unlock_mem4k();
   }
 }

@@ -18,6 +18,7 @@ volatile uint8_t reading = 0;   //0 didn't reading meters    1  reading meters
 volatile uint8_t lora_test = 0;  //每3s发送TEST到LORA
 
 uint8_t version = 100;    //版本从100开始算
+uint8_t meter_baud = 0x24;  //96H——9600 bps; 48H——4800 bps; 24H——2400 bps; 12H——1200 bps
 
 void set_ip(uint8_t * p_ip){
   ip_[0] = *(p_ip+3);
@@ -123,4 +124,12 @@ uint8_t get_simcard(){
 
 uint8_t get_version(){
   return version;
+}
+
+void set_meter_baud(uint8_t meter_baud_){
+  meter_baud = meter_baud_;
+}
+
+uint8_t get_meter_baud(){
+   return meter_baud;
 }

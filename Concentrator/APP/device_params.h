@@ -14,7 +14,7 @@ void set_connect_state(uint8_t connect_);
 void set_readding(uint8_t reading_);
 void set_lora_test(uint8_t lora_test_);
 void set_simcard(uint8_t simcard_);
-
+void set_meter_baud(uint8_t meter_baud_);
 
 uint8_t *get_ip();
 uint16_t get_port();
@@ -28,5 +28,6 @@ uint8_t get_readding();
 uint8_t get_lora_test();
 uint8_t get_simcard();
 uint8_t get_version();
+uint8_t get_meter_baud();
 
 #endif

@@ -90,9 +90,12 @@
 #define sFLASH_ACK_ACTION    sFLASH_READMETER_DI_SEQ + 0x01     //先应答后操作~0xaa    先操作后应答~0xff   
 #define sFLASH_PROTOCOL    sFLASH_ACK_ACTION + 0x01     //协议类型 0xFF~188(Default)  1~EG  
 #define sFLASH_SIMCARD    sFLASH_PROTOCOL + 0x01     //0xff~移动  0xaa~联通 
+#define sFLASH_METER_BAUD    sFLASH_SIMCARD + 0x01     ////96H——9600 bps; 48H——4800 bps; 24H——2400 bps; 12H——1200 bps
 
 
 //*************************************************************
+#define FLASH_POOL_NEXT_INDEX   3
+
 #define CJQ_FLASH_INDEX_ADDR    6   //5byte  采集器地址
 #define CJQ_FLASH_INDEX_FIRSTMETER       CJQ_FLASH_INDEX_ADDR+5   //3byte  第一个表地址
 #define CJQ_FLASH_INDEX_LASTMETER        CJQ_FLASH_INDEX_FIRSTMETER+3  //3byte  最后一个表地址
