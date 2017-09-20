@@ -1933,6 +1933,12 @@
       <name>$PROJ_DIR$\APP\readeg.h</name>
     </file>
     <file>
+      <name>$PROJ_DIR$\APP\readmeter.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\APP\readmeter.h</name>
+    </file>
+    <file>
       <name>$PROJ_DIR$\APP\serial.c</name>
     </file>
     <file>

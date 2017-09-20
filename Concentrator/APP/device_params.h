@@ -1,5 +1,5 @@
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef DEVICE_PARAMS_H
+#define DEVICE_PARAMS_H
 
 #include "stm32f10x_conf.h"
 
@@ -16,18 +16,18 @@ void set_lora_test(uint8_t lora_test_);
 void set_simcard(uint8_t simcard_);
 void set_meter_baud(uint8_t meter_baud_);
 
-uint8_t *get_ip();
-uint16_t get_port();
-uint8_t *get_device_addr();
-uint8_t get_slave();
-uint8_t get_di_seq();
-uint8_t get_ack_valve();
-uint8_t get_protocol();
-uint8_t get_connect_state();
-uint8_t get_readding();
-uint8_t get_lora_test();
-uint8_t get_simcard();
-uint8_t get_version();
-uint8_t get_meter_baud();
+uint8_t * get_ip(void);
+uint16_t get_port(void);
+uint8_t * get_device_addr(void);
+uint8_t get_slave(void);
+uint8_t get_di_seq(void);
+uint8_t get_ack_valve(void);
+uint8_t get_protocol(void);
+uint8_t get_connect_state(void);
+uint8_t get_readding(void);
+uint8_t get_lora_test(void);
+uint8_t get_simcard(void);
+uint8_t get_version(void);
+uint8_t get_meter_baud(void);
 
 #endif

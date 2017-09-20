@@ -2,7 +2,6 @@
 #include "includes.h"
 #include "tasks.h"
 
-
 /*
 * 所有任务TCB STK
 */
@@ -83,9 +82,6 @@ OS_Q Q_CONFIG;  //Q_SERVER  Q_CJQ 处理后去设置的帧
 OS_TMR TMR_CJQTIMEOUT;    //打开采集器通道之后 20分钟超时 自动关闭通道
 
 
-uint8_t *meterdata;  //使用海大协议抄表时存放返回的信息  使用config_flash
-
-
 void TaskStart(void *p_arg);
 void TaskCreate(void);
 void ObjCreate(void);
@@ -117,8 +113,6 @@ int main (void){
 void TaskStart(void *p_arg){
   CPU_INT32U cnts;
   CPU_INT32U cpu_clk_freq;
-  OS_ERR err;
-  uint32_t flashid;
   
   CPU_Init();
   
@@ -128,6 +122,7 @@ void TaskStart(void *p_arg){
   
   //初始化FLASH  w25x16
   sFLASH_Init();
+  BSP_USART_Init();
   /**/
   TaskCreate();
   ObjCreate();

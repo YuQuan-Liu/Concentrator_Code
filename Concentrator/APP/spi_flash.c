@@ -484,7 +484,7 @@ void sFLASH_Init(void){
   
 }
 
-uint8_t sFLASH_PoolInit(){
+void sFLASH_PoolInit(void){
   uint16_t i;
   uint32_t sectionaddr;
   uint32_t nextaddr;

@@ -1,3 +1,5 @@
+#include "utils.h"
+#include "device_params.h"
 #include "stm32f10x_conf.h"
 #include "serial.h"
 #include "os.h"
@@ -5,8 +7,6 @@
 #include "gprs.h"
 #include "spi_flash.h"
 #include "stdlib.h"
-#include "utils.h"
-#include "device_params.h"
 
 
 extern uint8_t * volatile p_server;      //中断中保存GPRS 返回来的数据

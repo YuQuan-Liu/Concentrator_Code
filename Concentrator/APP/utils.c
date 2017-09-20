@@ -1,5 +1,6 @@
 
 #include "utils.h"
+#include "device_params.h"
 #include "os.h"
 
 uint8_t local_seq = 0;  //本地序列号
@@ -100,7 +101,7 @@ uint8_t delayms(uint32_t timeout){
   return 1;
 }
 
-uint8_t lock_gprs(){
+uint8_t lock_gprs(void){
   OS_ERR err;
   CPU_TS ts;
   OSMutexPend(&MUTEX_GPRS,1000,OS_OPT_PEND_BLOCKING,&ts,&err);
@@ -110,13 +111,13 @@ uint8_t lock_gprs(){
   return 0;
 }
 
-uint8_t unlock_gprs(){
+uint8_t unlock_gprs(void){
   OS_ERR err;
   OSMutexPost(&MUTEX_GPRS,OS_OPT_POST_NONE,&err);
   return 1;
 }
 
-uint8_t lock_lora(){
+uint8_t lock_lora(void){
   OS_ERR err;
   CPU_TS ts;
   OSMutexPend(&MUTEX_LORA,1000,OS_OPT_PEND_BLOCKING,&ts,&err);
@@ -126,13 +127,13 @@ uint8_t lock_lora(){
   return 0;
 }
 
-uint8_t unlock_lora(){
+uint8_t unlock_lora(void){
   OS_ERR err;
   OSMutexPost(&MUTEX_LORA,OS_OPT_POST_NONE,&err);
   return 1;
 }
 
-uint8_t lock_cjq(){
+uint8_t lock_cjq(void){
   OS_ERR err;
   CPU_TS ts;
   OSMutexPend(&MUTEX_CJQ,1000,OS_OPT_PEND_BLOCKING,&ts,&err);
@@ -142,13 +143,13 @@ uint8_t lock_cjq(){
   return 0;
 }
 
-uint8_t unlock_cjq(){
+uint8_t unlock_cjq(void){
   OS_ERR err;
   OSMutexPost(&MUTEX_CJQ,OS_OPT_POST_NONE,&err);
   return 1;
 }
 
-uint8_t lock_meter(){
+uint8_t lock_meter(void){
   OS_ERR err;
   CPU_TS ts;
   OSMutexPend(&MUTEX_METER,1000,OS_OPT_PEND_BLOCKING,&ts,&err);
@@ -158,13 +159,13 @@ uint8_t lock_meter(){
   return 0;
 }
 
-uint8_t unlock_meter(){
+uint8_t unlock_meter(void){
   OS_ERR err;
   OSMutexPost(&MUTEX_METER,OS_OPT_POST_NONE,&err);
   return 1;
 }
 
-uint8_t lock_mem4k(){
+uint8_t lock_mem4k(void){
   OS_ERR err;
   CPU_TS ts;
   OSMutexPend(&MUTEX_MEM_4K,1000,OS_OPT_PEND_BLOCKING,&ts,&err);
@@ -174,18 +175,18 @@ uint8_t lock_mem4k(){
   return 0;
 }
 
-uint8_t unlock_mem4k(){
+uint8_t unlock_mem4k(void){
   OS_ERR err;
   OSMutexPost(&MUTEX_MEM_4K,OS_OPT_POST_NONE,&err);
   return 1;
 }
 
-uint8_t *get_mem4k(){
+uint8_t * get_mem4k(void){
   return mem4k;
 }
 
 
-uint8_t *get_membuf(){
+uint8_t * get_membuf(void){
   OS_ERR err;
   uint8_t * p_buf = 0;
   p_buf = OSMemGet(&MEM_Buf, &err);
@@ -205,7 +206,7 @@ uint8_t put_membuf(uint8_t * p_buf){
   return 1;
 }
 
-uint8_t *get_memisr(){
+uint8_t * get_memisr(void){
   OS_ERR err;
   uint8_t * p_buf = 0;
   p_buf = OSMemGet(&MEM_ISR, &err);
@@ -219,7 +220,7 @@ uint8_t *get_memisr(){
   return p_buf;
 }
 
-uint8_t put_memisr(uint8_t * p_membuf){
+uint8_t put_memisr(uint8_t * p_buf){
   OS_ERR err;
   OSMemPut(&MEM_ISR,p_buf,&err);
   return 1;
@@ -241,7 +242,7 @@ uint8_t wait_lora_ok(uint32_t timeout){
   return 0;
 }
 
-uint8_t signal_lora_ok(){
+uint8_t signal_lora_ok(void){
   OS_ERR err;
   OSSemPost(&SEM_LORA_OK,
             OS_OPT_POST_1,
@@ -264,7 +265,7 @@ uint8_t wait_heartbeat(uint32_t timeout){
   return 0;
 }
 
-uint8_t signal_heartbeat(){
+uint8_t signal_heartbeat(void){
   OS_ERR err;
   OSSemPost(&SEM_HEART_BEAT,
             OS_OPT_POST_1,
@@ -288,7 +289,7 @@ uint8_t wait_serverack(uint32_t timeout){
   return 0;
 }
 
-uint8_t signal_serverack(){
+uint8_t signal_serverack(void){
   OS_ERR err;
   OSSemPost(&SEM_SERVER_ACK,
             OS_OPT_POST_1,
@@ -312,7 +313,7 @@ uint8_t wait_sendgprs(uint32_t timeout){
   return 0;
 }
 
-uint8_t signal_sendgprs(){
+uint8_t signal_sendgprs(void){
   OS_ERR err;
   OSSemPost(&SEM_SEND_GPRS,
             OS_OPT_POST_1,
@@ -336,7 +337,7 @@ uint8_t wait_cjqack(uint32_t timeout){
   return 0;
 }
 
-uint8_t signal_cjqack(){
+uint8_t signal_cjqack(void){
   OS_ERR err;
   OSSemPost(&SEM_CJQ_ACK,
             OS_OPT_POST_1,
@@ -349,7 +350,7 @@ uint8_t signal_cjqack(){
 
 
 uint8_t check_lora_data2frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
-  uint8_t result = 0;   //-1~放弃   0~数据不够  1~帧正确
+  uint8_t result = 0;   //2~放弃   0~数据不够  1~帧正确
   uint8_t lora_model;  //1~tran 2~api 3~ok
   uint8_t msg_length = p_buf_end - p_buf_start;  //当前要检查数据长度
   
@@ -360,10 +361,10 @@ uint8_t check_lora_data2frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
   case 0x0D:
     lora_model = 2;
   default:
-    result = -1;
+    result = 2;
     break;
   }
-  if(result = -1){
+  if(result == 2){
     return result;
   }
   
@@ -381,9 +382,9 @@ uint8_t check_lora_data2frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
 }
 
 uint8_t check_xintian_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
-  uint8_t result = 0;   //-1~放弃   0~数据不够  1~帧正确
+  uint8_t result = 0;   //2~放弃   0~数据不够  1~帧正确
   uint8_t header = 0;  //是否接收到帧头
-  uint16_t frame_len= = 0;  //接收的帧的总长度
+  uint16_t frame_len = 0;  //接收的帧的总长度
   uint16_t frame_data_len = 0;  //接收到的帧中的数据长度  frame_len=frame_data_len+8
   uint8_t msg_length = p_buf_end - p_buf_start;  //当前要检查数据长度
   
@@ -398,7 +399,7 @@ uint8_t check_xintian_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
       }
       if(header == 0){
         //give up the data
-        result = -1;
+        result = 2;
       }
     }
   }
@@ -412,7 +413,7 @@ uint8_t check_xintian_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
            result = 1;
          }else{
            //这一帧有错误  放弃
-           result = -1;
+           result = 2;
          }
     }else{
       //收到的数据还不够
@@ -423,7 +424,7 @@ uint8_t check_xintian_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
 }
 
 uint8_t check_lora_ok_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
-  uint8_t result = 0;   //-1~放弃   0~数据不够  1~帧正确
+  uint8_t result = 0;   //2~放弃   0~数据不够  1~帧正确
   uint8_t msg_length = p_buf_end - p_buf_start;  //当前要检查数据长度
   
   if(msg_length >= 6){
@@ -433,10 +434,10 @@ uint8_t check_lora_ok_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
         //+++/AT+ESC return
         result = 1;
       }else{
-        result = -1;
+        result = 2;
       }
     }else{
-      result = -1;
+      result = 2;
     }
   }else{
     result = 0;
@@ -446,10 +447,10 @@ uint8_t check_lora_ok_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
 
 
 uint8_t check_188_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
-  uint8_t result = 0;   //-1~放弃   0~数据不够  1~帧正确
+  uint8_t result = 0;   //2~放弃   0~数据不够  1~帧正确
   uint8_t msg_length = p_buf_end - p_buf_start;  //当前要检查数据长度
   uint8_t header = 0;  //是否接收到帧头
-  uint16_t frame_len= = 0;  //接收的帧的总长度
+  uint16_t frame_len= 0;  //接收的帧的总长度
   
   if(header == 0){
     if(p_buf_start[0] == 0x68){
@@ -457,7 +458,7 @@ uint8_t check_188_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
     }
     if(header == 0){
       //give up the data
-      result = -1;
+      result = 2;
     }
   }
   if(header == 1){
@@ -470,7 +471,7 @@ uint8_t check_188_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
           result = 1;
         }else{
           //这一帧有错误  放弃
-          result = -1;
+          result = 2;
         }
       }
     }else{
@@ -482,7 +483,7 @@ uint8_t check_188_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
 }
 
 uint8_t check_eg_meter_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
-  uint8_t result = 0;   //-1~放弃   0~数据不够  1~帧正确
+  uint8_t result = 0;   //2~放弃   0~数据不够  1~帧正确
   uint8_t msg_length = p_buf_end - p_buf_start;  //当前要检查数据长度
   
   if(msg_length >= 9){
@@ -491,10 +492,10 @@ uint8_t check_eg_meter_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
         //海大协议 帧OK
         result = 1;
       }else{
-        result = -1;
+        result = 2;
       }
     }else{
-      result = -1;
+      result = 2;
     }
   }else{
     result = 0;
@@ -503,7 +504,7 @@ uint8_t check_eg_meter_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
 }
 
 uint8_t check_meter_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
-  uint8_t result = 0;   //-1~放弃   0~数据不够  1~帧正确
+  uint8_t result = 0;   //2~放弃   0~数据不够  1~帧正确
   
   switch(get_protocol()){
   case 0x11:

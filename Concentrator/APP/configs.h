@@ -3,7 +3,7 @@
 
 #include "stm32f10x_conf.h"
 
-void param_config(uint8_t * p_buf,uint8_t desc);
+void param_config(uint8_t * p_buf,uint16_t msg_size);
 uint32_t search_cjq(uint8_t * p_cjqaddr);         //查找Flash中是否已包含此采集器
 uint32_t add_cjq(uint8_t * p_cjqaddr);    //添加采集器
 uint32_t delete_cjq(uint8_t * p_cjqaddr);         //删除某一个采集器  暂时先不加
@@ -15,7 +15,7 @@ uint32_t delete_meters(uint8_t * p_buf);
 uint32_t delete_single_meter(uint32_t block_cjq,uint8_t * p_meteraddr);
 
 
-void param_query(uint8_t * p_buf,uint8_t desc);
+void param_query(uint8_t * p_buf,uint16_t msg_size);
 
 uint8_t * ack_mulit_header(uint8_t *p_buf,uint8_t frame_type,uint16_t len,uint8_t afn,uint8_t seq_,uint8_t fn);
 

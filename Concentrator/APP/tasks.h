@@ -15,7 +15,4 @@ void task_lora_check(void *p_arg);
 void task_config(void *p_arg);
 void task_led(void *p_arg);
 
-
-
-void meter_read_eg(uint8_t * buf_frame,uint8_t frame_len,uint8_t desc);
 #endif

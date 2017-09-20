@@ -1,6 +1,6 @@
 
 #include "device_params.h"
-
+#include "os.h"
 
 uint8_t ip_[4] = {139,129,40,74};
 uint16_t port_ = 3333;
@@ -27,7 +27,7 @@ void set_ip(uint8_t * p_ip){
   ip_[3] = *(p_ip);
 }
 
-uint8_t *get_ip(){
+uint8_t * get_ip(void){
   return ip_;
 }
 
@@ -35,7 +35,7 @@ void set_port(uint16_t port){
   port_ = port;
 }
 
-uint16_t get_port(){
+uint16_t get_port(void){
   return port_;
 }
 
@@ -47,7 +47,7 @@ void set_device_addr(uint8_t * p_addr){
   deviceaddr[4] = *(p_addr+4);
 }
 
-uint8_t *get_device_addr(){
+uint8_t * get_device_addr(void){
   return deviceaddr;
 }
 
@@ -55,7 +55,7 @@ void set_slave(uint8_t slave_){
   slave = slave_;
 }
 
-uint8_t get_slave(){
+uint8_t get_slave(void){
   return slave;
 }
 
@@ -63,7 +63,7 @@ void set_di_seq(uint8_t di_seq_){
   di_seq = di_seq_;
 }
 
-uint8_t get_di_seq(){
+uint8_t get_di_seq(void){
     return di_seq;
 }
 
@@ -71,7 +71,7 @@ void set_ack_valve(uint8_t ack_valve_){
   ack_valve = ack_valve;
 }
 
-uint8_t get_ack_valve(){
+uint8_t get_ack_valve(void){
   return ack_valve;
 }
 
@@ -79,7 +79,7 @@ void set_protocol(uint8_t protocol_){
   protocol = protocol_;
 }
 
-uint8_t get_protocol(){
+uint8_t get_protocol(void){
   return protocol;
 }
 
@@ -90,7 +90,7 @@ void set_connect_state(uint8_t connect_){
   CPU_CRITICAL_EXIT();
 }
 
-uint8_t get_connect_state(){
+uint8_t get_connect_state(void){
   return connectstate;
 }
 
@@ -102,7 +102,7 @@ void set_readding(uint8_t reading_){
   
 }
 
-uint8_t get_readding(){
+uint8_t get_readding(void){
   return reading;
 }
 
@@ -110,7 +110,7 @@ void set_lora_test(uint8_t lora_test_){
   lora_test = lora_test_;
 }
 
-uint8_t get_lora_test(){
+uint8_t get_lora_test(void){
   return lora_test;
 }
 
@@ -118,11 +118,11 @@ void set_simcard(uint8_t simcard_){
   simcard = simcard_;
 }
 
-uint8_t get_simcard(){
+uint8_t get_simcard(void){
   return simcard;
 }
 
-uint8_t get_version(){
+uint8_t get_version(void){
   return version;
 }
 
@@ -130,6 +130,6 @@ void set_meter_baud(uint8_t meter_baud_){
   meter_baud = meter_baud_;
 }
 
-uint8_t get_meter_baud(){
+uint8_t get_meter_baud(void){
    return meter_baud;
 }

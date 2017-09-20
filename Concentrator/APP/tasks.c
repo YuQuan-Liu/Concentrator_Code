@@ -13,29 +13,18 @@
 #include "utils.h"
 #include "configs.h"
 #include "bsp.h"
-//#include "stdlib.h"
+#include "device_params.h"
+#include "readmeter.h"
 
-
-extern OS_Q Q_485_2;            //采集器、表发送过来的数据
-extern OS_Q Q_LORA;
-extern OS_Q Q_Read;            //抄表任务Queue
-extern OS_Q Q_ReadData;        //发送抄表指令后  下层返回抄表数据
-extern OS_Q Q_ReadData_LORA;   //通过LORA返回的抄表结果 应答
-extern OS_Q Q_Config;         //配置任务Queue
-extern OS_Q Q_Deal;         //处理接收到的服务器发送过来的数据
-
-extern OS_SEM SEM_LORA_OK;
-extern OS_SEM SEM_HeartBeat;    //接收服务器数据Task to HeartBeat Task  接收到心跳的回应
-extern OS_SEM SEM_ACKData;     //服务器对数据的ACK
-extern OS_SEM SEM_Send;      //got the '>'  we can send the data now  可以发送数据
-extern OS_SEM SEM_CJQLORAACK;
+extern OS_Q Q_CJQ_USART;  //CJQ USART接收数据
+extern OS_Q Q_METER_USART; //METER USART接收数据
+extern OS_Q Q_LORA_USART;  //LORA USART接收数据
+extern OS_Q Q_CJQ;  //LORA 485-CJQ 接收发送的数据  Q_CJQ_USART  Q_LORA_USART  处理后的帧
+extern OS_Q Q_METER;   //Q_METER_USART处理后的帧
+extern OS_Q Q_READ;    //Q_SERVER  Q_CJQ 处理后去抄表的帧
+extern OS_Q Q_CONFIG;  //Q_SERVER  Q_CJQ 处理后去设置的帧
 
 extern OS_TMR TMR_CJQTIMEOUT;    //打开采集器之后 20分钟超时 自动关闭通道
-
-extern uint8_t deviceaddr[5];
-extern uint8_t cjqaddr[5];
-extern uint8_t cjqaddr_eg[2];
-extern uint8_t slave_mbus; //0xaa mbus   0xff  485   0xBB~采集器
 
 extern uint8_t * volatile p_server;      //中断中保存GPRS 返回来的数据
 extern uint8_t * volatile p_server_;     //记录中断的开始指针
@@ -44,13 +33,6 @@ extern uint8_t * volatile p_server_;     //记录中断的开始指针
 uint8_t data_seq = 0;  //记录数据的序列号 等待ack
 uint8_t server_seq = 0;  //服务器端序列号  抄表时  会同步此序列号
 
-uint8_t fe[4] = {0xFE,0xFE,0xFE,0xFE};  //抄表时前面发送的4个0xFE
-
-
-
-
-uint8_t readingall = 0;   //是否正在抄全部表
-uint8_t readingall_progress = 0;  //正在抄全部表的进度情况
 
 /**
  * 处理meter usart接收到的数据
@@ -94,7 +76,7 @@ void task_meter_raw(void *p_arg){
     
     //检查接收到帧格式
     switch(check_meter_frame(p_buf_,p_buf)){
-    case -1:
+    case 2:
       //当前帧错误
       p_buf = p_buf_;
       break;
@@ -183,7 +165,7 @@ void task_cjq_raw(void *p_arg){
     
     //检查接收到帧格式
     switch(check_xintian_frame(p_buf_,p_buf)){
-    case -1:
+    case 2:
       //当前帧错误
       p_buf = p_buf_;
       break;
@@ -196,22 +178,22 @@ void task_cjq_raw(void *p_arg){
       frame_len = check_frame(p_buf_);
       if(get_readding()){
         forme = 0;
-        switch(get_protocol()){
-        case 0x11:
-          //EG
-          if(cjqaddr_eg[0] == *(p_buf_ + DATA_POSITION + 1) && cjqaddr_eg[1] == *(p_buf_ + DATA_POSITION)){
-            forme = 1;
-          }
-          break;
-        case 0xFF:
-          //188
-          if(cjqaddr[0] == *(p_buf_ + DATA_POSITION + 1) && cjqaddr[1] == *(p_buf_ + DATA_POSITION)){
-            forme = 1;
-          }
-          break;
-        }
+//        switch(get_protocol()){  //TODO...
+//        case 0x11:
+//          //EG
+//          if(cjqaddr_eg[0] == *(p_buf_ + DATA_POSITION + 1) && cjqaddr_eg[1] == *(p_buf_ + DATA_POSITION)){
+//            forme = 1;
+//          }
+//          break;
+//        case 0xFF:
+//          //188
+//          if(cjqaddr[0] == *(p_buf_ + DATA_POSITION + 1) && cjqaddr[1] == *(p_buf_ + DATA_POSITION)){
+//            forme = 1;
+//          }
+//          break;
+//        }
         if(forme){
-          if(*(buf_+AFN_POSITION) == AFN_ACK){
+          if(*(p_buf_+AFN_POSITION) == AFN_ACK){
             //ACK
             signal_cjqack();
             p_buf = p_buf_;
@@ -236,7 +218,7 @@ void task_cjq_raw(void *p_arg){
         }
       }else{
         //我不在抄表模式下  配置
-        switch(*(buf_+AFN_POSITION)){
+        switch(*(p_buf_+AFN_POSITION)){
         case AFN_CONFIG:
         case AFN_QUERY:
           *p_buf = 0x00;//标识这一帧数据是来自485的
@@ -305,7 +287,7 @@ void task_lora_raw(void *p_arg){
     
     //检查接收到帧格式
     switch(check_lora_data2frame(p_buf_,p_buf)){
-    case -1:
+    case 2:
       //当前帧错误
       p_buf = p_buf_;
       break;
@@ -318,22 +300,22 @@ void task_lora_raw(void *p_arg){
         //抄表状态下 采集器返回过来的数据帧  或者 应答帧
         if(get_readding()){
           forme = 0;
-          switch(get_protocol()){
-          case 0x11:
-            //EG
-            if(cjqaddr_eg[0] == *(p_buf_ + DATA_POSITION + 1) && cjqaddr_eg[1] == *(p_buf_ + DATA_POSITION)){
-              forme = 1;
-            }
-            break;
-          case 0xFF:
-            //188
-            if(cjqaddr[0] == *(p_buf_ + DATA_POSITION + 1) && cjqaddr[1] == *(p_buf_ + DATA_POSITION)){
-              forme = 1;
-            }
-            break;
-          }
+//          switch(get_protocol()){  //TODO...
+//          case 0x11:
+//            //EG
+//            if(cjqaddr_eg[0] == *(p_buf_ + DATA_POSITION + 1) && cjqaddr_eg[1] == *(p_buf_ + DATA_POSITION)){
+//              forme = 1;
+//            }
+//            break;
+//          case 0xFF:
+//            //188
+//            if(cjqaddr[0] == *(p_buf_ + DATA_POSITION + 1) && cjqaddr[1] == *(p_buf_ + DATA_POSITION)){
+//              forme = 1;
+//            }
+//            break;
+//          }
           if(forme){
-            if(*(buf_+AFN_POSITION) == AFN_ACK){
+            if(*(p_buf_+AFN_POSITION) == AFN_ACK){
               //ACK
               signal_cjqack();
               p_buf = p_buf_;
@@ -384,7 +366,7 @@ void task_server(void *p_arg){
   uint8_t getbuffail = 0;
   uint8_t connectfail = 0;
   
-  uint8_t frame_start = 0; //接收到的帧的起始地址
+  uint8_t *frame_start = 0; //接收到的帧的起始地址
   uint8_t frame_len = 0;  //接收到帧的总长度
   uint8_t server_seq_ = 0; //服务器发送过来的数据 的序列号
   
@@ -532,8 +514,6 @@ void task_server(void *p_arg){
  * GPRS 心跳任务
  */
 void task_heartbeat(void *p_arg){
-  OS_ERR err;
-  CPU_TS ts;
   uint8_t beat[17];
   uint8_t * p_beat;
   uint8_t heart_ack = 0;
@@ -566,7 +546,7 @@ void task_heartbeat(void *p_arg){
           *p_beat++ = AFN_LINK_TEST;
           
           data_seq = addSEQ();
-          *p_beat++ = ZERO_BYTE |SINGLE | CONFIRM | heart_seq;
+          *p_beat++ = ZERO_BYTE |SINGLE | CONFIRM | data_seq;
           
           *p_beat++ = FN_HEARTBEAT;
           
@@ -616,13 +596,13 @@ void task_lora_check(void *p_arg){
         inat = 0;
         outat = 0;
         write_lora("+++",3); //进入AT模式
-        if(wait_lora_ok()){
+        if(wait_lora_ok(1000)){
           inat = 1;
         }
         
         if(inat){
           write_lora("AT+ESC\r\n",8);  //离开AT模式
-          if(wait_lora_ok()){
+          if(wait_lora_ok(1000)){
             outat = 1;
           }
         }
@@ -652,229 +632,28 @@ void task_read(void *p_arg){
   OS_ERR err;
   CPU_TS ts;
   uint16_t msg_size;
-  uint8_t * buf_frame;
+  uint8_t * p_buf;
   
   while(DEF_TRUE){
-    buf_frame = OSQPend(&Q_READ,
-                        0,
-                        OS_OPT_PEND_BLOCKING,
-                        &msg_size,
-                        &ts,
-                        &err);
-    Device_Read(ENABLE);
-    switch(protocol){
-    case 0xFF:
-      //188
-      /*
-      switch(*(buf_frame+AFN_POSITION)){
-        case AFN_CONTROL:
-          power_cmd(ENABLE);
-          meter_control(buf_frame,*(buf_frame+msg_size));
-          power_cmd(DISABLE);
-          break;
-        case AFN_CURRENT:
-          power_cmd(ENABLE);
-          meter_read_188(buf_frame,*(buf_frame+msg_size));
-          power_cmd(DISABLE);
-          break;
-      }*/
+    p_buf = OSQPend(&Q_READ,
+                    0,
+                    OS_OPT_PEND_BLOCKING,
+                    &msg_size,
+                    &ts,
+                    &err);
+    set_readding(1);
+    switch(*(p_buf+AFN_POSITION)){
+    case AFN_CONTROL:
+      meter_control(p_buf,msg_size);
       break;
-    case 0x01:
-      //EG  
-      //power_cmd(ENABLE);
-      meter_read_eg(buf_frame,msg_size,*(buf_frame+msg_size));
-      //power_cmd(DISABLE);
+    case AFN_CURRENT:
+      meter_read(p_buf,msg_size);
       break;
     }
-    Device_Read(DISABLE);
+    set_readding(0);
     
-    
-    OSMemPut(&MEM_Buf,buf_frame,&err);
+    put_membuf(p_buf);
   }
-}
-
-
-/**
- * 抄海大协议表
- */
-void meter_read_eg(uint8_t * buf_frame,uint8_t frame_len,uint8_t desc){
-  OS_ERR err;
-  CPU_TS ts;
-  uint16_t msg_size;
-  uint8_t * lora_data;
-  uint8_t i;
-  uint8_t cjq_ok;
-  uint8_t recv_ok=0;
-  uint8_t all_single = *(buf_frame + DATA_POSITION);  //0x00~全部   0xAA~单个
-  uint8_t cjq_h = *(buf_frame + DATA_POSITION + 1);
-  uint8_t cjq_l = *(buf_frame + DATA_POSITION + 2);
-  uint8_t allmeters = *(buf_frame + DATA_POSITION + 3);  //全部表时表示总表数  单个表时表示表的地址
-  uint8_t lora_seq_ = 0;
-  uint8_t lora_seq = 0;
-  uint8_t tmr_count =0;
-  uint8_t meter_recv = 0;
-  uint16_t data_len = 0;
-  uint8_t metercnt = 0;
-  
-  //标示正在抄的采集器
-  cjqaddr_eg[0] = cjq_l;
-  cjqaddr_eg[1] = cjq_h;
-  
-  for(i = 0;i < 3;i++){
-    cjq_ok = 0;
-    Write_LORA(buf_frame,frame_len);
-    
-    OSSemPend(&SEM_CJQLORAACK,
-              10000,
-              OS_OPT_PEND_BLOCKING,
-              &ts,
-              &err);
-    
-    if(err != OS_ERR_NONE){
-      continue;
-    }
-    cjq_ok = 1;
-    break;
-  }
-  
-  
-  //获取config_flash的使用权
-  OSMutexPend(&MUTEX_CONFIGFLASH,1000,OS_OPT_PEND_BLOCKING,&ts,&err);
-  if(err != OS_ERR_NONE){
-    //获取MUTEX过程中 出错了...
-    //return 0xFFFFFF;
-    return;
-  }
-  meterdata = config_flash; //将表返回的所有信息存放在config_flash
-  Mem_Set(config_flash,0x00,0x1000); //clear the buf
-  
-  if(cjq_ok){
-    //cjq is ok wait the data
-    //when recv the data send the ack
-    
-    recv_ok=0;
-    switch(all_single){
-    case 0xAA:
-      for(i = 0;i < 3;i++){
-        lora_data = OSQPend(&Q_ReadData_LORA,
-                            5000,
-                            OS_OPT_PEND_BLOCKING,
-                            &msg_size,
-                            &ts,
-                            &err);
-        if(err != OS_ERR_NONE){
-          continue;
-        }
-        
-        lora_seq_ = *(lora_data + SEQ_POSITION);
-        //device_ack_lora(desc,lora_seq_);
-        //get the data
-        recv_ok=1;
-        //判断采集器地址  判断表地址
-        if(cjq_h == *(lora_data + DATA_POSITION) && cjq_l == *(lora_data + DATA_POSITION + 1) && allmeters == *(lora_data + DATA_POSITION + 3)){
-          meterdata[0] = cjq_h;
-          meterdata[1] = cjq_l;
-          meterdata[2] = 0x00;
-          meterdata[3] = *(lora_data + DATA_POSITION + 3);
-          meterdata[4] = *(lora_data + DATA_POSITION + 4);
-          meterdata[5] = *(lora_data + DATA_POSITION + 5);
-        }else{
-          meterdata[0] = cjq_h;
-          meterdata[1] = cjq_l;
-          meterdata[2] = 0xFF;
-        }
-        OSMemPut(&MEM_Buf,lora_data,&err);
-        break;
-      }
-      if(!recv_ok){
-        meterdata[0] = cjq_h;
-        meterdata[1] = cjq_l;
-        meterdata[2] = 0xFF;
-      }
-      break;
-    case 0x00:
-      while(tmr_count < 60){
-        lora_data = OSQPend(&Q_ReadData_LORA,
-                            1500,
-                            OS_OPT_PEND_BLOCKING,
-                            &msg_size,
-                            &ts,
-                            &err);
-        if(err != OS_ERR_NONE){
-          tmr_count++;
-          continue;
-        }
-        
-        
-        lora_seq_ = *(lora_data + SEQ_POSITION);
-        if(meter_recv == 0){
-          lora_seq = lora_seq_-1; //确保第一帧被接收
-          meterdata[0] = cjq_h;
-          meterdata[1] = cjq_l;
-          meterdata[2] = 0x00;  
-        }
-        //device_ack_lora(desc,lora_seq_);
-        
-        data_len = (lora_data[1]&0xFF) | ((lora_data[2]&0xFF)<<8);
-        data_len = data_len >> 2;
-        
-        if(lora_seq != lora_seq_){
-          lora_seq = lora_seq_;
-          metercnt = (data_len-12)/3;
-          
-          if(0xFF == lora_data[17]){
-            //采集器超时~~~~返回指令0xFF
-            tmr_count=60;
-          }else{
-            //处理Frame 
-            //正常的数据帧  
-            for(i = 0;i < metercnt;i++){
-              meterdata[meter_recv*3+i*3+3] = lora_data[18+3*i];
-              meterdata[meter_recv*3+i*3+1+3] = lora_data[18+3*i+1];
-              meterdata[meter_recv*3+i*3+2+3] = lora_data[18+3*i+2];
-            }
-          }
-          //放在往meterdata copy前不可以  导致数组错位
-          meter_recv += metercnt;
-        }
-        
-        OSMemPut(&MEM_Buf,lora_data,&err);
-        if(meter_recv == allmeters){
-          recv_ok=1;
-          break;
-        }
-      }
-      if(!recv_ok){
-        //sorry 采集器故障
-        meterdata[0] = cjq_h;
-        meterdata[1] = cjq_l;
-        meterdata[2] = 0xFF;
-      }
-      break;
-    }
-  }else{
-    //cjq is error send the overtime
-    meterdata[0] = cjq_h;
-    meterdata[1] = cjq_l;
-    meterdata[2] = 0xFF;
-  }
-  
-  
-  //send the data to Server TODO...
-  switch (all_single){
-    case 0xAA:
-      send_data_eg(1,desc);
-    break;
-    case 0x00:
-      if(meterdata[2] != 0xFF){
-        send_data_eg(allmeters,desc);
-      }else{
-        send_cjqtimeout_eg(desc);
-      }
-    break;
-  }
-  
-  OSMutexPost(&MUTEX_CONFIGFLASH,OS_OPT_POST_NONE,&err);
 }
 
 /**
@@ -899,10 +678,10 @@ void task_config(void *p_arg){
       if(lock_gprs()){
         switch(*(p_buf+AFN_POSITION)){
         case AFN_CONFIG:
-          param_config(p_buf,*(p_buf+msg_size));
+          param_config(p_buf,msg_size);
           break;
         case AFN_QUERY:
-          param_query(p_buf,*(p_buf+msg_size));
+          param_query(p_buf,msg_size);
           break;
         }
         unlock_gprs();
@@ -912,10 +691,10 @@ void task_config(void *p_arg){
       if(lock_cjq()){
         switch(*(p_buf+AFN_POSITION)){
         case AFN_CONFIG:
-          param_config(p_buf,*(p_buf+msg_size));
+          param_config(p_buf,msg_size);
           break;
         case AFN_QUERY:
-          param_query(p_buf,*(p_buf+msg_size));
+          param_query(p_buf,msg_size);
           break;
         }
         unlock_cjq();
@@ -924,7 +703,6 @@ void task_config(void *p_arg){
     }
     
     put_membuf(p_buf);
-    
   }
 }
 

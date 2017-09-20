@@ -48,7 +48,7 @@ void USART2_Handler(void){
     
     p_mem = get_memisr();
     if(p_mem){
-      *mem_ptr = rx_byte;
+      *p_mem = rx_byte;
       OSQPost((OS_Q *)&Q_CJQ_USART,
               (void *)p_mem,
               1,
@@ -80,7 +80,7 @@ void USART3_Handler(void){
     
     p_mem = get_memisr();
     if(p_mem){
-      *mem_ptr = rx_byte;
+      *p_mem = rx_byte;
       OSQPost((OS_Q *)&Q_METER_USART,
               (void *)p_mem,
               1,
@@ -113,7 +113,7 @@ void UART4_Handler(void){
     
     p_mem = get_memisr();
     if(p_mem){
-      *mem_ptr = rx_byte;
+      *p_mem = rx_byte;
       OSQPost((OS_Q *)&Q_LORA_USART,
               (void *)p_mem,
               1,

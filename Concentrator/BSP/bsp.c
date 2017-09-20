@@ -58,7 +58,7 @@ void BSP_Init(void){
   
   BSP_GPIO_Init();
   BSP_NVIC_Init();
-  BSP_USART_Init();
+  //BSP_USART_Init();
   BSP_SPI_Init();
   
 }
