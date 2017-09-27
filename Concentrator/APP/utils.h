@@ -14,7 +14,6 @@ uint8_t check_lora_ok_frame(uint8_t * p_buf_start,uint8_t * p_buf_end);
 
 uint8_t check_meter_frame(uint8_t * p_buf_start,uint8_t * p_buf_end);
 uint8_t check_188_frame(uint8_t * p_buf_start,uint8_t * p_buf_end);
-uint8_t check_eg_meter_frame(uint8_t * p_buf_start,uint8_t * p_buf_end);
 
 
 //将start开始的end结束的字符串 开头的0x00替换成‘\r’
@@ -25,6 +24,7 @@ uint8_t addSEQ(void);
 
 uint8_t delayms(uint32_t timeout);
 
+uint8_t cjq_data_tome(void);
 
 uint8_t lock_gprs(void);
 uint8_t unlock_gprs(void);
@@ -59,6 +59,29 @@ uint8_t signal_sendgprs(void);
 
 uint8_t wait_cjqack(uint32_t timeout);
 uint8_t signal_cjqack(void);
+
+
+
+uint8_t wait_q_cjq_usart(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout);
+uint8_t post_q_cjq_usart(uint8_t * p_mem, uint16_t msg_size);
+
+uint8_t wait_q_meter_usart(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout);
+uint8_t post_q_meter_usart(uint8_t * p_mem, uint16_t msg_size);
+
+uint8_t wait_q_lora_usart(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout);
+uint8_t post_q_lora_usart(uint8_t * p_mem, uint16_t msg_size);
+
+uint8_t wait_q_cjq(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout);
+uint8_t post_q_cjq(uint8_t * p_mem, uint16_t msg_size);
+
+uint8_t wait_q_meter(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout);
+uint8_t post_q_meter(uint8_t * p_mem, uint16_t msg_size);
+
+uint8_t wait_q_read(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout);
+uint8_t post_q_read(uint8_t * p_mem, uint16_t msg_size);
+
+uint8_t wait_q_conf(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout);
+uint8_t post_q_conf(uint8_t * p_mem, uint16_t msg_size);
 
 
 #endif

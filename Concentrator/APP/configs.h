@@ -19,18 +19,15 @@ void param_query(uint8_t * p_buf,uint16_t msg_size);
 
 uint8_t * ack_mulit_header(uint8_t *p_buf,uint8_t frame_type,uint16_t len,uint8_t afn,uint8_t seq_,uint8_t fn);
 
-void ack_query_mbus(uint8_t desc,uint8_t server_seq_);
 void ack_query_cjq(uint8_t desc,uint8_t server_seq_);
 void ack_query_meter(uint8_t *p_cjqaddr,uint8_t * p_meteraddr,uint8_t desc,uint8_t server_seq_);
-void ack_query_addr(uint8_t desc,uint8_t server_seq_);
 void ack_query_ip(uint8_t desc,uint8_t server_seq_);
-void ack_query_di_seq(uint8_t desc,uint8_t server_seq_);
-void ack_query_ack_action(uint8_t desc,uint8_t server_seq_);
-void ack_query_protocol(uint8_t desc,uint8_t server_seq_);
-void ack_query_version(uint8_t desc,uint8_t server_seq_);
-void ack_query_baud(uint8_t desc,uint8_t server_seq_);
 
-void device_ack(uint8_t desc,uint8_t server_seq_);  //发送确认帧  1 发送给M590E服务器  0 发送给485
-void device_ack_lora(uint8_t desc,uint8_t server_seq_); //通过LORA返回确认指令
+//给CJQ发送确认帧  1~LORA  0~485
+void device_ack_cjq(uint8_t desc,uint8_t server_seq_,uint8_t * p_data,uint8_t data_len,uint8_t afn,uint8_t fn);
+
+//发送确认帧  1 发送给M590E服务器   0发送给485
+void device_ack(uint8_t desc,uint8_t server_seq_,uint8_t * p_data,uint8_t data_len,uint8_t afn,uint8_t fn);
+
 
 #endif

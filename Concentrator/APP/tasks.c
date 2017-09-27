@@ -9,20 +9,12 @@
 #include "gprs.h"
 #include "frame.h"
 #include "frame_188.h"
-#include "readeg.h"
 #include "utils.h"
 #include "configs.h"
 #include "bsp.h"
 #include "device_params.h"
 #include "readmeter.h"
 
-extern OS_Q Q_CJQ_USART;  //CJQ USART接收数据
-extern OS_Q Q_METER_USART; //METER USART接收数据
-extern OS_Q Q_LORA_USART;  //LORA USART接收数据
-extern OS_Q Q_CJQ;  //LORA 485-CJQ 接收发送的数据  Q_CJQ_USART  Q_LORA_USART  处理后的帧
-extern OS_Q Q_METER;   //Q_METER_USART处理后的帧
-extern OS_Q Q_READ;    //Q_SERVER  Q_CJQ 处理后去抄表的帧
-extern OS_Q Q_CONFIG;  //Q_SERVER  Q_CJQ 处理后去设置的帧
 
 extern OS_TMR TMR_CJQTIMEOUT;    //打开采集器之后 20分钟超时 自动关闭通道
 
@@ -38,8 +30,6 @@ uint8_t server_seq = 0;  //服务器端序列号  抄表时  会同步此序列号
  * 处理meter usart接收到的数据
  */
 void task_meter_raw(void *p_arg){
-  OS_ERR err;
-  CPU_TS ts;
   uint8_t * p_mem;    //the ptr get from the queue
   uint16_t msg_size;    //the message's size 
   uint8_t msg_data;         //the data get from the queue
@@ -48,13 +38,11 @@ void task_meter_raw(void *p_arg){
   
   uint8_t * p_buf = 0;   //the buf used put the data in 
   uint8_t * p_buf_;       //keep the buf's ptr  used to release the buf
-  
+  uint8_t post_q_result = 0;
   
   while(DEF_TRUE){
     //收到0x68之后  如果200ms 没有收到数据  就认为超时了
-    p_mem = OSQPend(&Q_METER_USART,200,OS_OPT_PEND_BLOCKING,&msg_size,&ts,&err);
-    
-    if(err == OS_ERR_TIMEOUT){
+    if(!wait_q_meter_usart(&p_mem,&msg_size,200)){
       p_buf = p_buf_;
       continue;
     }
@@ -64,11 +52,9 @@ void task_meter_raw(void *p_arg){
     
     if(p_buf == 0){
       p_buf = get_membuf();
-      if(p_buf > 0){
-        //get the buf
+      if(p_buf > 0){ //get the buf
         p_buf_ = p_buf;
-      }else{
-        //do not get the buf
+      }else{ //do not get the buf
         continue;
       }
     }
@@ -76,39 +62,25 @@ void task_meter_raw(void *p_arg){
     
     //检查接收到帧格式
     switch(check_meter_frame(p_buf_,p_buf)){
-    case 2:
-      //当前帧错误
+    case 2: //当前帧错误
       p_buf = p_buf_;
       break;
-    case 0:
-      //当前帧没有接收完
+    case 0: //当前帧没有接收完
       break;
-    case 1:
-      //当前帧接收完毕
+    case 1: //当前帧接收完毕
       if(get_readding()){
         
         switch(get_protocol()){
-        case 0x11:
-          //EG
-          frame_len = 9;
-          OSQPost(&Q_METER,
-                  p_buf_,
-                  frame_len,
-                  OS_OPT_POST_FIFO,
-                  &err);
-          break;
-        case 0xFF:
-          //188
+        case 0xFF: //188
           frame_len = *(p_buf_+10)+13;
-          OSQPost(&Q_METER,
-                  p_buf_,
-                  frame_len,
-                  OS_OPT_POST_FIFO,
-                  &err);
+          post_q_result = post_q_meter(p_buf_,frame_len);
+        case 0xEE: //188 bad
+          frame_len = *(p_buf_+10)+13;
+          post_q_result = post_q_meter(p_buf_,frame_len);
           break;
         }
         
-        if(err == OS_ERR_NONE){
+        if(post_q_result){
           p_buf_ = 0;
           p_buf = 0;
         }else{
@@ -126,8 +98,6 @@ void task_meter_raw(void *p_arg){
  * 有线采集器接口接收到的原始数据
  */
 void task_cjq_raw(void *p_arg){
-  OS_ERR err;
-  CPU_TS ts;
   uint8_t * p_mem;    //the ptr get from the queue
   uint16_t msg_size;    //the message's size 
   uint8_t msg_data;         //the data get from the queue
@@ -137,13 +107,10 @@ void task_cjq_raw(void *p_arg){
   uint8_t * p_buf = 0;   //the buf used put the data in 
   uint8_t * p_buf_;       //keep the buf's ptr  used to release the buf
   
-  uint8_t forme = 0;  //是否是找我
-  
+  uint8_t post_q_result = 0;
   while(DEF_TRUE){
     //收到0x68之后  如果200ms 没有收到数据  就认为超时了
-    p_mem = OSQPend(&Q_CJQ_USART,200,OS_OPT_PEND_BLOCKING,&msg_size,&ts,&err);
-    
-    if(err == OS_ERR_TIMEOUT){
+    if(!wait_q_cjq_usart(&p_mem,&msg_size,200)){
       p_buf = p_buf_;
       continue;
     }
@@ -153,11 +120,9 @@ void task_cjq_raw(void *p_arg){
     
     if(p_buf == 0){
       p_buf = get_membuf();
-      if(p_buf > 0){
-        //get the buf
+      if(p_buf > 0){  //get the buf
         p_buf_ = p_buf;
-      }else{
-        //do not get the buf
+      }else{  //do not get the buf
         continue;
       }
     }
@@ -165,53 +130,26 @@ void task_cjq_raw(void *p_arg){
     
     //检查接收到帧格式
     switch(check_xintian_frame(p_buf_,p_buf)){
-    case 2:
-      //当前帧错误
+    case 2: //当前帧错误
       p_buf = p_buf_;
       break;
-    case 0:
-      //当前帧没有接收完
+    case 0: //当前帧没有接收完
       break;
-    case 1:
-      //当前帧接收完毕
+    case 1:  //当前帧接收完毕
       //抄表状态下 采集器返回过来的数据帧  或者 应答帧
       frame_len = check_frame(p_buf_);
       if(get_readding()){
-        forme = 0;
-//        switch(get_protocol()){  //TODO...
-//        case 0x11:
-//          //EG
-//          if(cjqaddr_eg[0] == *(p_buf_ + DATA_POSITION + 1) && cjqaddr_eg[1] == *(p_buf_ + DATA_POSITION)){
-//            forme = 1;
-//          }
-//          break;
-//        case 0xFF:
-//          //188
-//          if(cjqaddr[0] == *(p_buf_ + DATA_POSITION + 1) && cjqaddr[1] == *(p_buf_ + DATA_POSITION)){
-//            forme = 1;
-//          }
-//          break;
-//        }
-        if(forme){
-          if(*(p_buf_+AFN_POSITION) == AFN_ACK){
-            //ACK
-            signal_cjqack();
-            p_buf = p_buf_;
+        if(cjq_data_tome()){  //当前采集器  
+          if(*(p_buf_+AFN_POSITION) != AFN_ACK){ //DATA TO ACK   
+            device_ack_cjq(0,*(p_buf_ + SEQ_POSITION),(uint8_t *)0,0,AFN_ACK,FN_ACK);
+          }
+          //All DATA to Queue  TODO...
+          post_q_result = post_q_cjq(p_buf_, frame_len);
+          if(post_q_result){
+            p_buf_ = 0;
+            p_buf = 0;
           }else{
-            //DATA
-            //当前采集器   ACK   DATA to Queue  TODO...
-            device_ack_lora(0,*(p_buf_ + SEQ_POSITION));
-            OSQPost(&Q_CJQ,
-                    p_buf_,
-                    frame_len,
-                    OS_OPT_POST_FIFO,
-                    &err);
-            if(err == OS_ERR_NONE){
-              p_buf_ = 0;
-              p_buf = 0;
-            }else{
-              p_buf = p_buf_;
-            }
+            p_buf = p_buf_;
           }
         }else{
           p_buf = p_buf_;  //不是找我的
@@ -222,12 +160,8 @@ void task_cjq_raw(void *p_arg){
         case AFN_CONFIG:
         case AFN_QUERY:
           *p_buf = 0x00;//标识这一帧数据是来自485的
-          OSQPost(&Q_CONFIG,
-                  p_buf,
-                  frame_len,
-                  OS_OPT_POST_FIFO,
-                  &err);
-          if(err == OS_ERR_NONE){
+          post_q_result = post_q_conf(p_buf_, frame_len);
+          if(post_q_result){
             p_buf_ = 0;
             p_buf = 0;
           }else{
@@ -248,8 +182,6 @@ void task_cjq_raw(void *p_arg){
  * 处理LORA接收到的指令
  */
 void task_lora_raw(void *p_arg){
-  OS_ERR err;
-  CPU_TS ts;
   uint8_t * p_mem;    //the ptr get from the queue
   uint16_t msg_size;    //the message's size 
   uint8_t msg_data;         //the data get from the queue
@@ -259,13 +191,10 @@ void task_lora_raw(void *p_arg){
   uint8_t * p_buf = 0;   //the buf used put the data in 
   uint8_t * p_buf_;       //keep the buf's ptr  used to release the buf
   
-  uint8_t forme = 0;  //是否是找我
-  
+  uint8_t post_q_result = 0;
   while(DEF_TRUE){
     //收到0x68之后  如果200ms 没有收到数据  就认为超时了
-    p_mem = OSQPend(&Q_LORA_USART,200,OS_OPT_PEND_BLOCKING,&msg_size,&ts,&err);
-    
-    if(err == OS_ERR_TIMEOUT){
+    if(!wait_q_lora_usart(&p_mem,&msg_size,200)){
       p_buf = p_buf_;
       continue;
     }
@@ -275,11 +204,9 @@ void task_lora_raw(void *p_arg){
     
     if(p_buf == 0){
       p_buf = get_membuf();
-      if(p_buf > 0){
-        //get the buf
+      if(p_buf > 0){ //get the buf
         p_buf_ = p_buf;
-      }else{
-        //do not get the buf
+      }else{  //do not get the buf
         continue;
       }
     }
@@ -287,54 +214,27 @@ void task_lora_raw(void *p_arg){
     
     //检查接收到帧格式
     switch(check_lora_data2frame(p_buf_,p_buf)){
-    case 2:
-      //当前帧错误
+    case 2: //当前帧错误
       p_buf = p_buf_;
       break;
-    case 0:
-      //当前帧没有接收完
+    case 0: //当前帧没有接收完
       break;
-    case 1:
-      //当前帧接收完毕
+    case 1: //当前帧接收完毕
       if(*(p_buf_) == 0x68){
         //抄表状态下 采集器返回过来的数据帧  或者 应答帧
         if(get_readding()){
-          forme = 0;
-//          switch(get_protocol()){  //TODO...
-//          case 0x11:
-//            //EG
-//            if(cjqaddr_eg[0] == *(p_buf_ + DATA_POSITION + 1) && cjqaddr_eg[1] == *(p_buf_ + DATA_POSITION)){
-//              forme = 1;
-//            }
-//            break;
-//          case 0xFF:
-//            //188
-//            if(cjqaddr[0] == *(p_buf_ + DATA_POSITION + 1) && cjqaddr[1] == *(p_buf_ + DATA_POSITION)){
-//              forme = 1;
-//            }
-//            break;
-//          }
-          if(forme){
-            if(*(p_buf_+AFN_POSITION) == AFN_ACK){
-              //ACK
-              signal_cjqack();
-              p_buf = p_buf_;
+          if(cjq_data_tome()){  //当前采集器  
+            if(*(p_buf_+AFN_POSITION) != AFN_ACK){ //DATA TO ACK   
+              device_ack_cjq(1,*(p_buf_ + SEQ_POSITION),(uint8_t *)0,0,AFN_ACK,FN_ACK);
+            }
+            //All DATA to Queue  TODO...
+            frame_len = check_frame(p_buf_);
+            post_q_result = post_q_cjq(p_buf_, frame_len);
+            if(post_q_result){
+              p_buf_ = 0;
+              p_buf = 0;
             }else{
-              //DATA
-              //当前采集器   ACK   DATA to Queue  TODO...
-              device_ack_lora(0,*(p_buf_ + SEQ_POSITION));
-              frame_len = check_frame(p_buf_);
-              OSQPost(&Q_CJQ,
-                      p_buf_,
-                      frame_len,
-                      OS_OPT_POST_FIFO,
-                      &err);
-              if(err == OS_ERR_NONE){
-                p_buf_ = 0;
-                p_buf = 0;
-              }else{
-                p_buf = p_buf_;
-              }
+              p_buf = p_buf_;
             }
           }else{
             p_buf = p_buf_;  //不是找我的
@@ -359,8 +259,6 @@ void task_lora_raw(void *p_arg){
  * 连接服务器 处理GPRS模块发送过来的指令
  */
 void task_server(void *p_arg){
-  OS_ERR err;
-  
   uint8_t * p_buf = 0;
   uint8_t * p_buf_ = 0;
   uint8_t getbuffail = 0;
@@ -371,24 +269,22 @@ void task_server(void *p_arg){
   uint8_t server_seq_ = 0; //服务器发送过来的数据 的序列号
   
   uint8_t * p_buf_copy = 0;  //复制配置帧 抄表帧 post 到队列
-  
+  uint8_t post_q_result = 0;
   while(DEF_TRUE){
     if(get_connect_state()){
       if(p_buf == 0){
         p_buf = get_membuf();
-        if(p_buf > 0){
-          //get the buf
+        if(p_buf > 0){  //get the buf
           getbuffail = 0;
           p_buf_ = p_buf;
           server_2buf(p_buf);
-        }else{
-          //do not get the buf
+        }else{ //do not get the buf
           getbuffail ++;
-          //if(getbuffail >= 20){
-          //  //20次没有获取到buf  
-          //  device_cmd(0);
-          //  *((uint8_t *)0) = 0x00;  //迫使系统重启
-          //}
+//          if(getbuffail >= 20){
+//            //20次没有获取到buf  
+//            device_cmd(0);
+//            *((uint8_t *)0) = 0x00;  //迫使系统重启
+//          }
           delayms(200);
           continue;
         }
@@ -410,11 +306,10 @@ void task_server(void *p_arg){
         }
         
         if(Str_Str(p_buf_,"RECEIVE")){
-          //oh it's the data  TODO...  \r\n+TCPRECV:0,**,0x68 L L 0x68 C A     \r\n
+          //oh it's the data  \r\n+TCPRECV:0,**,0x68 L L 0x68 C A     \r\n
           frame_start = Str_Str(p_buf_,"\r\n\x68") + 2;
           frame_len = check_frame(frame_start);  //check the frame get the length
-          if(frame_len){
-            //the frame is ok
+          if(frame_len){ //the frame is ok
             server_seq_ = *(frame_start + SEQ_POSITION) & 0x0F;  //获得该帧的序列号
             switch(*(frame_start+AFN_POSITION)){
             case AFN_ACK:  //the ack of the server
@@ -428,15 +323,15 @@ void task_server(void *p_arg){
               if(p_buf_copy > 0){
                 Mem_Copy(p_buf_copy,frame_start,frame_len);
                 *(p_buf_copy + frame_len) = 0x01;  //标识这一帧来自服务器
-                OSQPost(&Q_CONFIG,p_buf_copy,frame_len,OS_OPT_POST_1,&err);
-                if(err != OS_ERR_NONE){
+                post_q_result = post_q_conf(p_buf_copy, frame_len);
+                if(!post_q_result){
                   put_membuf(p_buf_copy);
                 }
               }
               break;
             case AFN_CONTROL:
             case AFN_CURRENT:
-              device_ack(0x01,server_seq_);  //ACK
+              device_ack(0x01,server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);  //ACK
               if(*(frame_start+FN_POSITION) == 0x05){//匹配序列号
                 server_seq = server_seq_;
               }else{
@@ -446,8 +341,8 @@ void task_server(void *p_arg){
                     Mem_Copy(p_buf_copy,frame_start,frame_len);
                     *(p_buf_copy + frame_len) = 0x01;  //标识这一帧来自服务器
                     server_seq = server_seq_;
-                    OSQPost(&Q_READ,p_buf_copy,frame_len,OS_OPT_POST_1,&err);
-                    if(err != OS_ERR_NONE){
+                    post_q_result = post_q_read(p_buf_copy, frame_len);
+                    if(!post_q_result){
                       put_membuf(p_buf_copy);
                     }
                   }
@@ -501,10 +396,10 @@ void task_server(void *p_arg){
         connectfail = 0;
       }else{
         connectfail++;
-        //if(connectfail > 20){
-        //  device_cmd(0);
-        //  *((uint8_t *)0) = 0x00;  //迫使系统重启
-        //}
+//        if(connectfail > 20){
+//          device_cmd(0);
+//          *((uint8_t *)0) = 0x00;  //迫使系统重启
+//        }
       }
     }
   }
@@ -629,18 +524,12 @@ void task_lora_check(void *p_arg){
  * 具体的抄表任务
  */
 void task_read(void *p_arg){
-  OS_ERR err;
-  CPU_TS ts;
   uint16_t msg_size;
   uint8_t * p_buf;
   
   while(DEF_TRUE){
-    p_buf = OSQPend(&Q_READ,
-                    0,
-                    OS_OPT_PEND_BLOCKING,
-                    &msg_size,
-                    &ts,
-                    &err);
+    wait_q_read(&p_buf,&msg_size,0);
+    
     set_readding(1);
     switch(*(p_buf+AFN_POSITION)){
     case AFN_CONTROL:
@@ -660,18 +549,11 @@ void task_read(void *p_arg){
  * config and query the parameter
  */
 void task_config(void *p_arg){
-  OS_ERR err;
-  CPU_TS ts;
   uint16_t msg_size;
   uint8_t * p_buf;
   
   while(DEF_TRUE){
-    p_buf = OSQPend(&Q_CONFIG,
-                    0,
-                    OS_OPT_PEND_BLOCKING,
-                    &msg_size,
-                    &ts,
-                    &err);
+    wait_q_conf(&p_buf,&msg_size,0);
     
     switch(*(p_buf+msg_size)){
     case 0x01:

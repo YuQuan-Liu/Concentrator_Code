@@ -11,7 +11,7 @@ uint8_t simcard = 0xff;    //0xff~移动  0xaa~联通
 uint8_t ack_valve = 0xff;  //先应答后操作~0xaa    先操作后应答~0xff
 uint8_t slave = 0xbb; //0xaa~mbus   0xff~485   0xbb~有线采集器  0xcc~无线采集器
 uint8_t di_seq = 0xff; //DI0 DI1 顺序   0xAA~DI1在前(千宝通)   0xFF~DI0在前(default)  
-uint8_t protocol = 0xff;  //协议类型 0xFF~188(Default)  0x11~EG 
+uint8_t protocol = 0xff;  //协议类型 0xFF~188(Default)  0xEE~bad-188 
 
 volatile uint8_t connectstate = 0;       //0 didn't connect to the server   1 connect to the server
 volatile uint8_t reading = 0;   //0 didn't reading meters    1  reading meters
@@ -19,6 +19,12 @@ volatile uint8_t lora_test = 0;  //每3s发送TEST到LORA
 
 uint8_t version = 100;    //版本从100开始算
 uint8_t meter_baud = 0x24;  //96H——9600 bps; 48H——4800 bps; 24H——2400 bps; 12H——1200 bps
+
+//正在抄表的采集器地址  在抄表时判断是不是找我  海大协议只有低2位有效
+uint8_t cjqaddr[5] = {0x01,0x00,0x00,0x00,0x00};   
+
+uint8_t device_mode = 0xFF;   //0xFF~集中器   0xAA~采集器
+
 
 void set_ip(uint8_t * p_ip){
   ip_[0] = *(p_ip+3);
@@ -133,3 +139,29 @@ void set_meter_baud(uint8_t meter_baud_){
 uint8_t get_meter_baud(void){
    return meter_baud;
 }
+
+void set_cjq_addr(uint8_t * p_addr){
+  switch(get_protocol()){
+  case 0xEE:
+  case 0xFF:
+    cjqaddr[0] = *(p_addr);
+    cjqaddr[1] = *(p_addr+1);
+    cjqaddr[2] = *(p_addr+2);
+    cjqaddr[3] = *(p_addr+3);
+    cjqaddr[4] = *(p_addr+4);
+    break;
+  }
+}
+
+uint8_t * get_cjq_addr(void){
+  return cjqaddr;
+}
+
+void set_device_mode(uint8_t device_mode_){
+  device_mode = device_mode_;
+}
+
+uint8_t get_device_mode(void){
+  return device_mode;
+}
+

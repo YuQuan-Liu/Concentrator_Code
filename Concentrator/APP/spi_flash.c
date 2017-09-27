@@ -497,7 +497,7 @@ void sFLASH_PoolInit(void){
     sectionaddr = sFLASH_POOL_START_ADDR + sFLASH_POOL_SIZE * i;
     nextaddr = sectionaddr + sFLASH_POOL_SIZE;
     if(i == sFLASH_POOL_NUM - 1){
-      nextaddr = 0x000000;
+      nextaddr = sFLASH_POINT_END;
     }
     sFLASH_WritePage((uint8_t *)&sectionaddr,sectionaddr,3);
     sFLASH_WritePage((uint8_t *)&nextaddr,sectionaddr+3,3);
@@ -516,15 +516,15 @@ void sFLASH_PoolInit(void){
   sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_POOL_ALL,2);
   
   //CJQ Q
-  nextaddr = 0x000000;
+  nextaddr = sFLASH_POINT_END;
   sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_CJQ_Q_START,3);
   nextaddr = 0x000000;
   sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_CJQ_COUNT,2);
-  nextaddr = 0x000000;
+  nextaddr = sFLASH_POINT_END;
   sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_CJQ_Q_LAST,3);
   
   //Meter Q
-  nextaddr = 0x000000;
+  nextaddr = sFLASH_POINT_END;
   sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_METER_Q_START,3);
   nextaddr = 0x000000;
   sFLASH_WritePage((uint8_t *)&nextaddr,sFLASH_METER_COUNT,2);
@@ -544,7 +544,7 @@ uint32_t GetFlash(void){
   sFLASH_ReadBuffer((uint8_t *)&first,sFLASH_POOL,3);
   
   //√ª”–ø’œ–øÈ¡À
-  if(first == 0x000000){
+  if(first == sFLASH_POINT_END){
     return 0x000000;
   }
   
@@ -651,6 +651,7 @@ void param_conf(void){
     set_protocol(*(mem4k+sFLASH_PROTOCOL));
     set_simcard(*(mem4k+sFLASH_SIMCARD));
     set_meter_baud(*(mem4k+sFLASH_METER_BAUD));
+    set_device_mode(*(mem4k+sFLASH_DEVICE_MODE));
     unlock_mem4k();
   }
 }

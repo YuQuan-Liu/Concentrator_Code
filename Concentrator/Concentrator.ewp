@@ -1927,12 +1927,6 @@
       <name>$PROJ_DIR$\APP\main.c</name>
     </file>
     <file>
-      <name>$PROJ_DIR$\APP\readeg.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\APP\readeg.h</name>
-    </file>
-    <file>
       <name>$PROJ_DIR$\APP\readmeter.c</name>
     </file>
     <file>

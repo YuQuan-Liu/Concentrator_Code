@@ -15,6 +15,8 @@ uint8_t write_cjq(uint8_t * data,uint16_t count);
 uint8_t write_server(uint8_t * data,uint16_t count);  
 uint8_t write_serverstr(uint8_t * data);  
 
+uint8_t write_cjq_lora(uint8_t * data,uint16_t count);
+
 /**
 ptr == 0  中断中不放到buf中
 ptr != 0  中断中放到ptr开始的buf中

@@ -47,6 +47,7 @@
 #define sFLASH_END_ADDR         0x1FFFFF
 #define sFLASH_POOL_START_ADDR       sFLASH_START_ADDR+sFLASH_SECTOR_SIZE
 
+#define sFLASH_POINT_END        0xFFFFFF
 
 #define sFLASH_CON_START_ADDR         sFLASH_START_ADDR   //第一个section保存需要的配置信息
 #define sFLASH_CON_APN          sFLASH_CON_START_ADDR
@@ -91,6 +92,7 @@
 #define sFLASH_PROTOCOL    sFLASH_ACK_ACTION + 0x01     //协议类型 0xFF~188(Default)  1~EG  
 #define sFLASH_SIMCARD    sFLASH_PROTOCOL + 0x01     //0xff~移动  0xaa~联通 
 #define sFLASH_METER_BAUD    sFLASH_SIMCARD + 0x01     ////96H——9600 bps; 48H——4800 bps; 24H——2400 bps; 12H——1200 bps
+#define sFLASH_DEVICE_MODE    sFLASH_METER_BAUD + 0x01     //0xFF~集中器   0xAA~采集器
 
 
 //*************************************************************

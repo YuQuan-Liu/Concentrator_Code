@@ -4,10 +4,8 @@
 #include "serial.h"
 #include "bsp.h"
 #include "utils.h"
+#include "device_params.h"
 
-extern OS_Q Q_CJQ_USART;
-extern OS_Q Q_LORA_USART;
-extern OS_Q Q_METER_USART;
 
 uint8_t * volatile p_server = 0;      //中断中保存GPRS 返回来的数据
 uint8_t * volatile p_server_ = 0;     //记录中断的开始指针
@@ -39,7 +37,6 @@ void USART1_Handler(void){
  * 处理采集器  集中器之间通信
  */
 void USART2_Handler(void){
-  OS_ERR err;
   uint8_t rx_byte;
   uint8_t *p_mem;
   
@@ -49,14 +46,8 @@ void USART2_Handler(void){
     p_mem = get_memisr();
     if(p_mem){
       *p_mem = rx_byte;
-      OSQPost((OS_Q *)&Q_CJQ_USART,
-              (void *)p_mem,
-              1,
-              OS_OPT_POST_FIFO,
-              &err);
-      if(err != OS_ERR_NONE){
-        //没有放进队列  放回MEMPool
-        put_membuf(p_mem);
+      if(!post_q_cjq_usart(p_mem,1)){
+        put_membuf(p_mem);//没有放进队列  放回MEMPool
       }
     }
   }
@@ -71,7 +62,6 @@ void USART2_Handler(void){
 * 处理MBUS 485 抄表
 */
 void USART3_Handler(void){
-  OS_ERR err;
   uint8_t rx_byte;
   uint8_t *p_mem;
   
@@ -81,14 +71,8 @@ void USART3_Handler(void){
     p_mem = get_memisr();
     if(p_mem){
       *p_mem = rx_byte;
-      OSQPost((OS_Q *)&Q_METER_USART,
-              (void *)p_mem,
-              1,
-              OS_OPT_POST_FIFO,
-              &err);
-      if(err != OS_ERR_NONE){
-        //没有放进队列  放回MEMPool
-        put_membuf(p_mem);
+      if(!post_q_meter_usart(p_mem,1)){
+        put_membuf(p_mem);//没有放进队列  放回MEMPool
       }
     }
   }
@@ -103,7 +87,6 @@ void USART3_Handler(void){
 * 处理LORA无线通信
 */
 void UART4_Handler(void){
-  OS_ERR err;
   uint8_t rx_byte;
   uint8_t *p_mem;
   
@@ -114,14 +97,8 @@ void UART4_Handler(void){
     p_mem = get_memisr();
     if(p_mem){
       *p_mem = rx_byte;
-      OSQPost((OS_Q *)&Q_LORA_USART,
-              (void *)p_mem,
-              1,
-              OS_OPT_POST_FIFO,
-              &err);
-      if(err != OS_ERR_NONE){
-        //没有放进队列  放回MEMPool
-        put_membuf(p_mem);
+      if(!post_q_lora_usart(p_mem,1)){
+        put_membuf(p_mem);//没有放进队列  放回MEMPool
       }
     }
   }
@@ -196,6 +173,18 @@ uint8_t write_serverstr(uint8_t * data){
     USART_SendData(USART1,*str);
     str++;
     while(USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET){}
+  }
+  return 1;
+}
+
+uint8_t write_cjq_lora(uint8_t * data,uint16_t count){
+  switch(get_slave()){
+  case 0xCC:
+    write_lora(data,count);
+    break;
+  case 0xBB:
+    write_cjq(data,count);
+    break;
   }
   return 1;
 }

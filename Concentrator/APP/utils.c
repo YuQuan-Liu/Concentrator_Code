@@ -23,6 +23,15 @@ extern OS_SEM SEM_SERVER_ACK;
 extern OS_SEM SEM_SEND_GPRS;
 extern OS_SEM SEM_CJQ_ACK;
 
+
+extern OS_Q Q_CJQ_USART;  //CJQ USART接收数据
+extern OS_Q Q_METER_USART; //METER USART接收数据
+extern OS_Q Q_LORA_USART;  //LORA USART接收数据
+extern OS_Q Q_CJQ;  //LORA 485-CJQ 接收发送的数据  Q_CJQ_USART  Q_LORA_USART  处理后的帧
+extern OS_Q Q_METER;   //Q_METER_USART处理后的帧
+extern OS_Q Q_READ;    //Q_SERVER  Q_CJQ 处理后去抄表的帧
+extern OS_Q Q_CONFIG;  //Q_SERVER  Q_CJQ 处理后去设置的帧
+
 /**
  * 检查CS  + 
  */
@@ -482,40 +491,229 @@ uint8_t check_188_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
   return result;
 }
 
-uint8_t check_eg_meter_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
-  uint8_t result = 0;   //2~放弃   0~数据不够  1~帧正确
-  uint8_t msg_length = p_buf_end - p_buf_start;  //当前要检查数据长度
-  
-  if(msg_length >= 9){
-    if(*(p_buf_start) == 0x0E && *(p_buf_start+1) ==0x0D && *(p_buf_start+2) ==0x0B){
-      if(0x00 == check_eor(p_buf_start,9)){
-        //海大协议 帧OK
-        result = 1;
-      }else{
-        result = 2;
-      }
-    }else{
-      result = 2;
-    }
-  }else{
-    result = 0;
-  }
-  return result;
-}
-
 uint8_t check_meter_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
   uint8_t result = 0;   //2~放弃   0~数据不够  1~帧正确
   
   switch(get_protocol()){
-  case 0x11:
-    //EG
-    result = check_eg_meter_frame(p_buf_start,p_buf_end);
-    break;
-  case 0xFF:
-    //188
+  case 0xFF: //188
+  case 0xEE: //188 bad
     result = check_188_frame(p_buf_start,p_buf_end);
     break;
   }
   
   return result;
 }
+
+
+uint8_t cjq_data_tome(void){  //TODO...
+  uint8_t * p_cjqaddr;
+  p_cjqaddr = get_cjq_addr();
+  switch(get_protocol()){
+  case 0xEE:
+  case 0xFF://188
+//    if(cjqaddr[0] == *(p_buf_ + DATA_POSITION + 1) && cjqaddr[1] == *(p_buf_ + DATA_POSITION)){
+//      forme = 1;
+//    }
+    break;
+  }
+  return 0;
+}
+
+
+uint8_t wait_q_cjq_usart(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout){
+  OS_ERR err;
+  CPU_TS ts;
+  
+  *p_mem = OSQPend(&Q_CJQ_USART,timeout,OS_OPT_PEND_BLOCKING,p_msg_size,&ts,&err);
+  
+  if(err == OS_ERR_NONE){
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
+uint8_t post_q_cjq_usart(uint8_t * p_mem, uint16_t msg_size){
+  OS_ERR err;
+  
+  OSQPost((OS_Q *)&Q_CJQ_USART,
+          (void *)p_mem,
+          msg_size,
+          OS_OPT_POST_FIFO,
+          &err);
+  if(err == OS_ERR_NONE){
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
+uint8_t wait_q_meter_usart(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout){
+  OS_ERR err;
+  CPU_TS ts;
+  
+  *p_mem = OSQPend(&Q_METER_USART,timeout,OS_OPT_PEND_BLOCKING,p_msg_size,&ts,&err);
+  
+  if(err == OS_ERR_NONE){
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
+uint8_t post_q_meter_usart(uint8_t * p_mem, uint16_t msg_size){
+  OS_ERR err;
+  
+  OSQPost((OS_Q *)&Q_METER_USART,
+          (void *)p_mem,
+          msg_size,
+          OS_OPT_POST_FIFO,
+          &err);
+  if(err == OS_ERR_NONE){
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
+uint8_t wait_q_lora_usart(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout){
+  OS_ERR err;
+  CPU_TS ts;
+  
+  *p_mem = OSQPend(&Q_LORA_USART,timeout,OS_OPT_PEND_BLOCKING,p_msg_size,&ts,&err);
+  
+  if(err == OS_ERR_NONE){
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
+uint8_t post_q_lora_usart(uint8_t * p_mem, uint16_t msg_size){
+  OS_ERR err;
+  
+  OSQPost((OS_Q *)&Q_LORA_USART,
+          (void *)p_mem,
+          msg_size,
+          OS_OPT_POST_FIFO,
+          &err);
+  if(err == OS_ERR_NONE){
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
+uint8_t wait_q_cjq(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout){
+  OS_ERR err;
+  CPU_TS ts;
+  
+  *p_mem = OSQPend(&Q_CJQ,timeout,OS_OPT_PEND_BLOCKING,p_msg_size,&ts,&err);
+  
+  if(err == OS_ERR_NONE){
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
+uint8_t post_q_cjq(uint8_t * p_mem, uint16_t msg_size){
+  OS_ERR err;
+  
+  OSQPost((OS_Q *)&Q_CJQ,
+          (void *)p_mem,
+          msg_size,
+          OS_OPT_POST_FIFO,
+          &err);
+  if(err == OS_ERR_NONE){
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
+
+uint8_t wait_q_meter(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout){
+  OS_ERR err;
+  CPU_TS ts;
+  
+  *p_mem = OSQPend(&Q_METER,timeout,OS_OPT_PEND_BLOCKING,p_msg_size,&ts,&err);
+  
+  if(err == OS_ERR_NONE){
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
+uint8_t post_q_meter(uint8_t * p_mem, uint16_t msg_size){
+  OS_ERR err;
+  
+  OSQPost((OS_Q *)&Q_METER,
+          (void *)p_mem,
+          msg_size,
+          OS_OPT_POST_FIFO,
+          &err);
+  if(err == OS_ERR_NONE){
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
+uint8_t wait_q_read(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout){
+  OS_ERR err;
+  CPU_TS ts;
+  
+  *p_mem = OSQPend(&Q_READ,timeout,OS_OPT_PEND_BLOCKING,p_msg_size,&ts,&err);
+  
+  if(err == OS_ERR_NONE){
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
+uint8_t post_q_read(uint8_t * p_mem, uint16_t msg_size){
+  OS_ERR err;
+  
+  OSQPost((OS_Q *)&Q_READ,
+          (void *)p_mem,
+          msg_size,
+          OS_OPT_POST_FIFO,
+          &err);
+  if(err == OS_ERR_NONE){
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
+uint8_t wait_q_conf(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout){
+  OS_ERR err;
+  CPU_TS ts;
+  
+  *p_mem = OSQPend(&Q_CONFIG,timeout,OS_OPT_PEND_BLOCKING,p_msg_size,&ts,&err);
+  
+  if(err == OS_ERR_NONE){
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
+uint8_t post_q_conf(uint8_t * p_mem, uint16_t msg_size){
+  OS_ERR err;
+  
+  OSQPost((OS_Q *)&Q_CONFIG,
+          (void *)p_mem,
+          msg_size,
+          OS_OPT_POST_FIFO,
+          &err);
+  if(err == OS_ERR_NONE){
+    return 1;
+  }else{
+    return 0;
+  }
+}
+

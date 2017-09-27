@@ -75,6 +75,7 @@
 #define FN_ACK_ACTION                   17  //先应答后操作~0xaa    先操作后应答~0xff
 #define FN_PROTOCOL                   18  //协议类型 0xFF~188(Default)  1~EG  
 #define FN_LORA_SEND                   19  //发送供采集器测试信号使用指令 
+#define FN_DEVICE_MODE                   20  //设置设备是采集器还是集中器 
 
 #define FN_VERSION                   255  //程序版本号  
 

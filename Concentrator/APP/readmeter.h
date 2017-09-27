@@ -5,21 +5,26 @@
 
 #include "stm32f10x_conf.h"
 
-void meter_control(uint8_t * p_buf,uint16_t msg_size);
-void meter_control_meter(uint8_t * p_buf,uint16_t msg_size);
-void meter_control_cjq(uint8_t * p_buf,uint16_t msg_size);
+void meter_control(uint8_t * p_frame,uint16_t frame_len);
+void meter_control_meter(uint8_t * p_frame,uint16_t frame_len);
+void meter_control_cjq(uint8_t * p_frame,uint16_t frame_len);
 
 
 
-void meter_read(uint8_t * p_buf,uint16_t msg_size);
-void meter_read_meters(uint8_t * p_buf,uint16_t msg_size);
-void meter_read_188(uint8_t * p_buf,uint16_t msg_size);
-void meter_read_eg(uint8_t * p_buf,uint16_t msg_size);
+void meter_read(uint8_t * p_frame,uint16_t frame_len);
+void meter_read_m_all(uint8_t * p_frame,uint16_t frame_len);
+void meter_read_m_channel(uint8_t * p_frame,uint16_t frame_len);
+void meter_read_m_meter(uint8_t * p_frame,uint16_t frame_len);
 
-void meter_read_cjqs(uint8_t * p_buf,uint16_t msg_size);
-void meter_read_188_cjq(uint8_t * p_buf,uint16_t msg_size);
-void meter_read_eg_cjq(uint8_t * p_buf,uint16_t msg_size);
+void meter_read_c_all(uint8_t * p_frame,uint16_t frame_len);
+void meter_read_c_channel(uint8_t * p_frame,uint16_t frame_len);
+void meter_read_c_meter(uint8_t * p_frame,uint16_t frame_len);
+
+uint8_t meter_read_single(uint8_t block_meter, uint8_t *p_meteraddr,uint8_t meter_type,uint8_t * meter_read,uint8_t * meter_status);
+uint8_t meter_read_save(uint32_t block_meter,uint8_t * meter_read,uint8_t * meter_status);
+uint8_t meter_read_frame_send(uint8_t * p_meteraddr,uint8_t meter_type);
 
 
+uint8_t cjq_relay_control(uint8_t cmd,uint8_t cjq);
 
 #endif
