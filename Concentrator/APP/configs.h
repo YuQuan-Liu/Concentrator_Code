@@ -6,6 +6,7 @@
 void param_config(uint8_t * p_buf,uint16_t msg_size);
 uint32_t search_cjq(uint8_t * p_cjqaddr);         //查找Flash中是否已包含此采集器
 uint32_t add_cjq(uint8_t * p_cjqaddr);    //添加采集器
+uint8_t delete_cjqs(void);   //删除所有的采集器
 uint32_t delete_cjq(uint8_t * p_cjqaddr);         //删除某一个采集器  暂时先不加
 
 uint32_t search_meter(uint32_t block_cjq,uint8_t * p_meteraddr);  //在采集器下查找是否已经包含此表

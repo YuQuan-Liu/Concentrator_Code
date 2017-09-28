@@ -64,8 +64,9 @@ void param_config(uint8_t * p_buf,uint16_t msg_size){
     break;
   case FN_CJQ:
     if(*(p_buf + DATA_POSITION) == 0xAA){  //删除全部采集器  即重新初始化FLASH POOL
-      sFLASH_PoolInit();
-      device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
+      if(delete_cjqs()){
+        device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
+      }
     }
     
     if(*(p_buf + DATA_POSITION) == 0x55){  //添加采集器
@@ -771,6 +772,49 @@ uint32_t add_cjq(uint8_t * p_cjqaddr){
   return block_new;
 }
 
+uint8_t delete_cjqs(void){
+  
+  uint8_t * mem4k = 0;
+  uint32_t temp32 = 0;
+  mem4k = get_mem4k();
+  
+  sFLASH_ReadBuffer(mem4k,sFLASH_CON_START_ADDR,0x100);//保留以前的配置
+  sFLASH_PoolInit();  
+  
+  //the pool start
+  temp32 = sFLASH_POOL_START_ADDR;
+  Mem_Copy(mem4k + (sFLASH_POOL - sFLASH_CON_START_ADDR),&temp32,3);
+  //pool free
+  temp32 = 2044;
+  Mem_Copy(mem4k + (sFLASH_POOL_FREE - sFLASH_CON_START_ADDR),&temp32,2);
+  //pool used
+  temp32 = 0x000000;
+  Mem_Copy(mem4k + (sFLASH_POOL_USED - sFLASH_CON_START_ADDR),&temp32,2);
+  //pool all
+  temp32 = 2044;
+  Mem_Copy(mem4k + (sFLASH_POOL_ALL - sFLASH_CON_START_ADDR),&temp32,2);
+  
+  //CJQ Q
+  temp32 = sFLASH_POINT_END;
+  Mem_Copy(mem4k + (sFLASH_CJQ_Q_START - sFLASH_CON_START_ADDR),&temp32,3);
+  temp32 = 0x000000;
+  Mem_Copy(mem4k + (sFLASH_CJQ_COUNT - sFLASH_CON_START_ADDR),&temp32,2);
+  temp32 = sFLASH_POINT_END;
+  Mem_Copy(mem4k + (sFLASH_CJQ_Q_LAST - sFLASH_CON_START_ADDR),&temp32,3);
+  
+  //Meter Q
+  temp32 = sFLASH_POINT_END;
+  Mem_Copy(mem4k + (sFLASH_METER_Q_START - sFLASH_CON_START_ADDR),&temp32,3);
+  temp32 = 0x000000;
+  Mem_Copy(mem4k + (sFLASH_METER_COUNT - sFLASH_CON_START_ADDR),&temp32,2);
+  
+  temp32 = 0xABCDAA;
+  Mem_Copy(mem4k + (sFLASH_POOL_INIT - sFLASH_CON_START_ADDR),&temp32,1);
+  
+  sFLASH_EraseWritePage(mem4k,sFLASH_CON_START_ADDR,0x100);
+  
+  return 1;
+}
 
 uint32_t add_meters(uint8_t * p_buf){
   uint8_t metercount = 0;
