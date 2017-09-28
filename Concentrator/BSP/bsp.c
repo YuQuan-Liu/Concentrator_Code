@@ -47,7 +47,7 @@ void BSP_Init(void){
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC,ENABLE);
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO,ENABLE);
   
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1,ENABLE);
+  //RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1,ENABLE);
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2,ENABLE);
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3,ENABLE);
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART4,ENABLE);
@@ -248,7 +248,7 @@ void BSP_USART_Init(void){
   USART_InitTypeDef usart_init;
   uint32_t meter_baud_ = 2400;
   
-  /*USART1  SIM800G*/
+  /*USART1  SIM800G
   usart_init.USART_BaudRate = 115200;
   usart_init.USART_WordLength = USART_WordLength_8b;
   usart_init.USART_Parity = USART_Parity_No;
@@ -261,7 +261,7 @@ void BSP_USART_Init(void){
     
   USART_ITConfig(USART1, USART_IT_TC, DISABLE);
   USART_ITConfig(USART1, USART_IT_TXE, DISABLE);
-  USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
+  USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);*/
   
   /*USART2  485 CJQ*/
   usart_init.USART_BaudRate = 2400;
@@ -332,11 +332,11 @@ void BSP_NVIC_Init(void){
   /* Configure the NVIC Preemption Priority Bits */  
   NVIC_PriorityGroupConfig(NVIC_PriorityGroup_0);
   
-  /* Enable the USART1 Interrupt */
+  /* Enable the USART1 Interrupt 
   nvic_init.NVIC_IRQChannel = USART1_IRQn;
   nvic_init.NVIC_IRQChannelSubPriority = 0;
   nvic_init.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&nvic_init);
+  NVIC_Init(&nvic_init);*/
   
   /* Enable the USART2 Interrupt */
   nvic_init.NVIC_IRQChannel = USART2_IRQn;

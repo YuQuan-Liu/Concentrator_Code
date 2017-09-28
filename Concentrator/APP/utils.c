@@ -2,13 +2,12 @@
 #include "utils.h"
 #include "device_params.h"
 #include "os.h"
+#include "frame.h"
 
 uint8_t local_seq = 0;  //本地序列号
-
 uint8_t mem4k[0x1000];  //配置处理Flash使用的数组  Sector==4K  需要一个4K的数组
 
 
-extern OS_MUTEX MUTEX_GPRS;  
 extern OS_MUTEX MUTEX_LORA;
 extern OS_MUTEX MUTEX_CJQ;
 extern OS_MUTEX MUTEX_METER;
@@ -18,19 +17,15 @@ extern OS_MEM MEM_ISR;
 extern OS_MEM MEM_Buf;
 
 extern OS_SEM SEM_LORA_OK;
-extern OS_SEM SEM_HEART_BEAT;
-extern OS_SEM SEM_SERVER_ACK;
-extern OS_SEM SEM_SEND_GPRS;
-extern OS_SEM SEM_CJQ_ACK;
+extern OS_SEM SEM_JZQ_ACK;
 
 
 extern OS_Q Q_CJQ_USART;  //CJQ USART接收数据
 extern OS_Q Q_METER_USART; //METER USART接收数据
 extern OS_Q Q_LORA_USART;  //LORA USART接收数据
-extern OS_Q Q_CJQ;  //LORA 485-CJQ 接收发送的数据  Q_CJQ_USART  Q_LORA_USART  处理后的帧
 extern OS_Q Q_METER;   //Q_METER_USART处理后的帧
-extern OS_Q Q_READ;    //Q_SERVER  Q_CJQ 处理后去抄表的帧
-extern OS_Q Q_CONFIG;  //Q_SERVER  Q_CJQ 处理后去设置的帧
+extern OS_Q Q_READ;    //去抄表的帧
+extern OS_Q Q_CONFIG;  //去设置的帧
 
 /**
  * 检查CS  + 
@@ -77,15 +72,6 @@ uint8_t check_frame(uint8_t * start){
   return 0;
 }
 
-void replace_str00(uint8_t * start,uint8_t * end){
-  uint8_t * s;
-  s = start;
-  while(*s == 0x00 && s < end){
-    *s++ = '\r';
-  }
-}
-
-
 /**
   * 增加 本地序列号  返回增加前的序列号
   * 发送心跳 发送数据时调用
@@ -104,27 +90,12 @@ uint8_t addSEQ(void){
 
 uint8_t delayms(uint32_t timeout){
   OS_ERR err;
-  OSTimeDly(1000,
+  OSTimeDly(timeout,
             OS_OPT_TIME_DLY,
             &err);
   return 1;
 }
 
-uint8_t lock_gprs(void){
-  OS_ERR err;
-  CPU_TS ts;
-  OSMutexPend(&MUTEX_GPRS,1000,OS_OPT_PEND_BLOCKING,&ts,&err);
-  if(err == OS_ERR_NONE || err == OS_ERR_MUTEX_NESTING){
-    return 1;
-  }
-  return 0;
-}
-
-uint8_t unlock_gprs(void){
-  OS_ERR err;
-  OSMutexPost(&MUTEX_GPRS,OS_OPT_POST_NONE,&err);
-  return 1;
-}
 
 uint8_t lock_lora(void){
   OS_ERR err;
@@ -259,11 +230,11 @@ uint8_t signal_lora_ok(void){
   return 1;
 }
 
-uint8_t wait_heartbeat(uint32_t timeout){
+uint8_t wait_jzqack(uint32_t timeout){
   OS_ERR err;
   CPU_TS ts;
   
-  OSSemPend(&SEM_HEART_BEAT,
+  OSSemPend(&SEM_JZQ_ACK,
             timeout,
             OS_OPT_PEND_BLOCKING,
             &ts,
@@ -274,81 +245,9 @@ uint8_t wait_heartbeat(uint32_t timeout){
   return 0;
 }
 
-uint8_t signal_heartbeat(void){
+uint8_t signal_jzqack(void){
   OS_ERR err;
-  OSSemPost(&SEM_HEART_BEAT,
-            OS_OPT_POST_1,
-            &err);
-  return 1;
-}
-
-
-uint8_t wait_serverack(uint32_t timeout){
-  OS_ERR err;
-  CPU_TS ts;
-  
-  OSSemPend(&SEM_SERVER_ACK,
-            timeout,
-            OS_OPT_PEND_BLOCKING,
-            &ts,
-            &err);
-  if(err == OS_ERR_NONE){
-    return 1;
-  }
-  return 0;
-}
-
-uint8_t signal_serverack(void){
-  OS_ERR err;
-  OSSemPost(&SEM_SERVER_ACK,
-            OS_OPT_POST_1,
-            &err);
-  return 1;
-}
-
-
-uint8_t wait_sendgprs(uint32_t timeout){
-  OS_ERR err;
-  CPU_TS ts;
-  
-  OSSemPend(&SEM_SEND_GPRS,
-            timeout,
-            OS_OPT_PEND_BLOCKING,
-            &ts,
-            &err);
-  if(err == OS_ERR_NONE){
-    return 1;
-  }
-  return 0;
-}
-
-uint8_t signal_sendgprs(void){
-  OS_ERR err;
-  OSSemPost(&SEM_SEND_GPRS,
-            OS_OPT_POST_1,
-            &err);
-  return 1;
-}
-
-
-uint8_t wait_cjqack(uint32_t timeout){
-  OS_ERR err;
-  CPU_TS ts;
-  
-  OSSemPend(&SEM_CJQ_ACK,
-            timeout,
-            OS_OPT_PEND_BLOCKING,
-            &ts,
-            &err);
-  if(err == OS_ERR_NONE){
-    return 1;
-  }
-  return 0;
-}
-
-uint8_t signal_cjqack(void){
-  OS_ERR err;
-  OSSemPost(&SEM_CJQ_ACK,
+  OSSemPost(&SEM_JZQ_ACK,
             OS_OPT_POST_1,
             &err);
   return 1;
@@ -454,6 +353,41 @@ uint8_t check_lora_ok_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
   return result;
 }
 
+uint8_t check_bad_188_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){  //TODO...
+  uint8_t result = 0;   //2~放弃   0~数据不够  1~帧正确
+  uint8_t msg_length = p_buf_end - p_buf_start;  //当前要检查数据长度
+  uint8_t header = 0;  //是否接收到帧头
+  uint16_t frame_len= 0;  //接收的帧的总长度
+  
+  if(header == 0){
+    if(p_buf_start[0] == 0x68){
+      header = 1;
+    }
+    if(header == 0){
+      //give up the data
+      result = 2;
+    }
+  }
+  if(header == 1){
+    if(msg_length >= 11){
+      frame_len = *(p_buf_start+10)+13;
+      
+      if(frame_len > 0 && msg_length >= frame_len){
+        if(*(p_buf_end - 2) == check_cs(p_buf_start,frame_len-2) && *(p_buf_end - 1) == 0x16){
+          //这一帧OK
+          result = 1;
+        }else{
+          //这一帧有错误  放弃
+          result = 2;
+        }
+      }
+    }else{
+      //收到的数据还不够
+      result = 0;
+    }
+  }
+  return result;
+}
 
 uint8_t check_188_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
   uint8_t result = 0;   //2~放弃   0~数据不够  1~帧正确
@@ -496,8 +430,10 @@ uint8_t check_meter_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
   
   switch(get_protocol()){
   case 0xFF: //188
-  case 0xEE: //188 bad
     result = check_188_frame(p_buf_start,p_buf_end);
+    break;
+  case 0xEE: //188 bad
+    result = check_bad_188_frame(p_buf_start,p_buf_end);
     break;
   }
   
@@ -505,16 +441,15 @@ uint8_t check_meter_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
 }
 
 
-uint8_t cjq_data_tome(void){  //TODO...
+uint8_t cjq_data_tome(uint8_t * p_frame,uint8_t frame_len){  
   uint8_t * p_cjqaddr;
-  p_cjqaddr = get_cjq_addr();
-  switch(get_protocol()){
-  case 0xEE:
-  case 0xFF://188
-//    if(cjqaddr[0] == *(p_buf_ + DATA_POSITION + 1) && cjqaddr[1] == *(p_buf_ + DATA_POSITION)){
-//      forme = 1;
-//    }
-    break;
+  p_cjqaddr = get_device_addr();
+  //发送过来的抄表指令  ** c0 [c1 c2 c3 c4]
+  if(p_cjqaddr[1] == *(p_frame + DATA_POSITION + 2) && 
+     p_cjqaddr[2] == *(p_frame + DATA_POSITION + 3) && 
+     p_cjqaddr[3] == *(p_frame + DATA_POSITION + 4) && 
+     p_cjqaddr[4] == *(p_frame + DATA_POSITION + 5)){
+    return 1;
   }
   return 0;
 }
@@ -593,34 +528,6 @@ uint8_t post_q_lora_usart(uint8_t * p_mem, uint16_t msg_size){
   OS_ERR err;
   
   OSQPost((OS_Q *)&Q_LORA_USART,
-          (void *)p_mem,
-          msg_size,
-          OS_OPT_POST_FIFO,
-          &err);
-  if(err == OS_ERR_NONE){
-    return 1;
-  }else{
-    return 0;
-  }
-}
-
-uint8_t wait_q_cjq(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout){
-  OS_ERR err;
-  CPU_TS ts;
-  
-  *p_mem = OSQPend(&Q_CJQ,timeout,OS_OPT_PEND_BLOCKING,p_msg_size,&ts,&err);
-  
-  if(err == OS_ERR_NONE){
-    return 1;
-  }else{
-    return 0;
-  }
-}
-
-uint8_t post_q_cjq(uint8_t * p_mem, uint16_t msg_size){
-  OS_ERR err;
-  
-  OSQPost((OS_Q *)&Q_CJQ,
           (void *)p_mem,
           msg_size,
           OS_OPT_POST_FIFO,

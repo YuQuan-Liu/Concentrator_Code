@@ -76,6 +76,8 @@
 #define FN_PROTOCOL                   18  //协议类型 0xFF~188(Default)  1~EG  
 #define FN_LORA_SEND                   19  //发送供采集器测试信号使用指令 
 #define FN_DEVICE_MODE                   20  //设置设备是采集器还是集中器 
+#define FN_READING                      21  //采集器是否在读表
+#define FN_ALL_READDATA                 22  //查询采集器下所有的抄表结果
 
 #define FN_VERSION                   255  //程序版本号  
 

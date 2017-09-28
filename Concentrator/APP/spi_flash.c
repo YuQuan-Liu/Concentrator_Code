@@ -42,7 +42,6 @@ void sFLASH_EraseSector(uint32_t SectorAddr)
   */
 void sFLASH_EraseBulk(void)
 {
-  OS_ERR err;
   /*!< Send write enable instruction */
   sFLASH_WriteEnable();
   sFLASH_WaitForWriteEnd();
@@ -485,7 +484,7 @@ void sFLASH_Init(void){
 }
 
 void sFLASH_PoolInit(void){
-  uint16_t i;
+  int16_t i;
   uint32_t sectionaddr;
   uint32_t nextaddr;
   

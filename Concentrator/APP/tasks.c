@@ -6,7 +6,6 @@
 #include "lib_str.h"
 #include "serial.h"
 #include "spi_flash.h"
-#include "gprs.h"
 #include "frame.h"
 #include "frame_188.h"
 #include "utils.h"
@@ -14,16 +13,6 @@
 #include "bsp.h"
 #include "device_params.h"
 #include "readmeter.h"
-
-
-extern OS_TMR TMR_CJQTIMEOUT;    //打开采集器之后 20分钟超时 自动关闭通道
-
-extern uint8_t * volatile p_server;      //中断中保存GPRS 返回来的数据
-extern uint8_t * volatile p_server_;     //记录中断的开始指针
-
-
-uint8_t data_seq = 0;  //记录数据的序列号 等待ack
-uint8_t server_seq = 0;  //服务器端序列号  抄表时  会同步此序列号
 
 
 /**
@@ -69,7 +58,6 @@ void task_meter_raw(void *p_arg){
       break;
     case 1: //当前帧接收完毕
       if(get_readding()){
-        
         switch(get_protocol()){
         case 0xFF: //188
           frame_len = *(p_buf_+10)+13;
@@ -101,6 +89,7 @@ void task_cjq_raw(void *p_arg){
   uint8_t * p_mem;    //the ptr get from the queue
   uint16_t msg_size;    //the message's size 
   uint8_t msg_data;         //the data get from the queue
+  uint8_t server_seq_;
   
   uint16_t frame_len = 0;
   
@@ -138,40 +127,47 @@ void task_cjq_raw(void *p_arg){
     case 1:  //当前帧接收完毕
       //抄表状态下 采集器返回过来的数据帧  或者 应答帧
       frame_len = check_frame(p_buf_);
-      if(get_readding()){
-        if(cjq_data_tome()){  //当前采集器  
-          if(*(p_buf_+AFN_POSITION) != AFN_ACK){ //DATA TO ACK   
-            device_ack_cjq(0,*(p_buf_ + SEQ_POSITION),(uint8_t *)0,0,AFN_ACK,FN_ACK);
-          }
-          //All DATA to Queue  TODO...
-          post_q_result = post_q_cjq(p_buf_, frame_len);
-          if(post_q_result){
-            p_buf_ = 0;
-            p_buf = 0;
+      server_seq_ = *(p_buf_+SEQ_POSITION) & 0x0F;  //获得该帧的序列号
+      *p_buf = 0x00;//标识这一帧数据是来自485的
+      switch(*(p_buf_+AFN_POSITION)){
+      case AFN_CONFIG:
+      case AFN_QUERY:
+        post_q_result = post_q_conf(p_buf_, frame_len);
+        if(post_q_result){
+          p_buf_ = 0;
+          p_buf = 0;
+        }else{
+          p_buf = p_buf_;
+        }
+        break;
+      case AFN_CONTROL:
+      case AFN_CURRENT:
+        device_ack(0,server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);  //ACK
+        if(!get_readding()){
+          if(cjq_data_tome(p_buf_,frame_len)){  //当前采集器  
+            post_q_result = post_q_read(p_buf_, frame_len);
+            if(post_q_result){
+              p_buf_ = 0;
+              p_buf = 0;
+            }else{
+              p_buf = p_buf_;
+            }
           }else{
-            p_buf = p_buf_;
+            p_buf = p_buf_;  //不是找我的
           }
         }else{
-          p_buf = p_buf_;  //不是找我的
+          p_buf = p_buf_;  //我在抄表  放弃此帧
         }
-      }else{
-        //我不在抄表模式下  配置
-        switch(*(p_buf_+AFN_POSITION)){
-        case AFN_CONFIG:
-        case AFN_QUERY:
-          *p_buf = 0x00;//标识这一帧数据是来自485的
-          post_q_result = post_q_conf(p_buf_, frame_len);
-          if(post_q_result){
-            p_buf_ = 0;
-            p_buf = 0;
-          }else{
-            p_buf = p_buf_;
-          }
-          break;
-        default:
-          p_buf = p_buf_;
-          break;
+        break;
+      case AFN_ACK:
+        if(server_seq_ == get_data_seq()){
+          signal_jzqack();
         }
+        p_buf = p_buf_;
+        break;
+      default:
+        p_buf = p_buf_;
+        break;
       }
       break;
     }
@@ -186,6 +182,7 @@ void task_lora_raw(void *p_arg){
   uint16_t msg_size;    //the message's size 
   uint8_t msg_data;         //the data get from the queue
   
+  uint8_t server_seq_;
   uint16_t frame_len = 0;
   
   uint8_t * p_buf = 0;   //the buf used put the data in 
@@ -222,253 +219,48 @@ void task_lora_raw(void *p_arg){
     case 1: //当前帧接收完毕
       if(*(p_buf_) == 0x68){
         //抄表状态下 采集器返回过来的数据帧  或者 应答帧
-        if(get_readding()){
-          if(cjq_data_tome()){  //当前采集器  
-            if(*(p_buf_+AFN_POSITION) != AFN_ACK){ //DATA TO ACK   
-              device_ack_cjq(1,*(p_buf_ + SEQ_POSITION),(uint8_t *)0,0,AFN_ACK,FN_ACK);
-            }
-            //All DATA to Queue  TODO...
-            frame_len = check_frame(p_buf_);
-            post_q_result = post_q_cjq(p_buf_, frame_len);
-            if(post_q_result){
-              p_buf_ = 0;
-              p_buf = 0;
+        frame_len = check_frame(p_buf_);
+        server_seq_ = *(p_buf_+SEQ_POSITION) & 0x0F;  //获得该帧的序列号
+        *p_buf = 0x01;//标识这一帧数据是来自LORA
+        switch(*(p_buf_+AFN_POSITION)){
+        case AFN_CONTROL:
+        case AFN_CURRENT:
+          device_ack(1,server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);  //ACK
+          if(!get_readding()){
+            if(cjq_data_tome(p_buf_,frame_len)){  //当前采集器  
+              post_q_result = post_q_read(p_buf_, frame_len);
+              if(post_q_result){
+                p_buf_ = 0;
+                p_buf = 0;
+              }else{
+                p_buf = p_buf_;
+              }
             }else{
-              p_buf = p_buf_;
+              p_buf = p_buf_;  //不是找我的
             }
           }else{
-            p_buf = p_buf_;  //不是找我的
+            p_buf = p_buf_;  //我在抄表  放弃此帧
           }
-        }else{
-          p_buf = p_buf_; //我不在抄表模式下  
+          break;
+        case AFN_ACK:
+          if(server_seq_ == get_data_seq()){
+            signal_jzqack();
+          }
+          p_buf = p_buf_;
+          break;
+        default:
+          p_buf = p_buf_;
+          break;
         }
       }
-      if(*(p_buf_) == 0x0D){
-        //+++/AT+ESC return
+      if(*(p_buf_) == 0x0D){  //+++/AT+ESC return
         signal_lora_ok();
+        p_buf = p_buf_;
       }
       break;
     }
   }
 }
-
-
-
-
-/**
- * 连接服务器 处理GPRS模块发送过来的指令
- */
-void task_server(void *p_arg){
-  uint8_t * p_buf = 0;
-  uint8_t * p_buf_ = 0;
-  uint8_t getbuffail = 0;
-  uint8_t connectfail = 0;
-  
-  uint8_t *frame_start = 0; //接收到的帧的起始地址
-  uint8_t frame_len = 0;  //接收到帧的总长度
-  uint8_t server_seq_ = 0; //服务器发送过来的数据 的序列号
-  
-  uint8_t * p_buf_copy = 0;  //复制配置帧 抄表帧 post 到队列
-  uint8_t post_q_result = 0;
-  while(DEF_TRUE){
-    if(get_connect_state()){
-      if(p_buf == 0){
-        p_buf = get_membuf();
-        if(p_buf > 0){  //get the buf
-          getbuffail = 0;
-          p_buf_ = p_buf;
-          server_2buf(p_buf);
-        }else{ //do not get the buf
-          getbuffail ++;
-//          if(getbuffail >= 20){
-//            //20次没有获取到buf  
-//            device_cmd(0);
-//            *((uint8_t *)0) = 0x00;  //迫使系统重启
-//          }
-          delayms(200);
-          continue;
-        }
-      }
-      
-      if(p_server - p_server_ > 0){
-        delayms(4);
-        
-        p_buf = p_server;
-        replace_str00(p_buf_,p_buf);  //屏蔽掉数据前的0x00
-        if(Str_Str(p_buf_,"\n>")){
-          
-          p_buf = p_buf_;
-          Mem_Set(p_buf_,0x00,256); //clear the buf
-          server_2buf(p_buf);
-          
-          signal_sendgprs();
-          continue;
-        }
-        
-        if(Str_Str(p_buf_,"RECEIVE")){
-          //oh it's the data  \r\n+TCPRECV:0,**,0x68 L L 0x68 C A     \r\n
-          frame_start = Str_Str(p_buf_,"\r\n\x68") + 2;
-          frame_len = check_frame(frame_start);  //check the frame get the length
-          if(frame_len){ //the frame is ok
-            server_seq_ = *(frame_start + SEQ_POSITION) & 0x0F;  //获得该帧的序列号
-            switch(*(frame_start+AFN_POSITION)){
-            case AFN_ACK:  //the ack of the server
-              if(server_seq_ == data_seq){
-                signal_serverack();
-              }
-              break;
-            case AFN_CONFIG:
-            case AFN_QUERY:
-              p_buf_copy =  get_membuf();
-              if(p_buf_copy > 0){
-                Mem_Copy(p_buf_copy,frame_start,frame_len);
-                *(p_buf_copy + frame_len) = 0x01;  //标识这一帧来自服务器
-                post_q_result = post_q_conf(p_buf_copy, frame_len);
-                if(!post_q_result){
-                  put_membuf(p_buf_copy);
-                }
-              }
-              break;
-            case AFN_CONTROL:
-            case AFN_CURRENT:
-              device_ack(0x01,server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);  //ACK
-              if(*(frame_start+FN_POSITION) == 0x05){//匹配序列号
-                server_seq = server_seq_;
-              }else{
-                if(server_seq != server_seq_){  //新的抄表指令  read
-                  p_buf_copy =  get_membuf();
-                  if(p_buf_copy > 0){
-                    Mem_Copy(p_buf_copy,frame_start,frame_len);
-                    *(p_buf_copy + frame_len) = 0x01;  //标识这一帧来自服务器
-                    server_seq = server_seq_;
-                    post_q_result = post_q_read(p_buf_copy, frame_len);
-                    if(!post_q_result){
-                      put_membuf(p_buf_copy);
-                    }
-                  }
-                }
-              }
-              break;
-            case AFN_LINK_TEST: //never will come to here
-            case AFN_HISTORY://don't support
-              break;
-            default:
-              break;
-            }
-          }
-          p_buf =p_buf_;
-          Mem_Set(p_buf_,0x00,256); //clear the buf
-          server_2buf(p_buf_);
-          continue;
-        }
-        
-        if(Str_Str(p_buf_,"CLOSE") || Str_Str(p_buf_,"DEACT") || Str_Str(p_buf_,"ERROR")){
-          //CLOSED   +PDP: DEACT\r\n
-          Mem_Set(p_buf_,0x00,256); //clear the buf
-          put_membuf(p_buf_);
-          p_buf = 0;
-          p_buf_ = 0;
-          server_2buf(0);
-          set_connect_state(0);
-          continue;
-        }
-        
-        //do not know what's that
-        p_buf = p_buf_;
-        Mem_Set(p_buf_,0x00,256); //clear the buf
-        server_2buf(p_buf_);
-      }else{
-        delayms(4);
-      }
-    }else{
-      
-      if(p_buf_ != 0){
-        Mem_Set(p_buf_,0x00,256); //clear the buf
-        put_membuf(p_buf_);
-        p_buf = 0;
-        p_buf_ = 0;
-        server_2buf(0);
-      }
-      
-      device_cmd(0);
-      device_cmd(1);
-      if(connect()){
-        connectfail = 0;
-      }else{
-        connectfail++;
-//        if(connectfail > 20){
-//          device_cmd(0);
-//          *((uint8_t *)0) = 0x00;  //迫使系统重启
-//        }
-      }
-    }
-  }
-}
-
-/**
- * GPRS 心跳任务
- */
-void task_heartbeat(void *p_arg){
-  uint8_t beat[17];
-  uint8_t * p_beat;
-  uint8_t heart_ack = 0;
-  uint8_t i;
-  uint8_t * p_deviceaddr = 0;
-  
-  while(DEF_TRUE){
-    if(get_connect_state()){
-      if(lock_gprs()){
-        for(i = 0;get_connect_state() && i < 3;i++){
-          heart_ack = 0;
-          
-          p_beat = beat;
-          *p_beat++ = FRAME_HEAD;
-          *p_beat++ = 0x27;//(9 << 2) | 0x03;
-          *p_beat++ = 0x00;
-          *p_beat++ = 0x27;//(9 << 2) | 0x03;
-          *p_beat++ = 0x00;
-          *p_beat++ = FRAME_HEAD;
-          
-          *p_beat++ = ZERO_BYTE | DIR_TO_SERVER | PRM_START | START_FUN_TEST;
-          
-          p_deviceaddr = get_device_addr();
-          *p_beat++ = p_deviceaddr[0];
-          *p_beat++ = p_deviceaddr[1];
-          *p_beat++ = p_deviceaddr[2];
-          *p_beat++ = p_deviceaddr[3];
-          *p_beat++ = p_deviceaddr[4];
-          
-          *p_beat++ = AFN_LINK_TEST;
-          
-          data_seq = addSEQ();
-          *p_beat++ = ZERO_BYTE |SINGLE | CONFIRM | data_seq;
-          
-          *p_beat++ = FN_HEARTBEAT;
-          
-          *p_beat++ = check_cs(beat+6,9);
-          *p_beat++ = FRAME_END;
-          if(send_server(beat,17)){
-            if(wait_serverack(5000)){
-              heart_ack = 1;
-              break;
-            }
-          }
-        }
-        unlock_gprs();
-        if(heart_ack){  //接收到心跳ACK
-          delayms(120000);
-        }else{   //3次都没有收到心跳ACK
-          set_connect_state(0);
-        }
-      }else{
-        delayms(1000);  //没有得到GPRS锁  1s后再试
-      }
-    }else{
-      delayms(1000);  //不在线 1s后再试
-    }
-  }
-}
-
 
 /**
  * 定时检测LORA模块是否OK  
@@ -483,6 +275,10 @@ void task_lora_check(void *p_arg){
     delayms(120000);
     if(get_readding()){
       continue;
+    }
+    
+    if(get_device_mode() != 0xFF){  
+      continue;//不是无线
     }
     
     if(lock_lora()){
@@ -555,33 +351,16 @@ void task_config(void *p_arg){
   while(DEF_TRUE){
     wait_q_conf(&p_buf,&msg_size,0);
     
-    switch(*(p_buf+msg_size)){
-    case 0x01:
-      if(lock_gprs()){
-        switch(*(p_buf+AFN_POSITION)){
-        case AFN_CONFIG:
-          param_config(p_buf,msg_size);
-          break;
-        case AFN_QUERY:
-          param_query(p_buf,msg_size);
-          break;
-        }
-        unlock_gprs();
+    if(lock_cjq()){
+      switch(*(p_buf+AFN_POSITION)){
+      case AFN_CONFIG:
+        param_config(p_buf,msg_size);
+        break;
+      case AFN_QUERY:
+        param_query(p_buf,msg_size);
+        break;
       }
-      break;
-    default:
-      if(lock_cjq()){
-        switch(*(p_buf+AFN_POSITION)){
-        case AFN_CONFIG:
-          param_config(p_buf,msg_size);
-          break;
-        case AFN_QUERY:
-          param_query(p_buf,msg_size);
-          break;
-        }
-        unlock_cjq();
-      }
-      break;
+      unlock_cjq();
     }
     
     put_membuf(p_buf);

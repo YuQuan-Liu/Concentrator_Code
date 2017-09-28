@@ -165,14 +165,15 @@ void SysTick_Handler(void)
 
 
 
-void USART1_IRQHandler(void)
-{
-    USART1_Handler();
-}
 
 void USART2_IRQHandler(void)
 {
     USART2_Handler();
+}
+
+void USART3_IRQHandler(void)
+{
+    USART3_Handler();
 }
 
 void UART4_IRQHandler(void)

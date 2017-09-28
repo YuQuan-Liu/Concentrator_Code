@@ -92,7 +92,7 @@
 #define sFLASH_PROTOCOL    sFLASH_ACK_ACTION + 0x01     //协议类型 0xFF~188(Default)  1~EG  
 #define sFLASH_SIMCARD    sFLASH_PROTOCOL + 0x01     //0xff~移动  0xaa~联通 
 #define sFLASH_METER_BAUD    sFLASH_SIMCARD + 0x01     ////96H——9600 bps; 48H——4800 bps; 24H——2400 bps; 12H——1200 bps
-#define sFLASH_DEVICE_MODE    sFLASH_METER_BAUD + 0x01     //0xFF~集中器   0xAA~采集器
+#define sFLASH_DEVICE_MODE    sFLASH_METER_BAUD + 0x01     //0xFF~无线   0xAA~有线
 
 
 //*************************************************************
@@ -118,7 +118,6 @@
 
     
 void sFLASH_DeInit(void);
-void sFLASH_Init(void);
 void sFLASH_EraseSector(uint32_t SectorAddr);
 void sFLASH_EraseBulk(void);
 void sFLASH_WritePage(uint8_t* pBuffer, uint32_t WriteAddr, uint16_t NumByteToWrite);

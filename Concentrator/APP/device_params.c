@@ -23,8 +23,9 @@ uint8_t meter_baud = 0x24;  //96H——9600 bps; 48H——4800 bps; 24H——2400 bps;
 //正在抄表的采集器地址  在抄表时判断是不是找我  海大协议只有低2位有效
 uint8_t cjqaddr[5] = {0x01,0x00,0x00,0x00,0x00};   
 
-uint8_t device_mode = 0xFF;   //0xFF~集中器   0xAA~采集器
+uint8_t device_mode = 0xFF;   //0xFF~无线   0xAA~有线
 
+uint8_t data_seq = 0;  //记录数据的序列号 等待ack
 
 void set_ip(uint8_t * p_ip){
   ip_[0] = *(p_ip+3);
@@ -165,3 +166,10 @@ uint8_t get_device_mode(void){
   return device_mode;
 }
 
+void set_data_seq(uint8_t data_seq_){
+  data_seq = data_seq_;
+}
+
+uint8_t get_data_seq(void){
+  return data_seq;
+}

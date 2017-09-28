@@ -21,14 +21,6 @@ CPU_STK STK_CJQ_RAW[APP_START_TASK_STK_SIZE];
 OS_TCB TCB_LORA_RAW;
 CPU_STK STK_LORA_RAW[APP_START_TASK_STK_SIZE];
 
-//处理服务器发送过来的数据  并处理 "+TCPRECV"
-OS_TCB TCB_SERVER;
-CPU_STK STK_SERVER[APP_START_TASK_STK_SIZE];
-
-//集中器心跳
-OS_TCB TCB_HEARTBEAT;
-CPU_STK STK_HEARTBEAT[APP_START_TASK_STK_SIZE];
-
 // 检查LORA是否正常  安装时测试LORA信号
 OS_TCB TCB_LORA_CHECK;
 CPU_STK STK_LORA_CHECK[APP_START_TASK_STK_SIZE];
@@ -54,8 +46,7 @@ uint8_t mem_buf[6][256];
 OS_MEM MEM_ISR;  //be used in the ISR   get the data from the usart*  post it to the deal task
 uint8_t mem_isr[30][4];
 
-//OS_MUTEXs;  需要写gprs lora cjq meter 时需要获取锁
-OS_MUTEX MUTEX_GPRS;
+//OS_MUTEXs;  需要写lora cjq meter 时需要获取锁
 OS_MUTEX MUTEX_LORA;
 OS_MUTEX MUTEX_CJQ;
 OS_MUTEX MUTEX_METER;
@@ -63,24 +54,15 @@ OS_MUTEX MUTEX_MEM_4K;
 
 //OS_SEMs ;
 OS_SEM SEM_LORA_OK;      //接收到LORA返回的  0D 0A 4F 4B 0D 0A 
-OS_SEM SEM_HEART_BEAT;   //服务器对心跳的ACK
-OS_SEM SEM_SERVER_ACK;   //服务器对数据的ACK
-OS_SEM SEM_SEND_GPRS;    //got the '>'  we can send the data now  可以发送数据
-OS_SEM SEM_CJQ_ACK;      //采集器对抄表指令的ACK
+OS_SEM SEM_JZQ_ACK;      //集中器对采集器的ACK
 
 //OS_Qs
 OS_Q Q_CJQ_USART;  //CJQ USART接收数据
 OS_Q Q_METER_USART; //METER USART接收数据
 OS_Q Q_LORA_USART;  //LORA USART接收数据
-OS_Q Q_CJQ;  //LORA 485-CJQ 接收发送的数据  Q_CJQ_USART  Q_LORA_USART  处理后的帧
 OS_Q Q_METER;   //Q_METER_USART处理后的帧
-OS_Q Q_READ;    //Q_SERVER  Q_CJQ 处理后去抄表的帧
-OS_Q Q_CONFIG;  //Q_SERVER  Q_CJQ 处理后去设置的帧
-//OS_Q Q_SERVER_USART;  //服务器发送过来的数据    这个不需要了吧 接收到帧之后直接post相应队列完了
-
-//OS_TMR
-OS_TMR TMR_CJQTIMEOUT;    //打开采集器通道之后 20分钟超时 自动关闭通道
-
+OS_Q Q_READ;    //去抄表的帧
+OS_Q Q_CONFIG;  //去设置的帧
 
 void TaskStart(void *p_arg);
 void TaskCreate(void);
@@ -157,20 +139,7 @@ void TaskCreate(void){
                (void *) 0,
                (OS_OPT) (OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
                (OS_ERR *)&err);
-  //the data come from the server 
-  OSTaskCreate((OS_TCB  *)&TCB_SERVER,
-               (CPU_CHAR *)"",
-               (OS_TASK_PTR )task_server,
-               (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 2,
-               (CPU_STK *)&STK_SERVER[0],
-               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
-               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
-               (OS_MSG_QTY) 0u,
-               (OS_TICK) 0u,
-               (void *) 0,
-               (OS_OPT) (OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
-               (OS_ERR *)&err);
+  
   //OS_CFG_TICK_TASK_PRIO == 6 = APP_START_TASK_PRIO + 3
   
   //deal the lora data 
@@ -211,20 +180,6 @@ void TaskCreate(void){
                (CPU_STK *)&STK_READ[0],
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE*3/10,
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE*3,
-               (OS_MSG_QTY) 0u,
-               (OS_TICK) 0u,
-               (void *) 0,
-               (OS_OPT) (OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
-               (OS_ERR *)&err);
-  //heart beat 
-  OSTaskCreate((OS_TCB  *)&TCB_HEARTBEAT,
-               (CPU_CHAR *)"",
-               (OS_TASK_PTR )task_heartbeat,
-               (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 7,
-               (CPU_STK *)&STK_HEARTBEAT[0],
-               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
-               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
                (OS_MSG_QTY) 0u,
                (OS_TICK) 0u,
                (void *) 0,
@@ -303,7 +258,6 @@ void ObjCreate(void){
   }
   
   //OS_MUTEX;
-  OSMutexCreate(&MUTEX_GPRS,"",&err);
   OSMutexCreate(&MUTEX_LORA,"",&err);
   OSMutexCreate(&MUTEX_CJQ,"",&err);
   OSMutexCreate(&MUTEX_METER,"",&err);
@@ -318,32 +272,8 @@ void ObjCreate(void){
   if(err != OS_ERR_NONE){
     return;
   }
-  
-  OSSemCreate(&SEM_HEART_BEAT,
-              "",
-              0,
-              &err);
-  if(err != OS_ERR_NONE){
-    return;
-  }
-  
-  OSSemCreate(&SEM_SERVER_ACK,
-              "",
-              0,
-              &err);
-  if(err != OS_ERR_NONE){
-    return;
-  }
-  
-  OSSemCreate(&SEM_SEND_GPRS,
-              "",
-              0,
-              &err);
-  if(err != OS_ERR_NONE){
-    return;
-  }
     
-  OSSemCreate(&SEM_CJQ_ACK,
+  OSSemCreate(&SEM_JZQ_ACK,
               "",
               0,
               &err);
@@ -377,14 +307,6 @@ void ObjCreate(void){
     return;
   }
   
-  OSQCreate(&Q_CJQ,
-            "",
-            4,
-            &err);
-  if(err != OS_ERR_NONE){
-    return;
-  }
-  
   OSQCreate(&Q_METER,
             "",
             4,
@@ -409,19 +331,6 @@ void ObjCreate(void){
     return;
   }
   
-  
-  
-  //OS_TMRs
-  /*
-  OSTmrCreate(&TMR_CJQTIMEOUT,
-              "",
-              12000,
-              0,
-              OS_OPT_TMR_ONE_SHOT,
-              cjq_timeout,
-              0,
-              &err);
-  */
 }
 
 

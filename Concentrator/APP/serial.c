@@ -7,32 +7,6 @@
 #include "device_params.h"
 
 
-uint8_t * volatile p_server = 0;      //中断中保存GPRS 返回来的数据
-uint8_t * volatile p_server_ = 0;     //记录中断的开始指针
-
-/**
- * 处理SIM800G GPRS
- */
-void USART1_Handler(void){
-  uint8_t rx_byte;
-  
-  if(USART_GetFlagStatus(USART1,USART_FLAG_RXNE) && USART_GetITStatus(USART1,USART_IT_RXNE)){
-    rx_byte = USART_ReceiveData(USART1);
-    
-    if(p_server_ != 0){
-      if(p_server - p_server_ < 255){
-        *p_server = rx_byte;
-        p_server++;
-      }
-    }
-  }
-  
-  if(USART_GetFlagStatus(USART1,USART_FLAG_ORE)){
-    rx_byte = USART_ReceiveData(USART1);
-  }
-  
-}
-
 /**
  * 处理采集器  集中器之间通信
  */
@@ -154,56 +128,5 @@ uint8_t write_meter(uint8_t * data,uint16_t count){
   CTRL_485_METER_RECV();
   return 1;
 }
-
-
-uint8_t write_server(uint8_t * data,uint16_t count){
-  uint16_t i;
-  
-  for(i = 0;i < count;i++){
-    USART_SendData(USART1,*(data+i));
-    while(USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET){}
-  }
-  return 1;
-}
-
-uint8_t write_serverstr(uint8_t * data){
-  uint8_t * str = data;
-  
-  while(*str != '\0'){
-    USART_SendData(USART1,*str);
-    str++;
-    while(USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET){}
-  }
-  return 1;
-}
-
-uint8_t write_cjq_lora(uint8_t * data,uint16_t count){
-  switch(get_slave()){
-  case 0xCC:
-    write_lora(data,count);
-    break;
-  case 0xBB:
-    write_cjq(data,count);
-    break;
-  }
-  return 1;
-}
-
-/**
-ptr == 0  中断中不放到buf中
-ptr != 0  中断中放到ptr开始的buf中
-*/
-uint8_t server_2buf(uint8_t * ptr){
-  CPU_SR_ALLOC();
-  CPU_CRITICAL_ENTER();
-  
-  p_server = ptr;
-  p_server_ = ptr;
-  
-  CPU_CRITICAL_EXIT();
-  return 1;
-}
-
-
 
 
