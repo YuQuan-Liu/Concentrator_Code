@@ -175,6 +175,11 @@ void USART2_IRQHandler(void)
     USART2_Handler();
 }
 
+void USART3_IRQHandler(void)
+{
+    USART3_Handler();
+}
+
 void UART4_IRQHandler(void)
 {
     UART4_Handler();

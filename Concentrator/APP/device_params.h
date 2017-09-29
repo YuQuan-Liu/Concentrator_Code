@@ -17,6 +17,8 @@ void set_simcard(uint8_t simcard_);
 void set_meter_baud(uint8_t meter_baud_);
 void set_cjq_addr(uint8_t * p_addr);
 void set_device_mode(uint8_t device_mode_);
+void set_cjq_data_seq(uint8_t data_seq_);
+void set_server_data_seq(uint8_t data_seq_);
 
 uint8_t * get_ip(void);
 uint16_t get_port(void);
@@ -33,5 +35,7 @@ uint8_t get_version(void);
 uint8_t get_meter_baud(void);
 uint8_t * get_cjq_addr(void);
 uint8_t get_device_mode(void);
+uint8_t get_cjq_data_seq(void);
+uint8_t get_server_data_seq(void);
 
 #endif

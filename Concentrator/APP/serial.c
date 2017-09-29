@@ -178,11 +178,11 @@ uint8_t write_serverstr(uint8_t * data){
 }
 
 uint8_t write_cjq_lora(uint8_t * data,uint16_t count){
-  switch(get_slave()){
-  case 0xCC:
+  switch(get_device_mode()){
+  case 0xFF:
     write_lora(data,count);
     break;
-  case 0xBB:
+  case 0xAA:
     write_cjq(data,count);
     break;
   }

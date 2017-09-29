@@ -16,14 +16,8 @@
 #include "readmeter.h"
 
 
-extern OS_TMR TMR_CJQTIMEOUT;    //打开采集器之后 20分钟超时 自动关闭通道
-
 extern uint8_t * volatile p_server;      //中断中保存GPRS 返回来的数据
 extern uint8_t * volatile p_server_;     //记录中断的开始指针
-
-
-uint8_t data_seq = 0;  //记录数据的序列号 等待ack
-uint8_t server_seq = 0;  //服务器端序列号  抄表时  会同步此序列号
 
 
 /**
@@ -103,6 +97,7 @@ void task_cjq_raw(void *p_arg){
   uint8_t msg_data;         //the data get from the queue
   
   uint16_t frame_len = 0;
+  uint8_t server_seq_ = 0; //服务器发送过来的数据 的序列号
   
   uint8_t * p_buf = 0;   //the buf used put the data in 
   uint8_t * p_buf_;       //keep the buf's ptr  used to release the buf
@@ -138,28 +133,37 @@ void task_cjq_raw(void *p_arg){
     case 1:  //当前帧接收完毕
       //抄表状态下 采集器返回过来的数据帧  或者 应答帧
       frame_len = check_frame(p_buf_);
-      if(get_readding()){
-        if(cjq_data_tome()){  //当前采集器  
-          if(*(p_buf_+AFN_POSITION) != AFN_ACK){ //DATA TO ACK   
-            device_ack_cjq(0,*(p_buf_ + SEQ_POSITION),(uint8_t *)0,0,AFN_ACK,FN_ACK);
+      server_seq_ = *(p_buf_+SEQ_POSITION) & 0x0F;  //获得该帧的序列号
+      *p_buf = 0x00;//标识这一帧数据是来自485的
+      
+      switch(cjq_data_tome(p_buf_,frame_len)){
+      case 1:  //我正在处理的采集器   除ACK外 全部post到q_cjq
+        switch(*(p_buf_+AFN_POSITION)){
+        case AFN_ACK:
+          if(server_seq_ == get_cjq_data_seq()){
+            signal_cjqack();
           }
-          //All DATA to Queue  TODO...
-          post_q_result = post_q_cjq(p_buf_, frame_len);
+          p_buf = p_buf_;
+          break;
+        default:
+          //TODO...这个地方应该差一个ACK  告诉采集器 哥收到了  
+          //到这个地方的有采集器返回的抄表数据  读取采集器所有表的数据
+          device_ack_cjq(0,*(p_buf_ + SEQ_POSITION),(uint8_t *)0,0,AFN_ACK,FN_ACK);
+          
+          post_q_result = post_q_cjq(p_buf_, frame_len);  
           if(post_q_result){
             p_buf_ = 0;
             p_buf = 0;
           }else{
             p_buf = p_buf_;
           }
-        }else{
-          p_buf = p_buf_;  //不是找我的
+          break;
         }
-      }else{
-        //我不在抄表模式下  配置
+        break;
+      case 2:  //Programmer 发送过来的配置指令
         switch(*(p_buf_+AFN_POSITION)){
         case AFN_CONFIG:
         case AFN_QUERY:
-          *p_buf = 0x00;//标识这一帧数据是来自485的
           post_q_result = post_q_conf(p_buf_, frame_len);
           if(post_q_result){
             p_buf_ = 0;
@@ -168,10 +172,35 @@ void task_cjq_raw(void *p_arg){
             p_buf = p_buf_;
           }
           break;
+        case AFN_CONTROL:
+        case AFN_CURRENT:
+          device_ack(0,server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);  //ACK
+          if(!get_readding()){
+            post_q_result = post_q_read(p_buf_, frame_len);
+            if(post_q_result){
+              p_buf_ = 0;
+              p_buf = 0;
+            }else{
+              p_buf = p_buf_;
+            }
+          }else{
+            p_buf = p_buf_;  //我在抄表  放弃此帧
+          }
+          break;
+        case AFN_ACK:
+          if(server_seq_ == get_server_data_seq()){
+            signal_serverack();
+          }
+          p_buf = p_buf_;
+          break;
         default:
           p_buf = p_buf_;
           break;
         }
+        break;
+      default:
+        p_buf = p_buf_;
+        break;
       }
       break;
     }
@@ -187,6 +216,7 @@ void task_lora_raw(void *p_arg){
   uint8_t msg_data;         //the data get from the queue
   
   uint16_t frame_len = 0;
+  uint8_t server_seq_ = 0; //服务器发送过来的数据 的序列号
   
   uint8_t * p_buf = 0;   //the buf used put the data in 
   uint8_t * p_buf_;       //keep the buf's ptr  used to release the buf
@@ -221,31 +251,43 @@ void task_lora_raw(void *p_arg){
       break;
     case 1: //当前帧接收完毕
       if(*(p_buf_) == 0x68){
-        //抄表状态下 采集器返回过来的数据帧  或者 应答帧
-        if(get_readding()){
-          if(cjq_data_tome()){  //当前采集器  
-            if(*(p_buf_+AFN_POSITION) != AFN_ACK){ //DATA TO ACK   
-              device_ack_cjq(1,*(p_buf_ + SEQ_POSITION),(uint8_t *)0,0,AFN_ACK,FN_ACK);
+        
+        switch(cjq_data_tome(p_buf_,frame_len)){
+        case 1:  //我正在处理的采集器   除ACK外 全部post到q_cjq
+          switch(*(p_buf_+AFN_POSITION)){
+          case AFN_ACK:
+            if(server_seq_ == get_cjq_data_seq()){
+              signal_cjqack();
             }
-            //All DATA to Queue  TODO...
-            frame_len = check_frame(p_buf_);
-            post_q_result = post_q_cjq(p_buf_, frame_len);
+            p_buf = p_buf_;
+            break;
+          default:
+            //TODO...这个地方应该差一个ACK  告诉采集器 哥收到了 
+            //到这个地方的有采集器返回的抄表数据  读取采集器所有表的数据
+            device_ack_cjq(1,*(p_buf_ + SEQ_POSITION),(uint8_t *)0,0,AFN_ACK,FN_ACK);
+            
+            post_q_result = post_q_cjq(p_buf_, frame_len);  
             if(post_q_result){
               p_buf_ = 0;
               p_buf = 0;
             }else{
               p_buf = p_buf_;
             }
-          }else{
-            p_buf = p_buf_;  //不是找我的
+            break;
           }
-        }else{
-          p_buf = p_buf_; //我不在抄表模式下  
+          break;
+        case 2:  //Programmer 发送过来的配置指令  LORA不支持
+          p_buf = p_buf_;
+          break;
+        default:
+          p_buf = p_buf_;
+          break;
         }
       }
       if(*(p_buf_) == 0x0D){
         //+++/AT+ESC return
         signal_lora_ok();
+        p_buf = p_buf_;
       }
       break;
     }
@@ -313,7 +355,7 @@ void task_server(void *p_arg){
             server_seq_ = *(frame_start + SEQ_POSITION) & 0x0F;  //获得该帧的序列号
             switch(*(frame_start+AFN_POSITION)){
             case AFN_ACK:  //the ack of the server
-              if(server_seq_ == data_seq){
+              if(server_seq_ == get_server_data_seq()){
                 signal_serverack();
               }
               break;
@@ -332,19 +374,14 @@ void task_server(void *p_arg){
             case AFN_CONTROL:
             case AFN_CURRENT:
               device_ack(0x01,server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);  //ACK
-              if(*(frame_start+FN_POSITION) == 0x05){//匹配序列号
-                server_seq = server_seq_;
-              }else{
-                if(server_seq != server_seq_){  //新的抄表指令  read
-                  p_buf_copy =  get_membuf();
-                  if(p_buf_copy > 0){
-                    Mem_Copy(p_buf_copy,frame_start,frame_len);
-                    *(p_buf_copy + frame_len) = 0x01;  //标识这一帧来自服务器
-                    server_seq = server_seq_;
-                    post_q_result = post_q_read(p_buf_copy, frame_len);
-                    if(!post_q_result){
-                      put_membuf(p_buf_copy);
-                    }
+              if(!get_readding()){
+                p_buf_copy =  get_membuf();
+                if(p_buf_copy > 0){
+                  Mem_Copy(p_buf_copy,frame_start,frame_len);
+                  *(p_buf_copy + frame_len) = 0x01;  //标识这一帧来自服务器
+                  post_q_result = post_q_read(p_buf_copy, frame_len);
+                  if(!post_q_result){
+                    put_membuf(p_buf_copy);
                   }
                 }
               }
@@ -413,6 +450,7 @@ void task_heartbeat(void *p_arg){
   uint8_t * p_beat;
   uint8_t heart_ack = 0;
   uint8_t i;
+  uint8_t frame_seq = 0;
   uint8_t * p_deviceaddr = 0;
   
   while(DEF_TRUE){
@@ -440,8 +478,9 @@ void task_heartbeat(void *p_arg){
           
           *p_beat++ = AFN_LINK_TEST;
           
-          data_seq = addSEQ();
-          *p_beat++ = ZERO_BYTE |SINGLE | CONFIRM | data_seq;
+          frame_seq = add_server_seq();
+          set_server_data_seq(frame_seq);
+          *p_beat++ = ZERO_BYTE |SINGLE | CONFIRM | frame_seq;
           
           *p_beat++ = FN_HEARTBEAT;
           
@@ -485,6 +524,10 @@ void task_lora_check(void *p_arg){
       continue;
     }
     
+    if(get_device_mode() != 0xFF){  
+      continue;//不是无线
+    }
+        
     if(lock_lora()){
       //尝试3次
       for(i = 0; i < 3;i++){

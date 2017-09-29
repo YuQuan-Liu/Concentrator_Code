@@ -9,7 +9,7 @@ uint8_t deviceaddr[5] = {0x99,0x09,0x00,0x00,0x57};      //集中器地址
 
 uint8_t simcard = 0xff;    //0xff~移动  0xaa~联通
 uint8_t ack_valve = 0xff;  //先应答后操作~0xaa    先操作后应答~0xff
-uint8_t slave = 0xbb; //0xaa~mbus   0xff~485   0xbb~有线采集器  0xcc~无线采集器
+uint8_t slave = 0xbb; //0xaa~mbus   0xff~485   0xbb~采集器  
 uint8_t di_seq = 0xff; //DI0 DI1 顺序   0xAA~DI1在前(千宝通)   0xFF~DI0在前(default)  
 uint8_t protocol = 0xff;  //协议类型 0xFF~188(Default)  0xEE~bad-188 
 
@@ -20,11 +20,13 @@ volatile uint8_t lora_test = 0;  //每3s发送TEST到LORA
 uint8_t version = 100;    //版本从100开始算
 uint8_t meter_baud = 0x24;  //96H——9600 bps; 48H——4800 bps; 24H——2400 bps; 12H——1200 bps
 
-//正在抄表的采集器地址  在抄表时判断是不是找我  海大协议只有低2位有效
+//正在抄表的采集器地址  在抄表时判断是不是找我  
 uint8_t cjqaddr[5] = {0x01,0x00,0x00,0x00,0x00};   
 
-uint8_t device_mode = 0xFF;   //0xFF~集中器   0xAA~采集器
+uint8_t device_mode = 0xFF;   //0xFF~无线   0xAA~有线
 
+uint8_t cjq_data_seq = 0;  //记录发送给采集器数据的序列号 等待ack
+uint8_t server_data_seq = 0;  //记录发送给服务器数据的序列号 等待ack
 
 void set_ip(uint8_t * p_ip){
   ip_[0] = *(p_ip+3);
@@ -141,9 +143,8 @@ uint8_t get_meter_baud(void){
 }
 
 void set_cjq_addr(uint8_t * p_addr){
-  switch(get_protocol()){
-  case 0xEE:
-  case 0xFF:
+  switch(get_slave()){
+  case 0xBB:
     cjqaddr[0] = *(p_addr);
     cjqaddr[1] = *(p_addr+1);
     cjqaddr[2] = *(p_addr+2);
@@ -165,3 +166,18 @@ uint8_t get_device_mode(void){
   return device_mode;
 }
 
+void set_cjq_data_seq(uint8_t data_seq_){
+  cjq_data_seq = data_seq_;
+}
+
+uint8_t get_cjq_data_seq(void){
+  return cjq_data_seq;
+}
+
+void set_server_data_seq(uint8_t data_seq_){
+  server_data_seq = data_seq_;
+}
+
+uint8_t get_server_data_seq(void){
+  return server_data_seq;
+}

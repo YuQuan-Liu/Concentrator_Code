@@ -20,11 +20,12 @@ uint8_t check_188_frame(uint8_t * p_buf_start,uint8_t * p_buf_end);
 void replace_str00(uint8_t * start,uint8_t * end);
 
 
-uint8_t addSEQ(void);
+uint8_t add_server_seq(void);
+uint8_t add_cjq_seq(void);
 
 uint8_t delayms(uint32_t timeout);
 
-uint8_t cjq_data_tome(void);
+uint8_t cjq_data_tome(uint8_t * p_frame,uint8_t frame_len);
 
 uint8_t lock_gprs(void);
 uint8_t unlock_gprs(void);

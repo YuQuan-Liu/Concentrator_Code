@@ -2,8 +2,10 @@
 #include "utils.h"
 #include "device_params.h"
 #include "os.h"
+#include "frame.h"
 
-uint8_t local_seq = 0;  //本地序列号
+uint8_t local_server_seq = 0;  //本地与集中器通信使用的序列号
+uint8_t local_cjq_seq = 0;  //本地与采集器通信使用的序列号
 
 uint8_t mem4k[0x1000];  //配置处理Flash使用的数组  Sector==4K  需要一个4K的数组
 
@@ -90,21 +92,33 @@ void replace_str00(uint8_t * start,uint8_t * end){
   * 增加 本地序列号  返回增加前的序列号
   * 发送心跳 发送数据时调用
   */
-uint8_t addSEQ(void){
+uint8_t add_server_seq(void){
   uint8_t seq_ = 0;
   CPU_SR_ALLOC();
   CPU_CRITICAL_ENTER();
-  seq_ = local_seq;
-  local_seq++;
-  local_seq = local_seq & 0x0F;
+  seq_ = local_server_seq;
+  local_server_seq++;
+  local_server_seq = local_server_seq & 0x0F;
+  CPU_CRITICAL_EXIT();
+  return seq_;
+}
+
+uint8_t add_cjq_seq(void){
+  uint8_t seq_ = 0;
+  CPU_SR_ALLOC();
+  CPU_CRITICAL_ENTER();
+  seq_ = local_cjq_seq;
+  local_cjq_seq++;
+  local_cjq_seq = local_cjq_seq & 0x0F;
   CPU_CRITICAL_EXIT();
   return seq_;
 }
 
 
+
 uint8_t delayms(uint32_t timeout){
   OS_ERR err;
-  OSTimeDly(1000,
+  OSTimeDly(timeout,
             OS_OPT_TIME_DLY,
             &err);
   return 1;
@@ -504,20 +518,27 @@ uint8_t check_meter_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
   return result;
 }
 
-
-uint8_t cjq_data_tome(void){  //TODO...
+uint8_t cjq_data_tome(uint8_t * p_frame,uint8_t frame_len){  
   uint8_t * p_cjqaddr;
   p_cjqaddr = get_cjq_addr();
-  switch(get_protocol()){
-  case 0xEE:
-  case 0xFF://188
-//    if(cjqaddr[0] == *(p_buf_ + DATA_POSITION + 1) && cjqaddr[1] == *(p_buf_ + DATA_POSITION)){
-//      forme = 1;
-//    }
-    break;
+  //采集器发送过来的ACK 数据回应帧  c0 [c1 c2 c3 c4]
+  if(p_cjqaddr[1] == *(p_frame + ADDR_POSITION + 1) && 
+     p_cjqaddr[2] == *(p_frame + ADDR_POSITION + 2) && 
+     p_cjqaddr[3] == *(p_frame + ADDR_POSITION + 3) && 
+     p_cjqaddr[4] == *(p_frame + ADDR_POSITION + 4)){
+    return 1;
   }
+  //Programmer发给我的配置指令
+  if(0xFF == *(p_frame + ADDR_POSITION + 1) && 
+     0xFF == *(p_frame + ADDR_POSITION + 2) && 
+     0xFF == *(p_frame + ADDR_POSITION + 3) && 
+     0xFF == *(p_frame + ADDR_POSITION + 4)){
+    return 1;
+  }
+  
   return 0;
 }
+
 
 
 uint8_t wait_q_cjq_usart(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout){
