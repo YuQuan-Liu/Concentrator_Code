@@ -129,22 +129,25 @@ void task_cjq_raw(void *p_arg){
       frame_len = check_frame(p_buf_);
       server_seq_ = *(p_buf_+SEQ_POSITION) & 0x0F;  //获得该帧的序列号
       *p_buf = 0x00;//标识这一帧数据是来自485的
-      switch(*(p_buf_+AFN_POSITION)){
-      case AFN_CONFIG:
-      case AFN_QUERY:
-        post_q_result = post_q_conf(p_buf_, frame_len);
-        if(post_q_result){
-          p_buf_ = 0;
-          p_buf = 0;
-        }else{
-          p_buf = p_buf_;
-        }
-        break;
-      case AFN_CONTROL:
-      case AFN_CURRENT:
-        device_ack(0,server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);  //ACK
-        if(!get_readding()){
-          if(cjq_data_tome(p_buf_,frame_len)){  //当前采集器  
+      
+      switch(cjq_data_tome(p_buf_,frame_len)){
+      case 1:
+      case 2:
+        switch(*(p_buf_+AFN_POSITION)){
+        case AFN_CONFIG:
+        case AFN_QUERY:
+          post_q_result = post_q_conf(p_buf_, frame_len);
+          if(post_q_result){
+            p_buf_ = 0;
+            p_buf = 0;
+          }else{
+            p_buf = p_buf_;
+          }
+          break;
+        case AFN_CONTROL:
+        case AFN_CURRENT:
+          device_ack(0,server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);  //ACK
+          if(!get_readding()){
             post_q_result = post_q_read(p_buf_, frame_len);
             if(post_q_result){
               p_buf_ = 0;
@@ -153,22 +156,25 @@ void task_cjq_raw(void *p_arg){
               p_buf = p_buf_;
             }
           }else{
-            p_buf = p_buf_;  //不是找我的
+            p_buf = p_buf_;  //我在抄表  放弃此帧
           }
-        }else{
-          p_buf = p_buf_;  //我在抄表  放弃此帧
+          break;
+        case AFN_ACK:
+          if(server_seq_ == get_data_seq()){
+            signal_jzqack();
+          }
+          p_buf = p_buf_;
+          break;
+        default:
+          p_buf = p_buf_;
+          break;
         }
         break;
-      case AFN_ACK:
-        if(server_seq_ == get_data_seq()){
-          signal_jzqack();
-        }
-        p_buf = p_buf_;
-        break;
-      default:
+      default :
         p_buf = p_buf_;
         break;
       }
+      
       break;
     }
   }
@@ -222,12 +228,24 @@ void task_lora_raw(void *p_arg){
         frame_len = check_frame(p_buf_);
         server_seq_ = *(p_buf_+SEQ_POSITION) & 0x0F;  //获得该帧的序列号
         *p_buf = 0x01;//标识这一帧数据是来自LORA
-        switch(*(p_buf_+AFN_POSITION)){
-        case AFN_CONTROL:
-        case AFN_CURRENT:
-          device_ack(1,server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);  //ACK
-          if(!get_readding()){
-            if(cjq_data_tome(p_buf_,frame_len)){  //当前采集器  
+        switch(cjq_data_tome(p_buf_,frame_len)){
+        case 1:
+        case 2:
+          switch(*(p_buf_+AFN_POSITION)){
+          case AFN_CONFIG:
+          case AFN_QUERY:
+            post_q_result = post_q_conf(p_buf_, frame_len);
+            if(post_q_result){
+              p_buf_ = 0;
+              p_buf = 0;
+            }else{
+              p_buf = p_buf_;
+            }
+            break;
+          case AFN_CONTROL:
+          case AFN_CURRENT:
+            device_ack(1,server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);  //ACK
+            if(!get_readding()){
               post_q_result = post_q_read(p_buf_, frame_len);
               if(post_q_result){
                 p_buf_ = 0;
@@ -236,22 +254,25 @@ void task_lora_raw(void *p_arg){
                 p_buf = p_buf_;
               }
             }else{
-              p_buf = p_buf_;  //不是找我的
+              p_buf = p_buf_;  //我在抄表  放弃此帧
             }
-          }else{
-            p_buf = p_buf_;  //我在抄表  放弃此帧
+            break;
+          case AFN_ACK:
+            if(server_seq_ == get_data_seq()){
+              signal_jzqack();
+            }
+            p_buf = p_buf_;
+            break;
+          default:
+            p_buf = p_buf_;
+            break;
           }
           break;
-        case AFN_ACK:
-          if(server_seq_ == get_data_seq()){
-            signal_jzqack();
-          }
-          p_buf = p_buf_;
-          break;
-        default:
+        default :
           p_buf = p_buf_;
           break;
         }
+        
       }
       if(*(p_buf_) == 0x0D){  //+++/AT+ESC return
         signal_lora_ok();

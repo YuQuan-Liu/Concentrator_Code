@@ -95,6 +95,7 @@
 
 //POSITION  the byte in the frame
 #define CON_POSITION                    6
+#define ADDR_POSITION                    7
 #define AFN_POSITION                    12
 #define SEQ_POSITION                    13
 #define FN_POSITION                     14

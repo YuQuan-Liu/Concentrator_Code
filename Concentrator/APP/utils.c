@@ -445,12 +445,21 @@ uint8_t cjq_data_tome(uint8_t * p_frame,uint8_t frame_len){
   uint8_t * p_cjqaddr;
   p_cjqaddr = get_device_addr();
   //发送过来的抄表指令  ** c0 [c1 c2 c3 c4]
-  if(p_cjqaddr[1] == *(p_frame + DATA_POSITION + 2) && 
-     p_cjqaddr[2] == *(p_frame + DATA_POSITION + 3) && 
-     p_cjqaddr[3] == *(p_frame + DATA_POSITION + 4) && 
-     p_cjqaddr[4] == *(p_frame + DATA_POSITION + 5)){
+  if(p_cjqaddr[1] == *(p_frame + ADDR_POSITION + 1) && 
+     p_cjqaddr[2] == *(p_frame + ADDR_POSITION + 2) && 
+     p_cjqaddr[3] == *(p_frame + ADDR_POSITION + 3) && 
+     p_cjqaddr[4] == *(p_frame + ADDR_POSITION + 4)){
     return 1;
   }
+  
+  //Programmer 发送过来的配置指令
+  if(0xFF == *(p_frame + ADDR_POSITION + 1) && 
+     0xFF == *(p_frame + ADDR_POSITION + 2) && 
+     0xFF == *(p_frame + ADDR_POSITION + 3) && 
+     0xFF == *(p_frame + ADDR_POSITION + 4)){
+    return 2;
+  }
+  
   return 0;
 }
 
