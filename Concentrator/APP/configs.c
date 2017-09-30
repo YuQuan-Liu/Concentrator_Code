@@ -13,23 +13,23 @@
 void param_config(uint8_t * p_buf,uint16_t msg_size){
   uint8_t * p_temp;
   uint8_t server_seq_ = *(p_buf + SEQ_POSITION) & 0x0F;
-  
+
   uint16_t port = 0;
   uint8_t temp_u8 = 0;
   uint8_t * mem4k = 0;
-  
+
   if(lock_mem4k()){
     mem4k = get_mem4k();
   }else{
     return;
   }
-  
+
   switch(*(p_buf + FN_POSITION)){
   case FN_IP_PORT:
-    
+
     set_ip(p_buf + DATA_POSITION);
     set_port(*((uint16_t *)(p_buf + DATA_POSITION +4)));
-    
+
     port = get_port();
     p_temp = get_ip();
     sFLASH_ReadBuffer(mem4k,sFLASH_CON_START_ADDR,0x100);
@@ -39,13 +39,13 @@ void param_config(uint8_t * p_buf,uint16_t msg_size){
     device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
     break;
   case FN_ADDR:
-    
+
     set_device_addr(p_buf + DATA_POSITION);
     p_temp = get_device_addr();
     sFLASH_ReadBuffer(mem4k,sFLASH_CON_START_ADDR,0x100);
     Mem_Copy(mem4k + (sFLASH_DEVICE_ADDR - sFLASH_CON_START_ADDR),p_temp,5);
     sFLASH_EraseWritePage(mem4k,sFLASH_CON_START_ADDR,0x100);
-    
+
     device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
     break;
   case FN_METER:
@@ -54,7 +54,7 @@ void param_config(uint8_t * p_buf,uint16_t msg_size){
         device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
       }
     }
-    
+
     if(*(p_buf + DATA_POSITION) == 0x01){//添加表
       if(add_meters(p_buf)){
         device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
@@ -67,13 +67,13 @@ void param_config(uint8_t * p_buf,uint16_t msg_size){
         device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
       }
     }
-    
+
     if(*(p_buf + DATA_POSITION) == 0x55){  //添加采集器
       if(add_cjq(p_buf + DATA_POSITION + 1)){
         device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
       }
     }
-    
+
     //删除某一个采集器的功能先不加
     break;
   case FN_MBUS:
@@ -86,7 +86,7 @@ void param_config(uint8_t * p_buf,uint16_t msg_size){
       sFLASH_ReadBuffer(mem4k,sFLASH_CON_START_ADDR,0x100);
       Mem_Copy(mem4k + (sFLASH_METER_MBUS - sFLASH_CON_START_ADDR),&temp_u8,1);
       sFLASH_EraseWritePage(mem4k,sFLASH_CON_START_ADDR,0x100);
-      
+
       device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
       break;
     }
@@ -100,7 +100,7 @@ void param_config(uint8_t * p_buf,uint16_t msg_size){
       sFLASH_ReadBuffer(mem4k,sFLASH_CON_START_ADDR,0x100);
       Mem_Copy(mem4k + (sFLASH_READMETER_DI_SEQ - sFLASH_CON_START_ADDR),&temp_u8,1);
       sFLASH_EraseWritePage(mem4k,sFLASH_CON_START_ADDR,0x100);
-      
+
       device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
       break;
     }
@@ -114,7 +114,7 @@ void param_config(uint8_t * p_buf,uint16_t msg_size){
       sFLASH_ReadBuffer(mem4k,sFLASH_CON_START_ADDR,0x100);
       Mem_Copy(mem4k + (sFLASH_ACK_ACTION - sFLASH_CON_START_ADDR),&temp_u8,1);
       sFLASH_EraseWritePage(mem4k,sFLASH_CON_START_ADDR,0x100);
-      
+
       device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
       break;
     }
@@ -128,7 +128,7 @@ void param_config(uint8_t * p_buf,uint16_t msg_size){
       sFLASH_ReadBuffer(mem4k,sFLASH_CON_START_ADDR,0x100);
       Mem_Copy(mem4k + (sFLASH_PROTOCOL - sFLASH_CON_START_ADDR),&temp_u8,1);
       sFLASH_EraseWritePage(mem4k,sFLASH_CON_START_ADDR,0x100);
-      
+
       device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
       break;
     }
@@ -145,7 +145,7 @@ void param_config(uint8_t * p_buf,uint16_t msg_size){
       sFLASH_ReadBuffer(mem4k,sFLASH_CON_START_ADDR,0x100);
       Mem_Copy(mem4k + (sFLASH_METER_BAUD - sFLASH_CON_START_ADDR),&temp_u8,1);
       sFLASH_EraseWritePage(mem4k,sFLASH_CON_START_ADDR,0x100);
-      
+
       device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
       break;
     }
@@ -153,13 +153,13 @@ void param_config(uint8_t * p_buf,uint16_t msg_size){
   case FN_DEVICE_MODE:
     switch(*(p_buf + DATA_POSITION)){
     case 0xFF: //无线
-    case 0xAA: //有线 
+    case 0xAA: //有线
       set_device_mode(*(p_buf + DATA_POSITION));
       temp_u8 = get_device_mode();
       sFLASH_ReadBuffer(mem4k,sFLASH_CON_START_ADDR,0x100);
       Mem_Copy(mem4k + (sFLASH_DEVICE_MODE - sFLASH_CON_START_ADDR),&temp_u8,1);
       sFLASH_EraseWritePage(mem4k,sFLASH_CON_START_ADDR,0x100);
-      
+
       device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
       break;
     }
@@ -193,10 +193,11 @@ void param_config(uint8_t * p_buf,uint16_t msg_size){
     device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
     break;
   case FN_SYN:
-    //TODO... CJQ JZQ 同步
+    device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
+    sync_data2cjq();//TODO... CJQ JZQ 同步
     break;
   }
-  
+
   unlock_mem4k();
 }
 
@@ -219,7 +220,7 @@ void param_query(uint8_t * p_buf,uint16_t msg_size){
         ack_query_meter_channel(block_cjq,0,0,*(p_buf+msg_size),server_seq_);
       }
       break;
-    case 0x11: //单个表  
+    case 0x11: //单个表
       ack_query_meter_single(p_buf + DATA_POSITION+1,p_buf + DATA_POSITION + 6,*(p_buf+msg_size),server_seq_);
       break;
     }
@@ -227,7 +228,7 @@ void param_query(uint8_t * p_buf,uint16_t msg_size){
   case FN_CJQ:
     ack_query_cjq(*(p_buf+msg_size),server_seq_);
     break;
-  case FN_ADDR: 
+  case FN_ADDR:
     device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_QUERY,FN_ADDR);
     break;
   case FN_MBUS:
@@ -262,6 +263,10 @@ void param_query(uint8_t * p_buf,uint16_t msg_size){
     temp = get_readding();
     device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)&temp,1,AFN_QUERY,FN_READING);
     break;
+  case FN_SYN:
+      device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
+      check_sync_data2cjq();//TODO... 检查 CJQ JZQ 同步
+      break;
   }
 }
 
@@ -271,7 +276,7 @@ void device_ack(uint8_t desc,uint8_t server_seq_,uint8_t * p_data,uint8_t data_l
   uint8_t * p_buf_;
   uint16_t * p_buf_16;
   uint8_t i;
-  
+
   p_buf = get_membuf();
   if(p_buf > 0){
     p_buf_ = p_buf;
@@ -281,7 +286,7 @@ void device_ack(uint8_t desc,uint8_t server_seq_,uint8_t * p_data,uint8_t data_l
     *p_buf_16++ = ((9+data_len) << 2) | 0x03;
     p_buf = (uint8_t *)p_buf_16;
     *p_buf++ = FRAME_HEAD;
-    
+
     *p_buf++ = ZERO_BYTE | DIR_TO_SERVER | PRM_SLAVE | SLAVE_FUN_ACK;
     /**/
     p_temp = get_device_addr();
@@ -290,18 +295,18 @@ void device_ack(uint8_t desc,uint8_t server_seq_,uint8_t * p_data,uint8_t data_l
     *p_buf++ = p_temp[2];
     *p_buf++ = p_temp[3];
     *p_buf++ = p_temp[4];
-    
+
     *p_buf++ = afn;
     *p_buf++ = ZERO_BYTE |SINGLE | server_seq_;
     *p_buf++ = fn;
-    
+
     for(i = 0;i < data_len;i++){
       *p_buf++ = p_data[i];
     }
-    
+
     *p_buf++ = check_cs(p_buf_+6,9+data_len);
     *p_buf++ = FRAME_END;
-    
+
     switch(desc){
     case 0x01:
       if(lock_gprs()){
@@ -328,7 +333,7 @@ void device_ack_cjq(uint8_t desc,uint8_t server_seq_,uint8_t * p_data,uint8_t da
   uint8_t * p_buf_;
   uint16_t * p_buf_16;
   uint8_t i;
-  
+
   p_buf = get_membuf();
   if(p_buf > 0){
     p_buf_ = p_buf;
@@ -338,7 +343,7 @@ void device_ack_cjq(uint8_t desc,uint8_t server_seq_,uint8_t * p_data,uint8_t da
     *p_buf_16++ = ((14+data_len) << 2) | 0x03;
     p_buf = (uint8_t *)p_buf_16;
     *p_buf++ = FRAME_HEAD;
-    
+
     *p_buf++ = ZERO_BYTE | DIR_TO_SERVER | PRM_SLAVE | SLAVE_FUN_ACK;
     /**/
     p_temp = get_cjq_addr();
@@ -347,18 +352,18 @@ void device_ack_cjq(uint8_t desc,uint8_t server_seq_,uint8_t * p_data,uint8_t da
     *p_buf++ = p_temp[2];
     *p_buf++ = p_temp[3];
     *p_buf++ = p_temp[4];
-    
+
     *p_buf++ = afn;
     *p_buf++ = ZERO_BYTE |SINGLE | server_seq_;
     *p_buf++ = fn;
-    
+
     for(i = 0;i < data_len;i++){
       *p_buf++ = p_data[i];
     }
-    
+
     *p_buf++ = check_cs(p_buf_+6,9+data_len);
     *p_buf++ = FRAME_END;
-    
+
     switch(desc){
     case 0x01:
       if(lock_lora()){
@@ -384,18 +389,18 @@ void ack_query_ip(uint8_t desc,uint8_t server_seq_){
   uint8_t * p_buf;
   uint8_t * p_buf_;
   uint16_t * p_buf_16;
-  
+
   p_buf = get_membuf();
   if(p_buf > 0){
     p_buf_ = p_buf;
-    
+
     *p_buf++ = FRAME_HEAD;
     *p_buf++ = 0x3F;//(15 << 2) | 0x03;
     *p_buf++ = 0x00;
     *p_buf++ = 0x3F;//(15 << 2) | 0x03;
     *p_buf++ = 0x00;
     *p_buf++ = FRAME_HEAD;
-    
+
     *p_buf++ = ZERO_BYTE | DIR_TO_SERVER | PRM_SLAVE | SLAVE_FUN_DATA;
     /**/
     p_temp = get_device_addr();
@@ -404,24 +409,24 @@ void ack_query_ip(uint8_t desc,uint8_t server_seq_){
     *p_buf++ = p_temp[2];
     *p_buf++ = p_temp[3];
     *p_buf++ = p_temp[4];
-    
+
     *p_buf++ = AFN_QUERY;
     *p_buf++ = ZERO_BYTE |SINGLE | server_seq_;
     *p_buf++ = FN_IP_PORT;
-    
+
     p_temp = get_ip();
     *p_buf++ = p_temp[3];
     *p_buf++ = p_temp[2];
     *p_buf++ = p_temp[1];
     *p_buf++ = p_temp[0];
-    
+
     p_buf_16 = (uint16_t *)p_buf;
     *p_buf_16++ = get_port();
     p_buf = (uint8_t *)p_buf_16;
-    
+
     *p_buf++ = check_cs(p_buf_+6,15);
     *p_buf++ = FRAME_END;
-    
+
     switch(desc){
     case 0x01:
       send_server(p_buf_,23);
@@ -440,26 +445,26 @@ void ack_query_cjq(uint8_t desc,uint8_t server_seq_){
   uint8_t * p_buf;
   uint8_t * p_buf_;
   uint16_t * p_buf_16;
-  
+
   uint16_t cjq_count;
   uint32_t block_cjq;
   uint8_t cjq_addr[5];
   uint16_t i;
   uint8_t j;
-  
+
   p_buf = get_membuf();
   if(p_buf > 0){
     p_buf_ = p_buf;
     sFLASH_ReadBuffer((uint8_t *)&block_cjq,sFLASH_CJQ_Q_START,3);
     sFLASH_ReadBuffer((uint8_t *)&cjq_count,sFLASH_CJQ_COUNT,2);
-    
+
     *p_buf++ = FRAME_HEAD;
     p_buf_16 = (uint16_t *)p_buf;
     *p_buf_16++ = ((9+cjq_count*5) << 2) | 0x03;
     *p_buf_16++ = ((9+cjq_count*5) << 2) | 0x03;
     p_buf = (uint8_t *)p_buf_16;
     *p_buf++ = FRAME_HEAD;
-    
+
     *p_buf++ = ZERO_BYTE | DIR_TO_SERVER | PRM_SLAVE | SLAVE_FUN_DATA;
     /**/
     p_temp = get_device_addr();
@@ -468,11 +473,11 @@ void ack_query_cjq(uint8_t desc,uint8_t server_seq_){
     *p_buf++ = p_temp[2];
     *p_buf++ = p_temp[3];
     *p_buf++ = p_temp[4];
-    
+
     *p_buf++ = AFN_QUERY;
     *p_buf++ = ZERO_BYTE |SINGLE | server_seq_;
     *p_buf++ = FN_CJQ;
-    
+
     for(i = 0;i < cjq_count;i++){
       sFLASH_ReadBuffer(cjq_addr,block_cjq+CJQ_FLASH_INDEX_ADDR,5);
       for(j = 0;j < 5;j++){
@@ -480,10 +485,10 @@ void ack_query_cjq(uint8_t desc,uint8_t server_seq_){
       }
       sFLASH_ReadBuffer((uint8_t *)&block_cjq,block_cjq+FLASH_POOL_NEXT_INDEX,3);
     }
-    
+
     *p_buf++ = check_cs(p_buf_+6,9+cjq_count*5);
     *p_buf++ = FRAME_END;
-    
+
     switch(desc){
     case 0x01:
       send_server(p_buf_,17+cjq_count*5);
@@ -500,14 +505,14 @@ void ack_query_cjq(uint8_t desc,uint8_t server_seq_){
 uint8_t * ack_mulit_header(uint8_t *p_buf,uint8_t frame_type,uint16_t len,uint8_t afn,uint8_t seq_,uint8_t fn){
   uint8_t * p_temp;
   uint16_t * p_buf_16;
-  
+
   *p_buf++ = FRAME_HEAD;
   p_buf_16 = (uint16_t *)p_buf;
   *p_buf_16++ = len;
   *p_buf_16++ = len;
   p_buf = (uint8_t *)p_buf_16;
   *p_buf++ = FRAME_HEAD;
-  
+
   *p_buf++ = ZERO_BYTE | DIR_TO_SERVER | PRM_SLAVE | SLAVE_FUN_DATA;
   /**/
   p_temp = get_device_addr();
@@ -516,7 +521,7 @@ uint8_t * ack_mulit_header(uint8_t *p_buf,uint8_t frame_type,uint16_t len,uint8_
   *p_buf++ = p_temp[2];
   *p_buf++ = p_temp[3];
   *p_buf++ = p_temp[4];
-  
+
   *p_buf++ = afn;
   switch(frame_type){
   case 0://单帧 0
@@ -541,15 +546,15 @@ void ack_query_meter_all(uint8_t desc,uint8_t server_seq_){
   uint16_t cjq_count = 0;
   uint32_t block_cjq = 0;
   uint16_t meter_count = 0;
-  
+
   uint16_t send_times = 0;  //所有表 发送总次数
   uint16_t sended = 0;  //已经发送的
   uint8_t remains = 0;
   uint16_t c = 0;
-  
+
   sFLASH_ReadBuffer((uint8_t *)&cjq_count,sFLASH_CJQ_COUNT,2);  //采集器数量
   sFLASH_ReadBuffer((uint8_t *)&block_cjq,sFLASH_CJQ_Q_START,3);  //采集器队列头
-  
+
   //获取所有通道所有的表加起来一共要发送多少次
   for(c = 0;c < cjq_count;c++){
     sFLASH_ReadBuffer((uint8_t *)&meter_count,block_cjq+CJQ_FLASH_INDEX_METERCOUNT,2);
@@ -560,12 +565,12 @@ void ack_query_meter_all(uint8_t desc,uint8_t server_seq_){
     }
     sFLASH_ReadBuffer((uint8_t *)&block_cjq,block_cjq+FLASH_POOL_NEXT_INDEX,3);
   }
-  
+
   sFLASH_ReadBuffer((uint8_t *)&block_cjq,sFLASH_CJQ_Q_START,3);  //采集器队列头
-  
+
   for(c = 0;c < cjq_count;c++){
     ack_query_meter_channel(block_cjq,send_times,sended,desc,server_seq_);
-    
+
     sFLASH_ReadBuffer((uint8_t *)&meter_count,block_cjq+CJQ_FLASH_INDEX_METERCOUNT,2);
     remains = meter_count%5;
     sended = sended + meter_count/5;
@@ -573,7 +578,7 @@ void ack_query_meter_all(uint8_t desc,uint8_t server_seq_){
       sended = sended + 1;
     }
     sFLASH_ReadBuffer((uint8_t *)&block_cjq,block_cjq+FLASH_POOL_NEXT_INDEX,3);
-  }  
+  }
 }
 
 void ack_query_meter_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t frame_times_start,uint8_t desc,uint8_t server_seq_){
@@ -586,16 +591,16 @@ void ack_query_meter_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t f
   uint8_t frame_meter_count = 0;
   uint8_t meter_addr[7];
   uint8_t cjq_addr[5];
-  
+
   uint32_t block_cjq = block_cjq_;
   uint32_t block_meter = 0;
   uint16_t cjqmeter_count = 0;
   uint8_t frame_data_len = 0;
-  
+
   uint16_t times = 0;
   uint8_t remain = 0;
   uint16_t times_ = 0;      //一共要发送多少帧
-  
+
   p_buf = get_membuf();
   if(p_buf > 0){
     p_buf_ = p_buf;
@@ -609,7 +614,7 @@ void ack_query_meter_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t f
       if(remain > 0){
         times_ = times_ + 1;
       }
-      
+
       for(i=0;i< times_;i++){
         p_buf = p_buf_;
         frame_data_len = 0;
@@ -635,7 +640,7 @@ void ack_query_meter_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t f
             }
           }
         }
-        
+
         //帧的数据域
         p_buf_16 = (uint16_t *)p_buf;
         if(frame_times){
@@ -657,10 +662,10 @@ void ack_query_meter_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t f
           }
           sFLASH_ReadBuffer((uint8_t *)&block_meter,block_meter+FLASH_POOL_NEXT_INDEX,3);
         }
-        
+
         *p_buf++ = check_cs(p_buf_+6,frame_data_len);
         *p_buf++ = FRAME_END;
-        
+
         switch(desc){
         case 0x01:
           if(lock_lora()){
@@ -681,16 +686,16 @@ void ack_query_meter_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t f
     put_membuf(p_buf_);
   }
 }
-     
+
 void ack_query_meter_single(uint8_t *p_cjqaddr,uint8_t * p_meteraddr,uint8_t desc,uint8_t server_seq_){
   uint8_t * p_temp;
   uint8_t * p_buf;
   uint8_t * p_buf_;
   uint16_t i;
-  
+
   uint32_t block_cjq = 0;
-  
-  
+
+
   p_buf = get_membuf();
   if(p_buf > 0){
     p_buf_ = p_buf;
@@ -703,7 +708,7 @@ void ack_query_meter_single(uint8_t *p_cjqaddr,uint8_t * p_meteraddr,uint8_t des
         *p_buf++ = 0x67;//((9+12+4) << 2) | 0x03;
         *p_buf++ = 0x00;
         *p_buf++ = FRAME_HEAD;
-        
+
         *p_buf++ = ZERO_BYTE | DIR_TO_SERVER | PRM_SLAVE | SLAVE_FUN_DATA;
         /**/
         p_temp = get_device_addr();
@@ -712,11 +717,11 @@ void ack_query_meter_single(uint8_t *p_cjqaddr,uint8_t * p_meteraddr,uint8_t des
         *p_buf++ = p_temp[2];
         *p_buf++ = p_temp[3];
         *p_buf++ = p_temp[4];
-        
+
         *p_buf++ = AFN_QUERY;
         *p_buf++ = ZERO_BYTE |SINGLE | server_seq_;
         *p_buf++ = FN_METER;
-        
+
         *p_buf++ = 0x00;
         *p_buf++ = 0x00;
         *p_buf++ = 0x00;
@@ -727,10 +732,10 @@ void ack_query_meter_single(uint8_t *p_cjqaddr,uint8_t * p_meteraddr,uint8_t des
         for(i=0;i<7;i++){
           *p_buf++ = p_meteraddr[i];
         }
-        
+
         *p_buf++ = check_cs(p_buf_+6,25);
         *p_buf++ = FRAME_END;
-        
+
         switch(desc){
         case 0x01:
           if(lock_lora()){
@@ -767,53 +772,53 @@ uint32_t search_cjq(uint8_t * p_cjqaddr){
   uint32_t block_current = 0;
   uint16_t cjq_count = 0;
   uint8_t cjq_addr[5];
-  
+
   uint16_t i = 0;
-  
+
   sFLASH_ReadBuffer((uint8_t *)&cjq_count,sFLASH_CJQ_COUNT,2);  //采集器数量
   sFLASH_ReadBuffer((uint8_t *)&block_current,sFLASH_CJQ_Q_START,3);  //采集器队列头
-  
+
   for(i = 0;i < cjq_count;i++){
-    
+
     sFLASH_ReadBuffer(cjq_addr,block_current+CJQ_FLASH_INDEX_ADDR,5);
     if(Mem_Cmp(p_cjqaddr,cjq_addr,5)){
-      
+
       return block_current;
     }
-    
+
     sFLASH_ReadBuffer((uint8_t *)&block_current,block_current+FLASH_POOL_NEXT_INDEX,3);
   }
   return 0x000000;
 }
 
 uint32_t add_cjq(uint8_t * p_cjqaddr){
-  
+
   uint32_t block_last = 0;
   uint32_t block_new = 0;
   uint16_t cjq_count = 0;
   uint32_t meter_count = 0;
   uint8_t * mem4k = 0;
-  
+
   block_last = search_cjq(p_cjqaddr);
   if(block_last){  //已经有这个采集器了
     return block_last;
   }
   //没有这个采集器
-  
+
   sFLASH_ReadBuffer((uint8_t *)&cjq_count,sFLASH_CJQ_COUNT,2);
   sFLASH_ReadBuffer((uint8_t *)&block_last,sFLASH_CJQ_Q_LAST,3);
-  
+
   cjq_count++;  //采集器数量++
-  
+
   //获取一个flash块  并配置相应信息
-  block_new = GetFlash();  
+  block_new = GetFlash();
   if(block_new){  //得到FLASH BLOCK
     //**************配置采集器块**************//
     sFLASH_WritePage(p_cjqaddr,block_new + CJQ_FLASH_INDEX_ADDR,5);  //采集器地址
     sFLASH_WritePage((uint8_t *)&meter_count,block_new + CJQ_FLASH_INDEX_METERCOUNT,2);  //采集器表数  (uint8_t *)0 是地址0x00000000处的值。
-    //sFLASH_WritePage((uint8_t *)&meter_count,block_new + CJQ_FLASH_INDEX_FIRSTMETER,3);  
+    //sFLASH_WritePage((uint8_t *)&meter_count,block_new + CJQ_FLASH_INDEX_FIRSTMETER,3);
     //sFLASH_WritePage((uint8_t *)&meter_count,block_new + CJQ_FLASH_INDEX_LASTMETER,3);   //第一块表和最后一块表都指向了0xFFFFFF
-    
+
     //**************配置总配置块**************//
     mem4k = get_mem4k();
     sFLASH_ReadBuffer(mem4k,sFLASH_CON_START_ADDR,0x100);
@@ -840,14 +845,14 @@ uint32_t add_cjq(uint8_t * p_cjqaddr){
 }
 
 uint8_t delete_cjqs(void){
-  
+
   uint8_t * mem4k = 0;
   uint32_t temp32 = 0;
   mem4k = get_mem4k();
-  
+
   sFLASH_ReadBuffer(mem4k,sFLASH_CON_START_ADDR,0x100);//保留以前的配置
-  sFLASH_PoolInit();  
-  
+  sFLASH_PoolInit();
+
   //the pool start
   temp32 = sFLASH_POOL_START_ADDR;
   Mem_Copy(mem4k + (sFLASH_POOL - sFLASH_CON_START_ADDR),&temp32,3);
@@ -860,7 +865,7 @@ uint8_t delete_cjqs(void){
   //pool all
   temp32 = 2044;
   Mem_Copy(mem4k + (sFLASH_POOL_ALL - sFLASH_CON_START_ADDR),&temp32,2);
-  
+
   //CJQ Q
   temp32 = sFLASH_POINT_END;
   Mem_Copy(mem4k + (sFLASH_CJQ_Q_START - sFLASH_CON_START_ADDR),&temp32,3);
@@ -868,18 +873,18 @@ uint8_t delete_cjqs(void){
   Mem_Copy(mem4k + (sFLASH_CJQ_COUNT - sFLASH_CON_START_ADDR),&temp32,2);
   temp32 = sFLASH_POINT_END;
   Mem_Copy(mem4k + (sFLASH_CJQ_Q_LAST - sFLASH_CON_START_ADDR),&temp32,3);
-  
+
   //Meter Q
   temp32 = sFLASH_POINT_END;
   Mem_Copy(mem4k + (sFLASH_METER_Q_START - sFLASH_CON_START_ADDR),&temp32,3);
   temp32 = 0x000000;
   Mem_Copy(mem4k + (sFLASH_METER_COUNT - sFLASH_CON_START_ADDR),&temp32,2);
-  
+
   temp32 = 0xABCDAA;
   Mem_Copy(mem4k + (sFLASH_POOL_INIT - sFLASH_CON_START_ADDR),&temp32,1);
-  
+
   sFLASH_EraseWritePage(mem4k,sFLASH_CON_START_ADDR,0x100);
-  
+
   return 1;
 }
 
@@ -890,7 +895,7 @@ uint32_t add_meters(uint8_t * p_buf){
   uint32_t block_cjq = 0;
   uint8_t meter_type = 0; //表类型
   uint8_t result = 0;
-  
+
   frame_len = check_frame(p_buf);
   meter_type = *(p_buf+18);
   //frame 中 8~帧头+帧尾  6~控制域地址域 3~AFN+SEQ+FN
@@ -917,28 +922,28 @@ uint32_t add_single_meter(uint32_t block_cjq, uint8_t * p_meteraddr, uint8_t met
   uint16_t meter_all = 0;
   uint32_t meter_read = 0;
   uint8_t * mem4k = 0;
-  
+
   block_last = search_meter(block_cjq,p_meteraddr);
   if(block_last){  //已经有这个表了
     return block_last;
   }
-  
+
   sFLASH_ReadBuffer((uint8_t *)&meter_count,block_cjq+CJQ_FLASH_INDEX_METERCOUNT,2);
   sFLASH_ReadBuffer((uint8_t *)&meter_all,sFLASH_METER_COUNT,2);
   sFLASH_ReadBuffer((uint8_t *)&block_last,block_cjq+CJQ_FLASH_INDEX_LASTMETER,3);
-  
+
   meter_count++;  //采集器下的表数量++
   meter_all++;  //所有表数量++
-  
+
   //获取一个flash块  并配置相应信息
-  block_new = GetFlash();  
+  block_new = GetFlash();
   if(block_new){  //得到FLASH BLOCK
     //**************配置表块**************//
     sFLASH_WritePage(p_meteraddr,block_new + METER_FLASH_INDEX_ADDR,7);  //表地址
     sFLASH_WritePage((uint8_t *)&meter_type,block_new + METER_FLASH_INDEX_TYPE,1);  //表类型
     sFLASH_WritePage((uint8_t *)&meter_read,block_new + METER_FLASH_INDEX_READ,4);  //表读数  meter_read = 0
     sFLASH_WritePage((uint8_t *)&meter_read,block_new + METER_FLASH_INDEX_METERSTATE,2);  //表状态  meter_read = 0
-    
+
     //**************配置采集器块**************//
     mem4k = get_mem4k();
     sFLASH_ReadBuffer(mem4k,(block_cjq/0x1000)*0x1000,0x1000);  //读取采集器所在Sector
@@ -947,20 +952,20 @@ uint32_t add_single_meter(uint32_t block_cjq, uint8_t * p_meteraddr, uint8_t met
       Mem_Copy(mem4k+block_cjq%0x1000 + CJQ_FLASH_INDEX_FIRSTMETER,(uint8_t *)&block_new,3);
       Mem_Copy(mem4k+block_cjq%0x1000 + CJQ_FLASH_INDEX_LASTMETER,(uint8_t *)&block_new,3);
       Mem_Copy(mem4k+block_cjq%0x1000 + CJQ_FLASH_INDEX_METERCOUNT,(uint8_t *)&meter_count,2);  //采集器下的数目++
-      
+
     }else{//将采集器表的结尾指向新添加的表的块
       Mem_Copy(mem4k+block_cjq%0x1000 + CJQ_FLASH_INDEX_LASTMETER,(uint8_t *)&block_new,3);
       Mem_Copy(mem4k+block_cjq%0x1000 + CJQ_FLASH_INDEX_METERCOUNT,(uint8_t *)&meter_count,2);  //采集器下的数目++
-      
+
       //原来最后一个表的下一个表指向新添加的表的块
-      sFLASH_WritePage((uint8_t *)&block_new,block_last + FLASH_POOL_NEXT_INDEX,3);  
+      sFLASH_WritePage((uint8_t *)&block_new,block_last + FLASH_POOL_NEXT_INDEX,3);
     }
     //将配置好的Flash块重新写入到Flash中。
     sFLASH_EraseSector((block_cjq/0x1000)*0x1000);
     sFLASH_WriteBuffer(mem4k,(block_cjq/0x1000)*0x1000,0x1000);
     //新添加的表的块的上一个表 指向原来的最后一个表
     sFLASH_WritePage((uint8_t *)&block_last,block_new + METER_FLASH_INDEX_PREVMETER,3);
-    
+
     //**************配置总配置块**************//
     sFLASH_ReadBuffer(mem4k,sFLASH_CON_START_ADDR,0x100);
     Mem_Copy(mem4k + (sFLASH_METER_COUNT - sFLASH_CON_START_ADDR),(uint8_t *)&meter_all,2);//all meter
@@ -975,10 +980,10 @@ uint32_t search_meter(uint32_t block_cjq,uint8_t * p_meteraddr){
   uint16_t meter_count = 0;
   uint8_t meter_addr[7];
   uint16_t i;
-  
+
   sFLASH_ReadBuffer((uint8_t *)&meter_count,block_cjq+CJQ_FLASH_INDEX_METERCOUNT,2);
   sFLASH_ReadBuffer((uint8_t *)&block_current,block_cjq+CJQ_FLASH_INDEX_FIRSTMETER,3);
-  
+
   for(i = 0;i < meter_count;i++){
     sFLASH_ReadBuffer(meter_addr,block_current+METER_FLASH_INDEX_ADDR,7);
     if(Mem_Cmp(p_meteraddr,meter_addr,7)){
@@ -996,7 +1001,7 @@ uint32_t delete_meters(uint8_t * p_buf){
   uint8_t i = 0;
   uint32_t block_cjq = 0;
   uint8_t result = 0;
-  
+
   frame_len = check_frame(p_buf);
   //frame 中 8~帧头+帧尾  6~控制域地址域 3~AFN+SEQ+FN
   //frame 数据域 : 运行标志(1) 表类型(1) 采集器地址(5)  表地址(7)...
@@ -1021,21 +1026,21 @@ uint32_t delete_single_meter(uint32_t block_cjq,uint8_t * p_meteraddr){
   uint16_t meter_count = 0;
   uint16_t meter_all = 0;
   uint8_t * mem4k = 0;
-  
+
   block_current = search_meter(block_cjq,p_meteraddr);
   if(!block_current){  //没有这个表
     return 1;
   }
-  
+
   sFLASH_ReadBuffer((uint8_t *)&meter_count,block_cjq+CJQ_FLASH_INDEX_METERCOUNT,2);
   sFLASH_ReadBuffer((uint8_t *)&meter_all,sFLASH_METER_COUNT,2);
   sFLASH_ReadBuffer((uint8_t *)&block_after,block_current+FLASH_POOL_NEXT_INDEX,3);
   sFLASH_ReadBuffer((uint8_t *)&block_before,block_current+METER_FLASH_INDEX_PREVMETER,3);
-  
+
   if(PutFlash(block_current)){
     meter_count--;
     meter_all--;
-    
+
     mem4k = get_mem4k();
     if(meter_count == 0){
       //采集器下唯一的表  block_before、block_after  都为0xFFFFFF
@@ -1105,20 +1110,10 @@ uint32_t delete_single_meter(uint32_t block_cjq,uint8_t * p_meteraddr){
 
 
 
+void sync_data2cjq(void){
 
+}
 
+void check_sync_data2cjq(void){
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+}

@@ -33,5 +33,7 @@ void device_ack_cjq(uint8_t desc,uint8_t server_seq_,uint8_t * p_data,uint8_t da
 //发送确认帧  1 发送给M590E服务器   0发送给485
 void device_ack(uint8_t desc,uint8_t server_seq_,uint8_t * p_data,uint8_t data_len,uint8_t afn,uint8_t fn);
 
+void sync_data2cjq(void);
+void check_sync_data2cjq(void);
 
 #endif
