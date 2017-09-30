@@ -42,7 +42,6 @@ void sFLASH_EraseSector(uint32_t SectorAddr)
   */
 void sFLASH_EraseBulk(void)
 {
-  OS_ERR err;
   /*!< Send write enable instruction */
   sFLASH_WriteEnable();
   sFLASH_WaitForWriteEnd();

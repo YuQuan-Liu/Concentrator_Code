@@ -8,6 +8,7 @@
 #include "gprs.h"
 #include "os.h"
 #include "spi_flash.h"
+#include "readmeter.h"
 
 
 void param_config(uint8_t * p_buf,uint16_t msg_size){
@@ -194,7 +195,7 @@ void param_config(uint8_t * p_buf,uint16_t msg_size){
     break;
   case FN_SYN:
     device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
-    sync_data2cjq();//TODO... CJQ JZQ 同步
+    sync_data2cjq(p_buf + DATA_POSITION);//同步CJQ所有通道数据到 采集器
     break;
   }
 
@@ -265,7 +266,7 @@ void param_query(uint8_t * p_buf,uint16_t msg_size){
     break;
   case FN_SYN:
       device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
-      check_sync_data2cjq();//TODO... 检查 CJQ JZQ 同步
+      check_sync_data2cjq(p_buf+DATA_POSITION,*(p_buf+msg_size),server_seq_);//检查 CJQ当前通道与 JZQ 同步情况
       break;
   }
 }
@@ -502,8 +503,7 @@ void ack_query_cjq(uint8_t desc,uint8_t server_seq_){
 }
 
 
-uint8_t * ack_mulit_header(uint8_t *p_buf,uint8_t frame_type,uint16_t len,uint8_t afn,uint8_t seq_,uint8_t fn){
-  uint8_t * p_temp;
+uint8_t * ack_mulit_header(uint8_t *p_buf,uint8_t *p_device_addr,uint8_t frame_type,uint16_t len,uint8_t afn,uint8_t seq_,uint8_t fn){
   uint16_t * p_buf_16;
 
   *p_buf++ = FRAME_HEAD;
@@ -515,12 +515,12 @@ uint8_t * ack_mulit_header(uint8_t *p_buf,uint8_t frame_type,uint16_t len,uint8_
 
   *p_buf++ = ZERO_BYTE | DIR_TO_SERVER | PRM_SLAVE | SLAVE_FUN_DATA;
   /**/
-  p_temp = get_device_addr();
-  *p_buf++ = p_temp[0];
-  *p_buf++ = p_temp[1];
-  *p_buf++ = p_temp[2];
-  *p_buf++ = p_temp[3];
-  *p_buf++ = p_temp[4];
+  //p_temp = get_device_addr();
+  *p_buf++ = p_device_addr[0];
+  *p_buf++ = p_device_addr[1];
+  *p_buf++ = p_device_addr[2];
+  *p_buf++ = p_device_addr[3];
+  *p_buf++ = p_device_addr[4];
 
   *p_buf++ = afn;
   switch(frame_type){
@@ -622,21 +622,21 @@ void ack_query_meter_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t f
         if(times_==1){//单帧 0
           frame_meter_count = cjqmeter_count;
           frame_data_len = 9+7*frame_meter_count+5+4;
-          p_buf = ack_mulit_header(p_buf,0,(frame_data_len << 2) | 0x03,AFN_QUERY,server_seq_,FN_METER);
+          p_buf = ack_mulit_header(p_buf,get_device_addr(),0,(frame_data_len << 2) | 0x03,AFN_QUERY,server_seq_,FN_METER);
         }else{
           if(i==0){//首帧 1
             frame_meter_count = 5;
             frame_data_len = 9+7*frame_meter_count+5+4;
-            p_buf = ack_mulit_header(p_buf,1,(frame_data_len << 2) | 0x03,AFN_QUERY,server_seq_,FN_METER);
+            p_buf = ack_mulit_header(p_buf,get_device_addr(),1,(frame_data_len << 2) | 0x03,AFN_QUERY,server_seq_,FN_METER);
           }else{
             if(i==times-1){//尾帧 3
               frame_meter_count = remain;
               frame_data_len = 9+7*frame_meter_count+5+4;
-              p_buf = ack_mulit_header(p_buf,3,(frame_data_len << 2) | 0x03,AFN_QUERY,server_seq_,FN_METER);
+              p_buf = ack_mulit_header(p_buf,get_device_addr(),3,(frame_data_len << 2) | 0x03,AFN_QUERY,server_seq_,FN_METER);
             }else{//中间帧 2
               frame_meter_count = 5;
               frame_data_len = 9+7*frame_meter_count+5+4;
-              p_buf = ack_mulit_header(p_buf,2,(frame_data_len << 2) | 0x03,AFN_QUERY,server_seq_,FN_METER);
+              p_buf = ack_mulit_header(p_buf,get_device_addr(),2,(frame_data_len << 2) | 0x03,AFN_QUERY,server_seq_,FN_METER);
             }
           }
         }
@@ -1110,10 +1110,265 @@ uint32_t delete_single_meter(uint32_t block_cjq,uint8_t * p_meteraddr){
 
 
 
-void sync_data2cjq(void){
+void sync_data2cjq(uint8_t * p_cjqaddr){
+  //1删除采集器中所有的数据
+  //2添加采集器通道
+  //3下载通道中的所有的数据
 
+  uint32_t block_cjq = 0;
+  uint8_t cjq_seq;
+  uint16_t c = 0;
+  uint8_t i = 0;
+  uint8_t frame_data[6];
+  uint8_t deletecjq_ok = 0;  //删除采集器内的数据是否OK
+  uint8_t addcjq_ok = 0;  //删除采集器内的数据是否OK
+
+  //删除所有
+  frame_data[0] = 0xAA;
+  cjq_seq = add_cjq_seq();
+  set_cjq_data_seq(cjq_seq);
+  if(write_frame_cjq(p_cjqaddr, frame_data, 1,AFN_CONFIG,FN_CJQ,cjq_seq)){ //删除所有的采集器
+    if(wait_cjqack(10000)){
+      deletecjq_ok = 1;
+    }
+  }
+  if(!deletecjq_ok){  //删除采集器失败
+    return;
+  }
+
+  for(c = 1;c <= 3;c++){
+    *p_cjqaddr = c;
+    block_cjq = search_cjq(p_cjqaddr);
+    if(block_cjq){
+      //添加通道
+      frame_data[0] = 0x55;
+      for(i = 0;i < 5;i++){
+        frame_data[i+1] = p_cjqaddr[i];
+      }
+      cjq_seq = add_cjq_seq();
+      set_cjq_data_seq(cjq_seq);
+      if(write_frame_cjq(p_cjqaddr, frame_data, 6,AFN_CONFIG,FN_CJQ,cjq_seq)){ //添加采集器通道
+        if(wait_cjqack(10000)){
+          addcjq_ok = 1;
+        }
+      }
+      if(!addcjq_ok){
+        break;
+      }
+    }
+  }
+  if(!addcjq_ok){  //添加所有的采集器通道失败
+    return;
+  }
+
+  //添加每个采集器通道的表
+  for(c = 1;c <= 3;c++){
+    *p_cjqaddr = c;
+    block_cjq = search_cjq(p_cjqaddr);
+    if(block_cjq){
+      //添加通道内所有的表
+      if(!addcjq_meter_data(block_cjq)){
+        break;
+      }
+    }
+  }
 }
 
-void check_sync_data2cjq(void){
 
+uint8_t addcjq_meter_data(uint32_t block_cjq_){
+  uint8_t * p_buf;
+  uint8_t * p_buf_;
+
+  uint8_t frame_meter_count = 0;
+  uint8_t meter_addr[7];
+  uint8_t cjq_addr[5];
+  uint32_t block_cjq = block_cjq_;
+  uint32_t block_meter = 0;
+  uint16_t cjqmeter_count = 0;
+  uint8_t frame_data_len = 0;
+  uint16_t times = 0;
+  uint8_t remain = 0;
+  uint16_t times_ = 0;      //一共要发送多少帧
+  uint8_t i;
+  uint8_t j;
+  uint8_t k;
+  uint8_t cjq_seq;
+  uint8_t addmeter_ok = 0;
+  uint8_t meter_type ;
+  
+  p_buf = get_membuf();
+  if(p_buf > 0){
+    p_buf_ = p_buf;
+    sFLASH_ReadBuffer((uint8_t *)&block_meter,block_cjq+CJQ_FLASH_INDEX_FIRSTMETER,3);
+    sFLASH_ReadBuffer((uint8_t *)&cjqmeter_count,block_cjq+CJQ_FLASH_INDEX_METERCOUNT,2);
+    sFLASH_ReadBuffer((uint8_t *)&cjq_addr,block_cjq+CJQ_FLASH_INDEX_ADDR,5);
+    sFLASH_ReadBuffer((uint8_t *)&meter_type,block_meter+METER_FLASH_INDEX_TYPE,1);
+    if(cjqmeter_count > 0){
+      times = cjqmeter_count/5;
+      remain = cjqmeter_count%5;
+      times_ = times;
+      if(remain > 0){
+        times_ = times_ + 1;
+      }
+
+      for(i=0;i< times_;i++){
+        p_buf = p_buf_;
+        frame_data_len = 0;
+        frame_meter_count = 0;
+        
+        cjq_seq = add_cjq_seq();
+        set_cjq_data_seq(cjq_seq);
+        if(times_==1){//单帧 0
+          frame_meter_count = cjqmeter_count;
+          frame_data_len = 9+7*frame_meter_count+5+2;
+          p_buf = ack_mulit_header(p_buf,cjq_addr,0,(frame_data_len << 2) | 0x03,AFN_CONFIG,cjq_seq,FN_METER);
+        }else{
+          if(i==0){//首帧 1
+            frame_meter_count = 5;
+            frame_data_len = 9+7*frame_meter_count+5+2;
+            p_buf = ack_mulit_header(p_buf,cjq_addr,1,(frame_data_len << 2) | 0x03,AFN_CONFIG,cjq_seq,FN_METER);
+          }else{
+            if(i==times-1){//尾帧 3
+              frame_meter_count = remain;
+              frame_data_len = 9+7*frame_meter_count+5+2;
+              p_buf = ack_mulit_header(p_buf,cjq_addr,3,(frame_data_len << 2) | 0x03,AFN_CONFIG,cjq_seq,FN_METER);
+            }else{//中间帧 2
+              frame_meter_count = 5;
+              frame_data_len = 9+7*frame_meter_count+5+2;
+              p_buf = ack_mulit_header(p_buf,cjq_addr,2,(frame_data_len << 2) | 0x03,AFN_CONFIG,cjq_seq,FN_METER);
+            }
+          }
+        }
+
+        //frame 数据域 : 运行标志(1) 表类型(1) 采集器地址(5)  表地址(7)...
+        *p_buf++ = 0x01;   //添加表
+        *p_buf++ = meter_type; //表类型
+
+        for(j = 0;j < 5;j++){
+          *p_buf++ = cjq_addr[j];
+        }
+
+        //表数据
+        for(k=0;k<frame_meter_count;k++){
+          sFLASH_ReadBuffer((uint8_t *)&meter_addr,block_meter+METER_FLASH_INDEX_ADDR,7);
+          for(j=0;j<7;j++){
+            *p_buf++ = meter_addr[j];
+          }
+          sFLASH_ReadBuffer((uint8_t *)&block_meter,block_meter+FLASH_POOL_NEXT_INDEX,3);
+        }
+
+        *p_buf++ = check_cs(p_buf_+6,frame_data_len);
+        *p_buf++ = FRAME_END;
+
+        for(j = 0;j < 3;j++){
+          switch(get_device_mode()){
+          case 0xFF:
+            if(lock_lora()){
+              write_lora(p_buf_,p_buf - p_buf_);
+              unlock_lora();
+            }
+            break;
+          case 0xAA:
+            if(lock_cjq()){
+              write_cjq(p_buf_,p_buf - p_buf_);
+              lock_cjq();
+            }
+            break;
+          }
+          if(wait_cjqack(10000)){
+            addmeter_ok = 1;
+            break;
+          }
+        }
+
+        if(!addmeter_ok){
+          break;
+        }
+
+        delayms(100);
+      }
+    }
+    put_membuf(p_buf_);
+  }
+  return addmeter_ok;
+}
+
+
+void check_sync_data2cjq(uint8_t * p_cjqaddr,uint8_t desc,uint8_t server_seq_){
+  uint32_t block_meter;
+  uint32_t block_cjq;
+  uint8_t frame_data[6];
+  uint16_t meter_count;  //集中器中当前采集器通道表的数量
+  uint16_t cjq_return_meter_count;   //当前采集器返回的表的数量
+  uint16_t no_meter_count;   //当前采集器返回的表 集中器中没有的数量
+  
+  uint16_t all_frames;
+  uint16_t this_frame;
+  uint8_t frame_metercount;
+  
+  uint8_t i;
+  uint8_t cjq_seq;
+  uint8_t timeout_count;
+  uint8_t * p_response;
+  uint16_t msg_size;
+  
+  uint8_t * p_meteraddr;
+  
+  
+  block_cjq = search_cjq(p_cjqaddr);
+  if(block_cjq){
+    sFLASH_ReadBuffer((uint8_t *)&meter_count,block_cjq+CJQ_FLASH_INDEX_METERCOUNT,2);
+
+    frame_data[0] = 0xAA;
+    for(i = 0;i < 5;i++){
+      frame_data[i+1] = p_cjqaddr[i];
+    }
+    cjq_seq = add_cjq_seq();
+    set_cjq_data_seq(cjq_seq);
+    if(write_frame_cjq(p_cjqaddr, frame_data, 6,AFN_QUERY,FN_METER,cjq_seq)){ //查询当前采集器通道下所有的表
+      timeout_count = 10;
+      while(timeout_count > 0){
+        if(wait_q_cjq(&p_response,&msg_size,10000)){
+          //帧的长度msg_size  计算此帧中一共有多少表 frame_metercount
+          //一共有多少帧all_frames  这是第几帧this_frame
+          all_frames = *(p_response + DATA_POSITION) + *(p_response +DATA_POSITION+1)<<8;
+          this_frame = *(p_response + DATA_POSITION+2) + *(p_response + DATA_POSITION+3)<<8;
+          frame_metercount = (msg_size-8-9-5-4)/7;
+          cjq_return_meter_count = cjq_return_meter_count + frame_metercount;
+          for(i = 0;i < frame_metercount;i++){
+            //从帧中获取  表地址 
+            p_meteraddr = p_response + DATA_POSITION + 5 + 4 + 7 * i;
+            block_meter = search_meter(block_cjq,p_meteraddr);
+            if(!block_meter){  //是否找到采集器返回的表
+              no_meter_count++;
+            }
+          }
+          put_membuf(p_response);
+          if(all_frames == this_frame){
+            break;
+          }
+        }else{
+          timeout_count--;
+        }
+      }
+
+      if(timeout_count){  //接收所有的采集器返回数据
+        frame_data[0] = meter_count & 0xFF;
+        frame_data[1] = meter_count >> 8;
+        frame_data[2] = cjq_return_meter_count & 0xFF;
+        frame_data[3] = cjq_return_meter_count >> 8;
+        frame_data[4] = no_meter_count & 0xFF;
+        frame_data[5] = no_meter_count >> 8;
+        device_ack(desc,server_seq_,frame_data,6,AFN_QUERY,FN_SYN);
+      }else{  //等待超时
+        frame_data[0] = 0xFF;
+        frame_data[1] = 0xFF;
+        frame_data[2] = 0xFF;
+        frame_data[3] = 0xFF;
+        frame_data[4] = 0xFF;
+        frame_data[5] = 0xFF;
+        device_ack(desc,server_seq_,frame_data,6,AFN_QUERY,FN_SYN);
+      }
+    }
+  }
 }

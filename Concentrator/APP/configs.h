@@ -18,7 +18,7 @@ uint32_t delete_single_meter(uint32_t block_cjq,uint8_t * p_meteraddr);
 
 void param_query(uint8_t * p_buf,uint16_t msg_size);
 
-uint8_t * ack_mulit_header(uint8_t *p_buf,uint8_t frame_type,uint16_t len,uint8_t afn,uint8_t seq_,uint8_t fn);
+uint8_t * ack_mulit_header(uint8_t *p_buf,uint8_t *p_device_addr,uint8_t frame_type,uint16_t len,uint8_t afn,uint8_t seq_,uint8_t fn);
 
 void ack_query_cjq(uint8_t desc,uint8_t server_seq_);
 void ack_query_ip(uint8_t desc,uint8_t server_seq_);
@@ -33,7 +33,9 @@ void device_ack_cjq(uint8_t desc,uint8_t server_seq_,uint8_t * p_data,uint8_t da
 //发送确认帧  1 发送给M590E服务器   0发送给485
 void device_ack(uint8_t desc,uint8_t server_seq_,uint8_t * p_data,uint8_t data_len,uint8_t afn,uint8_t fn);
 
-void sync_data2cjq(void);
-void check_sync_data2cjq(void);
+void sync_data2cjq(uint8_t * p_cjqaddr);
+void check_sync_data2cjq(uint8_t * p_cjqaddr,uint8_t desc,uint8_t server_seq_);
+
+uint8_t addcjq_meter_data(uint32_t block_cjq_);  //将当前通道所有的表数据同步到采集器
 
 #endif
