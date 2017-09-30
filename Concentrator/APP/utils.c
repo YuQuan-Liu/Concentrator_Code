@@ -260,7 +260,6 @@ uint8_t signal_jzqack(void){
 uint8_t check_lora_data2frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
   uint8_t result = 0;   //2~放弃   0~数据不够  1~帧正确
   uint8_t lora_model;  //1~tran 2~api 3~ok
-  uint8_t msg_length = p_buf_end - p_buf_start;  //当前要检查数据长度
   
   switch(*(p_buf_start)){
   case 0x68:
