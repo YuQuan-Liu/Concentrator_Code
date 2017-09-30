@@ -21,5 +21,9 @@ uint8_t write_frame_cjq(uint8_t * p_cjqaddr,uint8_t * p_data,uint8_t data_len,ui
 
 uint8_t meter_read_save(uint32_t block_meter,uint8_t * meter_read,uint8_t * meter_status);
 
+void send_meter_data_single(uint8_t * p_meteraddr,uint8_t * meter_read,uint8_t * meter_status,uint8_t meter_type, uint8_t desc);
+void send_meter_data_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t frame_times_start,uint8_t meter_type, uint8_t desc,uint8_t cjq_timeout);
+void send_meter_data_all(uint8_t desc,uint8_t * p_all_cjq);
+
 
 #endif

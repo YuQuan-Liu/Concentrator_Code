@@ -265,9 +265,9 @@ void param_query(uint8_t * p_buf,uint16_t msg_size){
     device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)&temp,1,AFN_QUERY,FN_READING);
     break;
   case FN_SYN:
-      device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
-      check_sync_data2cjq(p_buf+DATA_POSITION,*(p_buf+msg_size),server_seq_);//检查 CJQ当前通道与 JZQ 同步情况
-      break;
+    device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
+    check_sync_data2cjq(p_buf+DATA_POSITION,*(p_buf+msg_size),server_seq_);//检查 CJQ当前通道与 JZQ 同步情况
+    break;
   }
 }
 
@@ -1127,6 +1127,7 @@ void sync_data2cjq(uint8_t * p_cjqaddr){
   frame_data[0] = 0xAA;
   cjq_seq = add_cjq_seq();
   set_cjq_data_seq(cjq_seq);
+  set_cjq_addr(p_cjqaddr);
   if(write_frame_cjq(p_cjqaddr, frame_data, 1,AFN_CONFIG,FN_CJQ,cjq_seq)){ //删除所有的采集器
     if(wait_cjqack(10000)){
       deletecjq_ok = 1;
@@ -1147,6 +1148,7 @@ void sync_data2cjq(uint8_t * p_cjqaddr){
       }
       cjq_seq = add_cjq_seq();
       set_cjq_data_seq(cjq_seq);
+      set_cjq_addr(p_cjqaddr);
       if(write_frame_cjq(p_cjqaddr, frame_data, 6,AFN_CONFIG,FN_CJQ,cjq_seq)){ //添加采集器通道
         if(wait_cjqack(10000)){
           addcjq_ok = 1;
@@ -1325,6 +1327,7 @@ void check_sync_data2cjq(uint8_t * p_cjqaddr,uint8_t desc,uint8_t server_seq_){
     }
     cjq_seq = add_cjq_seq();
     set_cjq_data_seq(cjq_seq);
+    set_cjq_addr(p_cjqaddr);
     if(write_frame_cjq(p_cjqaddr, frame_data, 6,AFN_QUERY,FN_METER,cjq_seq)){ //查询当前采集器通道下所有的表
       timeout_count = 10;
       while(timeout_count > 0){
