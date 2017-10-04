@@ -11,8 +11,8 @@
  * 处理采集器  集中器之间通信
  */
 void USART2_Handler(void){
-  uint8_t rx_byte;
-  uint8_t *p_mem;
+  uint8_t rx_byte = 0;
+  uint8_t *p_mem = 0;
   
   if(USART_GetFlagStatus(USART2,USART_FLAG_RXNE) && USART_GetITStatus(USART2,USART_IT_RXNE)){
     rx_byte = USART_ReceiveData(USART2);
@@ -36,8 +36,8 @@ void USART2_Handler(void){
 * 处理MBUS 485 抄表
 */
 void USART3_Handler(void){
-  uint8_t rx_byte;
-  uint8_t *p_mem;
+  uint8_t rx_byte = 0;
+  uint8_t *p_mem = 0;
   
   if(USART_GetFlagStatus(USART3,USART_FLAG_RXNE) && USART_GetITStatus(USART3,USART_IT_RXNE)){
     rx_byte = USART_ReceiveData(USART3);
@@ -61,8 +61,8 @@ void USART3_Handler(void){
 * 处理LORA无线通信
 */
 void UART4_Handler(void){
-  uint8_t rx_byte;
-  uint8_t *p_mem;
+  uint8_t rx_byte = 0;
+  uint8_t *p_mem = 0;
   
   //receive the byte
   if(USART_GetFlagStatus(UART4,USART_FLAG_RXNE) && USART_GetITStatus(UART4,USART_IT_RXNE)){

@@ -19,14 +19,14 @@
  * 处理meter usart接收到的数据
  */
 void task_meter_raw(void *p_arg){
-  uint8_t * p_mem;    //the ptr get from the queue
-  uint16_t msg_size;    //the message's size 
-  uint8_t msg_data;         //the data get from the queue
+  uint8_t * p_mem = 0;    //the ptr get from the queue
+  uint16_t msg_size = 0;    //the message's size 
+  uint8_t msg_data = 0;         //the data get from the queue
   
   uint16_t frame_len = 0;
   
   uint8_t * p_buf = 0;   //the buf used put the data in 
-  uint8_t * p_buf_;       //keep the buf's ptr  used to release the buf
+  uint8_t * p_buf_ = 0;       //keep the buf's ptr  used to release the buf
   uint8_t post_q_result = 0;
   
   while(DEF_TRUE){
@@ -86,15 +86,15 @@ void task_meter_raw(void *p_arg){
  * 有线采集器接口接收到的原始数据
  */
 void task_cjq_raw(void *p_arg){
-  uint8_t * p_mem;    //the ptr get from the queue
-  uint16_t msg_size;    //the message's size 
-  uint8_t msg_data;         //the data get from the queue
-  uint8_t server_seq_;
+  uint8_t * p_mem = 0;    //the ptr get from the queue
+  uint16_t msg_size = 0;    //the message's size 
+  uint8_t msg_data = 0;         //the data get from the queue
+  uint8_t server_seq_ = 0;
   
   uint16_t frame_len = 0;
   
   uint8_t * p_buf = 0;   //the buf used put the data in 
-  uint8_t * p_buf_;       //keep the buf's ptr  used to release the buf
+  uint8_t * p_buf_ = 0;       //keep the buf's ptr  used to release the buf
   
   uint8_t post_q_result = 0;
   while(DEF_TRUE){
@@ -184,15 +184,15 @@ void task_cjq_raw(void *p_arg){
  * 处理LORA接收到的指令
  */
 void task_lora_raw(void *p_arg){
-  uint8_t * p_mem;    //the ptr get from the queue
-  uint16_t msg_size;    //the message's size 
-  uint8_t msg_data;         //the data get from the queue
+  uint8_t * p_mem = 0;    //the ptr get from the queue
+  uint16_t msg_size = 0;    //the message's size 
+  uint8_t msg_data = 0;         //the data get from the queue
   
-  uint8_t server_seq_;
+  uint8_t server_seq_ = 0;
   uint16_t frame_len = 0;
   
   uint8_t * p_buf = 0;   //the buf used put the data in 
-  uint8_t * p_buf_;       //keep the buf's ptr  used to release the buf
+  uint8_t * p_buf_ = 0;       //keep the buf's ptr  used to release the buf
   
   uint8_t post_q_result = 0;
   while(DEF_TRUE){
@@ -289,7 +289,7 @@ void task_lora_raw(void *p_arg){
 void task_lora_check(void *p_arg){
   uint8_t inat = 0;
   uint8_t outat = 0;
-  uint8_t i;
+  uint8_t i = 0;
   
   while(DEF_TRUE){
     //2min  每2分钟检测一次
@@ -341,8 +341,8 @@ void task_lora_check(void *p_arg){
  * 具体的抄表任务
  */
 void task_read(void *p_arg){
-  uint16_t msg_size;
-  uint8_t * p_buf;
+  uint16_t msg_size = 0;
+  uint8_t * p_buf = 0;
   
   while(DEF_TRUE){
     wait_q_read(&p_buf,&msg_size,0);
@@ -366,8 +366,8 @@ void task_read(void *p_arg){
  * config and query the parameter
  */
 void task_config(void *p_arg){
-  uint16_t msg_size;
-  uint8_t * p_buf;
+  uint16_t msg_size = 0;
+  uint8_t * p_buf = 0;
   
   while(DEF_TRUE){
     wait_q_conf(&p_buf,&msg_size,0);

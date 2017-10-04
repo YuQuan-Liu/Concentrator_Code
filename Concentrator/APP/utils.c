@@ -259,7 +259,7 @@ uint8_t signal_jzqack(void){
 
 uint8_t check_lora_data2frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
   uint8_t result = 0;   //2~放弃   0~数据不够  1~帧正确
-  uint8_t lora_model;  //1~tran 2~api 3~ok
+  uint8_t lora_model = 1;  //1~tran 2~api 3~ok
   
   switch(*(p_buf_start)){
   case 0x68:
@@ -441,7 +441,7 @@ uint8_t check_meter_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
 
 
 uint8_t cjq_data_tome(uint8_t * p_frame,uint8_t frame_len){  
-  uint8_t * p_cjqaddr;
+  uint8_t * p_cjqaddr = 0;
   p_cjqaddr = get_device_addr();
   //发送过来的抄表指令  ** c0 [c1 c2 c3 c4]
   if(p_cjqaddr[1] == *(p_frame + ADDR_POSITION + 1) && 

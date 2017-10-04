@@ -308,10 +308,10 @@ uint8_t cjq_relay_control(uint8_t cmd,uint8_t cjq){
 
 //抄单个表时  发送单个表数据
 void send_meter_data_single(uint8_t * p_meteraddr,uint8_t * meter_read ,uint8_t * meter_status,uint8_t meter_type,uint8_t desc){
-  uint8_t * p_buf;
-  uint8_t * p_buf_;
-  uint16_t * p_buf_16;
-  uint8_t i;
+  uint8_t * p_buf = 0;
+  uint8_t * p_buf_ = 0;
+  uint16_t * p_buf_16 = 0;
+  uint8_t i = 0;
   uint8_t frame_seq = 0;
   uint8_t frame_data_len = 0;
 
@@ -410,12 +410,12 @@ void send_meter_data_all(uint8_t desc){
 
 //发送采集器单个通道的数据    TODO... 帧的地址域为当前采集器地址
 void send_meter_data_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t frame_times_start,uint8_t meter_type,uint8_t desc){
-  uint8_t * p_buf;
-  uint8_t * p_buf_;
-  uint16_t * p_buf_16;
-  uint16_t i;
-  uint8_t j;
-  uint8_t k;
+  uint8_t * p_buf = 0;
+  uint8_t * p_buf_ = 0;
+  uint16_t * p_buf_16 = 0;
+  uint16_t i = 0;
+  uint8_t j = 0;
+  uint8_t k = 0;
   uint8_t frame_meter_count = 0;
   uint8_t meter_addr[7];
   uint8_t meter_read[4];
