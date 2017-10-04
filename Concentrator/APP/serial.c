@@ -21,7 +21,7 @@ void USART2_Handler(void){
     if(p_mem){
       *p_mem = rx_byte;
       if(!post_q_cjq_usart(p_mem,1)){
-        put_membuf(p_mem);//没有放进队列  放回MEMPool
+        put_memisr(p_mem);//没有放进队列  放回MEMPool
       }
     }
   }
@@ -46,7 +46,7 @@ void USART3_Handler(void){
     if(p_mem){
       *p_mem = rx_byte;
       if(!post_q_meter_usart(p_mem,1)){
-        put_membuf(p_mem);//没有放进队列  放回MEMPool
+        put_memisr(p_mem);//没有放进队列  放回MEMPool
       }
     }
   }
@@ -72,7 +72,7 @@ void UART4_Handler(void){
     if(p_mem){
       *p_mem = rx_byte;
       if(!post_q_lora_usart(p_mem,1)){
-        put_membuf(p_mem);//没有放进队列  放回MEMPool
+        put_memisr(p_mem);//没有放进队列  放回MEMPool
       }
     }
   }

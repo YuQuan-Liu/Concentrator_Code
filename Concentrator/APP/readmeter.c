@@ -184,6 +184,7 @@ uint8_t meter_read_single(uint8_t block_meter, uint8_t *p_meteraddr,uint8_t mete
           }
           break;
         }
+        put_membuf(p_meter_response);
         if(success){
           break;
         }
