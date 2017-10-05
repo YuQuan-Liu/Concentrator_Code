@@ -633,7 +633,7 @@ void param_conf(void){
     mem4k = get_mem4k();
     sFLASH_ReadBuffer(mem4k,sFLASH_CON_START_ADDR,0x100);
     if(*(mem4k + sFLASH_CON_IP1) != 0xFF){
-      set_ip(mem4k + sFLASH_CON_IP1);
+      set_ip(mem4k + sFLASH_CON_IP4);
     }
     
     if(*(mem4k + sFLASH_CON_IP1) != 0xFF){

@@ -96,18 +96,36 @@ void TaskStart(void *p_arg){
   CPU_INT32U cnts;
   CPU_INT32U cpu_clk_freq;
   
+  uint8_t test = 0;////
+  uint8_t testwrite = 0;////
+  uint32_t sectionaddr = 0x000000;////
+  uint8_t * mem4k = 0;////
+  uint32_t block_new = 0x1C00;////
+  uint32_t block_last = 0x1C00;////
+  
   CPU_Init();
   
   cpu_clk_freq = BSP_CPU_ClkFreq();
   cnts = cpu_clk_freq / (CPU_INT32U)OS_CFG_TICK_RATE_HZ;
   OS_CPU_SysTickInit(cnts);
   
+  ObjCreate();
   //≥ı ºªØFLASH  w25x16
   sFLASH_Init();
   BSP_USART_Init();
   /**/
   TaskCreate();
-  ObjCreate();
+  
+  if(test){
+    mem4k = get_mem4k();
+    while(1){
+      asm("NOP");
+      sFLASH_ReadBuffer(mem4k,sectionaddr,0x1000);
+      if(testwrite){
+        sFLASH_WritePage((uint8_t *)&block_new,block_last + FLASH_POOL_NEXT_INDEX,3);  
+      }
+    }
+  }
   
   //Open the IWDG;
   //BSP_IWDG_Init();

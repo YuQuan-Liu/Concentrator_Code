@@ -101,7 +101,7 @@ uint8_t lock_lora(void){
   OS_ERR err;
   CPU_TS ts;
   OSMutexPend(&MUTEX_LORA,1000,OS_OPT_PEND_BLOCKING,&ts,&err);
-  if(err == OS_ERR_NONE || err == OS_ERR_MUTEX_NESTING){
+  if(err == OS_ERR_NONE || err == OS_ERR_MUTEX_OWNER){
     return 1;
   }
   return 0;
@@ -117,7 +117,7 @@ uint8_t lock_cjq(void){
   OS_ERR err;
   CPU_TS ts;
   OSMutexPend(&MUTEX_CJQ,1000,OS_OPT_PEND_BLOCKING,&ts,&err);
-  if(err == OS_ERR_NONE || err == OS_ERR_MUTEX_NESTING){
+  if(err == OS_ERR_NONE || err == OS_ERR_MUTEX_OWNER){
     return 1;
   }
   return 0;
@@ -133,7 +133,7 @@ uint8_t lock_meter(void){
   OS_ERR err;
   CPU_TS ts;
   OSMutexPend(&MUTEX_METER,1000,OS_OPT_PEND_BLOCKING,&ts,&err);
-  if(err == OS_ERR_NONE || err == OS_ERR_MUTEX_NESTING){
+  if(err == OS_ERR_NONE || err == OS_ERR_MUTEX_OWNER){
     return 1;
   }
   return 0;
@@ -149,7 +149,7 @@ uint8_t lock_mem4k(void){
   OS_ERR err;
   CPU_TS ts;
   OSMutexPend(&MUTEX_MEM_4K,1000,OS_OPT_PEND_BLOCKING,&ts,&err);
-  if(err == OS_ERR_NONE || err == OS_ERR_MUTEX_NESTING){
+  if(err == OS_ERR_NONE || err == OS_ERR_MUTEX_OWNER){
     return 1;
   }
   return 0;

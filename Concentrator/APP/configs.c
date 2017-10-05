@@ -34,7 +34,7 @@ void param_config(uint8_t * p_buf,uint16_t msg_size){
     port = get_port();
     p_temp = get_ip();
     sFLASH_ReadBuffer(mem4k,sFLASH_CON_START_ADDR,0x100);
-    Mem_Copy(mem4k + (sFLASH_CON_IP1 - sFLASH_CON_START_ADDR),p_temp,4);
+    Mem_Copy(mem4k + (sFLASH_CON_IP4 - sFLASH_CON_START_ADDR),p_buf + DATA_POSITION,4);
     Mem_Copy(mem4k + (sFLASH_CON_PORT_ - sFLASH_CON_START_ADDR),&port,2);
     sFLASH_EraseWritePage(mem4k,sFLASH_CON_START_ADDR,0x100);
     device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
@@ -314,7 +314,7 @@ void device_ack(uint8_t desc,uint8_t server_seq_,uint8_t * p_data,uint8_t data_l
     case 0x00:
       if(lock_cjq()){
         write_cjq(p_buf_,17+data_len);
-        lock_cjq();
+        unlock_cjq();
       }
       break;
     }
@@ -562,7 +562,7 @@ void ack_query_meter_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t f
             frame_data_len = 9+7*frame_meter_count+5+4;
             p_buf = ack_mulit_header(p_buf,1,(frame_data_len << 2) | 0x03,AFN_QUERY,server_seq_,FN_METER);
           }else{
-            if(i==times-1){//尾帧 3
+            if(i==times_-1){//尾帧 3
               frame_meter_count = remain;
               frame_data_len = 9+7*frame_meter_count+5+4;
               p_buf = ack_mulit_header(p_buf,3,(frame_data_len << 2) | 0x03,AFN_QUERY,server_seq_,FN_METER);
@@ -756,17 +756,18 @@ uint32_t add_cjq(uint8_t * p_cjqaddr){
       Mem_Copy(mem4k + (sFLASH_CJQ_Q_START - sFLASH_CON_START_ADDR),(uint8_t *)&block_new,3);
       Mem_Copy(mem4k + (sFLASH_CJQ_Q_LAST - sFLASH_CON_START_ADDR),(uint8_t *)&block_new,3);
       Mem_Copy(mem4k + (sFLASH_CJQ_COUNT - sFLASH_CON_START_ADDR),(uint8_t *)&cjq_count,2);
+      sFLASH_EraseWritePage(mem4k,sFLASH_CON_START_ADDR,0x100);
     }else{
       //不是第一个
       //将cjq Q 的结尾指向新添加的采集器块
       Mem_Copy(mem4k + (sFLASH_CJQ_Q_LAST - sFLASH_CON_START_ADDR),(uint8_t *)&block_new,3);
       Mem_Copy(mem4k + (sFLASH_CJQ_COUNT - sFLASH_CON_START_ADDR),(uint8_t *)&cjq_count,2);
+      sFLASH_EraseWritePage(mem4k,sFLASH_CON_START_ADDR,0x100);
       //将原来最后一个采集器的下一个采集器指向新添加的采集器块
       sFLASH_WritePage((uint8_t *)&block_new,block_last + 3,3);
     }
     //将新添加的采集器块中的上一个采集器  指向原来的最后一个采集器
     sFLASH_WritePage((uint8_t *)&block_last,block_new + CJQ_FLASH_INDEX_PREVCJQ,3);  //上一个采集器
-    sFLASH_EraseWritePage(mem4k,sFLASH_CON_START_ADDR,0x100);
   }
   //没有得到FLASH BLOCK
   return block_new;
@@ -825,14 +826,14 @@ uint32_t add_meters(uint8_t * p_buf){
   uint8_t result = 0;
   
   frame_len = check_frame(p_buf);
-  meter_type = *(p_buf+18);
+  meter_type = *(p_buf+DATA_POSITION+1);
   //frame 中 8~帧头+帧尾  6~控制域地址域 3~AFN+SEQ+FN
   //frame 数据域 : 运行标志(1) 表类型(1) 采集器地址(5)  表地址(7)...
   metercount = (frame_len - 17 - 7)/7;
-  block_cjq = search_cjq(p_buf + 19);
+  block_cjq = search_cjq(p_buf + DATA_POSITION+2);
   if(block_cjq){
     for(i = 0;i < metercount;i++){
-      if(add_single_meter(block_cjq,p_buf+24+i*7,meter_type)){
+      if(add_single_meter(block_cjq,p_buf+22+i*7,meter_type)){
         result++;
       }
     }
@@ -880,17 +881,19 @@ uint32_t add_single_meter(uint32_t block_cjq, uint8_t * p_meteraddr, uint8_t met
       Mem_Copy(mem4k+block_cjq%0x1000 + CJQ_FLASH_INDEX_FIRSTMETER,(uint8_t *)&block_new,3);
       Mem_Copy(mem4k+block_cjq%0x1000 + CJQ_FLASH_INDEX_LASTMETER,(uint8_t *)&block_new,3);
       Mem_Copy(mem4k+block_cjq%0x1000 + CJQ_FLASH_INDEX_METERCOUNT,(uint8_t *)&meter_count,2);  //采集器下的数目++
-      
+      //将配置好的Flash块重新写入到Flash中。
+      sFLASH_EraseSector((block_cjq/0x1000)*0x1000);
+      sFLASH_WriteBuffer(mem4k,(block_cjq/0x1000)*0x1000,0x1000);
     }else{//将采集器表的结尾指向新添加的表的块
       Mem_Copy(mem4k+block_cjq%0x1000 + CJQ_FLASH_INDEX_LASTMETER,(uint8_t *)&block_new,3);
       Mem_Copy(mem4k+block_cjq%0x1000 + CJQ_FLASH_INDEX_METERCOUNT,(uint8_t *)&meter_count,2);  //采集器下的数目++
-      
+      //将配置好的Flash块重新写入到Flash中。
+      sFLASH_EraseSector((block_cjq/0x1000)*0x1000);
+      sFLASH_WriteBuffer(mem4k,(block_cjq/0x1000)*0x1000,0x1000);
       //原来最后一个表的下一个表指向新添加的表的块
       sFLASH_WritePage((uint8_t *)&block_new,block_last + FLASH_POOL_NEXT_INDEX,3);  
     }
-    //将配置好的Flash块重新写入到Flash中。
-    sFLASH_EraseSector((block_cjq/0x1000)*0x1000);
-    sFLASH_WriteBuffer(mem4k,(block_cjq/0x1000)*0x1000,0x1000);
+    
     //新添加的表的块的上一个表 指向原来的最后一个表
     sFLASH_WritePage((uint8_t *)&block_last,block_new + METER_FLASH_INDEX_PREVMETER,3);
     
@@ -934,10 +937,10 @@ uint32_t delete_meters(uint8_t * p_buf){
   //frame 中 8~帧头+帧尾  6~控制域地址域 3~AFN+SEQ+FN
   //frame 数据域 : 运行标志(1) 表类型(1) 采集器地址(5)  表地址(7)...
   metercount = (frame_len - 17 - 7)/7;
-  block_cjq = search_cjq(p_buf + 19);
+  block_cjq = search_cjq(p_buf + DATA_POSITION+2);
   if(block_cjq){
     for(i = 0;i < metercount;i++){
-      if(delete_single_meter(block_cjq,p_buf+24+i*7)){
+      if(delete_single_meter(block_cjq,p_buf+22+i*7)){
         result++;
       }
     }

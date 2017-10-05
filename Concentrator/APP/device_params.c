@@ -5,7 +5,7 @@
 uint8_t ip_[4] = {139,129,40,74};
 uint16_t port_ = 3333;
 
-uint8_t deviceaddr[5] = {0x99,0x09,0x00,0x00,0x57};      //集中器地址
+uint8_t deviceaddr[5] = {0x01,0x01,0x00,0x00,0x57};      //集中器地址
 
 uint8_t simcard = 0xff;    //0xff~移动  0xaa~联通
 uint8_t ack_valve = 0xff;  //先应答后操作~0xaa    先操作后应答~0xff
@@ -30,7 +30,7 @@ uint8_t data_seq = 0;  //记录数据的序列号 等待ack
 void set_ip(uint8_t * p_ip){
   ip_[0] = *(p_ip+3);
   ip_[1] = *(p_ip+2);
-  ip_[2] = *(p_ip+2);
+  ip_[2] = *(p_ip+1);
   ip_[3] = *(p_ip);
 }
 

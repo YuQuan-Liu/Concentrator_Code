@@ -43,6 +43,10 @@
 #define sFLASH_WIP_FLAG         0x01    /*!< Write In Progress (WIP) flag */
 #define sFLASH_SPI_PAGESIZE     0x100
 
+#define sFLASH_SECTOR_SIZE      0x1000  //4K
+#define sFLASH_POOL_SIZE        0x400  //1K    //将511个Sector 分成2044个1k大小的存储块
+#define sFLASH_PAGE_SIZE        0x100  //256
+
 #define sFLASH_START_ADDR       0x000000
 #define sFLASH_END_ADDR         0x1FFFFF
 #define sFLASH_POOL_START_ADDR       sFLASH_START_ADDR+sFLASH_SECTOR_SIZE
@@ -67,14 +71,11 @@
 #define sFLASH_POOL_FREE        sFLASH_POOL + 3
 #define sFLASH_POOL_USED        sFLASH_POOL_FREE + 2    
 #define sFLASH_POOL_ALL         sFLASH_POOL_USED + 2   
-#define sFLASH_SECTOR_SIZE        0x1000  //4K
-#define sFLASH_SECTOR_NUM         (sFLASH_END_ADDR - sFLASH_START_ADDR + 1)/sFLASH_SECTOR_SIZE  //512
 
-#define sFLASH_POOL_SIZE        0x400  //1K    //将511个Sector 分成2044个1k大小的存储块
-#define sFLASH_POOL_NUM         (sFLASH_CON_START_ADDR - sFLASH_START_ADDR)/sFLASH_POOL_SIZE  //2044
-    
-#define sFLASH_PAGE_SIZE        0x100  //256
-    
+#define sFLASH_SECTOR_NUM       (sFLASH_END_ADDR - sFLASH_START_ADDR + 1) / sFLASH_SECTOR_SIZE  //512
+#define sFLASH_POOL_NUM         (sFLASH_END_ADDR - (sFLASH_POOL_START_ADDR) + 1) / sFLASH_POOL_SIZE  //2044
+
+
 #define sFLASH_CJQ_Q_START      sFLASH_CON_START_ADDR + 0xA0
 #define sFLASH_CJQ_COUNT        sFLASH_CJQ_Q_START + 3        //采集器的数量
 #define sFLASH_CJQ_Q_LAST       sFLASH_CJQ_COUNT + 2        //最后一个采集器的地址

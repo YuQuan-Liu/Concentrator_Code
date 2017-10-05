@@ -348,13 +348,16 @@ void task_read(void *p_arg){
     wait_q_read(&p_buf,&msg_size,0);
     
     set_readding(1);
-    switch(*(p_buf+AFN_POSITION)){
-    case AFN_CONTROL:
-      meter_control(p_buf,msg_size);
-      break;
-    case AFN_CURRENT:
-      meter_read(p_buf,msg_size);
-      break;
+    if(lock_mem4k()){
+      switch(*(p_buf+AFN_POSITION)){
+      case AFN_CONTROL:
+        meter_control(p_buf,msg_size);
+        break;
+      case AFN_CURRENT:
+        meter_read(p_buf,msg_size);
+        break;
+      }
+      unlock_mem4k();
     }
     set_readding(0);
     
@@ -372,18 +375,34 @@ void task_config(void *p_arg){
   while(DEF_TRUE){
     wait_q_conf(&p_buf,&msg_size,0);
     
-    if(lock_cjq()){
-      switch(*(p_buf+AFN_POSITION)){
-      case AFN_CONFIG:
-        param_config(p_buf,msg_size);
-        break;
-      case AFN_QUERY:
-        param_query(p_buf,msg_size);
-        break;
+    switch(*(p_buf+msg_size)){
+    case 0x01:
+      if(lock_lora()){
+        switch(*(p_buf+AFN_POSITION)){
+        case AFN_CONFIG:
+          param_config(p_buf,msg_size);
+          break;
+        case AFN_QUERY:
+          param_query(p_buf,msg_size);
+          break;
+        }
+        unlock_lora();
       }
-      unlock_cjq();
+      break;
+    default:
+      if(lock_cjq()){
+        switch(*(p_buf+AFN_POSITION)){
+        case AFN_CONFIG:
+          param_config(p_buf,msg_size);
+          break;
+        case AFN_QUERY:
+          param_query(p_buf,msg_size);
+          break;
+        }
+        unlock_cjq();
+      }
+      break;
     }
-    
     put_membuf(p_buf);
   }
 }
