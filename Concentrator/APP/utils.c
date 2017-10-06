@@ -182,8 +182,15 @@ uint8_t * get_membuf(void){
 
 uint8_t put_membuf(uint8_t * p_buf){
   OS_ERR err;
+  uint8_t result = 0;
   OSMemPut(&MEM_Buf,p_buf,&err);
-  return 1;
+  if(err == OS_ERR_NONE){
+    result = 1;
+  }else{
+    result = err;
+    result = 0;
+  }
+  return result;
 }
 
 uint8_t * get_memisr(void){

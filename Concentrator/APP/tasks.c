@@ -62,6 +62,7 @@ void task_meter_raw(void *p_arg){
         case 0xFF: //188
           frame_len = *(p_buf_+10)+13;
           post_q_result = post_q_meter(p_buf_,frame_len);
+          break;
         case 0xEE: //188 bad
           frame_len = *(p_buf_+10)+13;
           post_q_result = post_q_meter(p_buf_,frame_len);

@@ -120,11 +120,12 @@ uint8_t write_meter(uint8_t * data,uint16_t count){
   uint16_t i;
   
   CTRL_485_METER_SEND();
+  USART_ITConfig(USART3,USART_IT_RXNE,DISABLE);
   for(i = 0;i < count;i++){
     USART_SendData(USART3,*(data+i));
     while(USART_GetFlagStatus(USART3, USART_FLAG_TC) == RESET){}
   }
-  
+  USART_ITConfig(USART3,USART_IT_RXNE,ENABLE);
   CTRL_485_METER_RECV();
   return 1;
 }

@@ -144,11 +144,13 @@ void meter_read_m_meter(uint8_t * p_frame,uint16_t frame_len){
     block_meter = search_meter(block_cjq,p_meteraddr);
     if(block_meter){
       //find the meter under the cjq
+      cjq_relay_control(1,*(p_cjqaddr));
       sFLASH_ReadBuffer((uint8_t *)&meter_type,block_meter+METER_FLASH_INDEX_TYPE,1);
       if(meter_read_single(block_meter, p_meteraddr, meter_type, meter_read, meter_status)){
         //send the data out
         send_meter_data_single(p_meteraddr,meter_read,meter_status,meter_type,*(p_frame+frame_len));
       }
+      cjq_relay_control(0,*(p_cjqaddr));
     }
   }
 }
@@ -262,7 +264,7 @@ uint8_t meter_read_frame_send(uint8_t * p_meteraddr,uint8_t meter_type){
         break;
       }
       *p_buf++ = 0x01;
-      *p_buf++ = check_cs(p_buf_,11+3);
+      *p_buf++ = check_cs(p_buf_+4,11+3);
       *p_buf++ = FRAME_END;
       break;
     }
