@@ -156,7 +156,7 @@ void meter_read_m_meter(uint8_t * p_frame,uint16_t frame_len){
 }
 
 //Ö»¹Ü³­±í
-uint8_t meter_read_single(uint8_t block_meter, uint8_t *p_meteraddr,uint8_t meter_type,uint8_t * meter_read,uint8_t * meter_status){
+uint8_t meter_read_single(uint32_t block_meter, uint8_t *p_meteraddr,uint8_t meter_type,uint8_t * meter_read,uint8_t * meter_status){
   uint8_t success = 0;
   uint8_t * p_meter_response = 0;
   uint16_t msg_size = 0;
@@ -523,7 +523,7 @@ void send_meter_data_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t f
           case 0x00:
             if(lock_cjq()){
               write_cjq(p_buf_,p_buf-p_buf_);
-              lock_cjq();
+              unlock_cjq();
             }
             break;
           }
