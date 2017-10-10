@@ -165,6 +165,20 @@ void param_config(uint8_t * p_buf,uint16_t msg_size){
       break;
     }
     break;
+  case FN_SIMCARD:
+    switch(*(p_buf + DATA_POSITION)){
+    case 0xFF: //ÒÆ¶¯
+    case 0xAA: //ÁªÍ¨
+      set_simcard(*(p_buf + DATA_POSITION));
+      temp_u8 = get_simcard();
+      sFLASH_ReadBuffer(mem4k,sFLASH_CON_START_ADDR,0x100);
+      Mem_Copy(mem4k + (sFLASH_SIMCARD - sFLASH_CON_START_ADDR),&temp_u8,1);
+      sFLASH_EraseWritePage(mem4k,sFLASH_CON_START_ADDR,0x100);
+
+      device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
+      break;
+    }
+    break;
   case FN_ERASE:
     switch(*(p_buf + DATA_POSITION)){
     case 0xFF:
@@ -258,6 +272,10 @@ void param_query(uint8_t * p_buf,uint16_t msg_size){
     break;
   case FN_DEVICE_MODE:
     temp = get_device_mode();
+    device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)&temp,1,AFN_QUERY,FN_DEVICE_MODE);
+    break;
+  case FN_SIMCARD:
+    temp = get_simcard();
     device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)&temp,1,AFN_QUERY,FN_DEVICE_MODE);
     break;
   case FN_READING:
