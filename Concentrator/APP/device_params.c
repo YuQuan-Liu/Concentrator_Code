@@ -31,7 +31,7 @@ uint8_t server_data_seq = 0;  //记录发送给服务器数据的序列号 等待ack
 void set_ip(uint8_t * p_ip){
   ip_[0] = *(p_ip+3);
   ip_[1] = *(p_ip+2);
-  ip_[2] = *(p_ip+2);
+  ip_[2] = *(p_ip+1);
   ip_[3] = *(p_ip);
 }
 

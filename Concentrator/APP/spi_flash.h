@@ -71,7 +71,7 @@
 #define sFLASH_SECTOR_NUM         (sFLASH_END_ADDR - sFLASH_START_ADDR + 1)/sFLASH_SECTOR_SIZE  //512
 
 #define sFLASH_POOL_SIZE        0x400  //1K    //将511个Sector 分成2044个1k大小的存储块
-#define sFLASH_POOL_NUM         (sFLASH_CON_START_ADDR - sFLASH_START_ADDR)/sFLASH_POOL_SIZE  //2044
+#define sFLASH_POOL_NUM         (sFLASH_END_ADDR - (sFLASH_POOL_START_ADDR) + 1)/sFLASH_POOL_SIZE  //2044
     
 #define sFLASH_PAGE_SIZE        0x100  //256
     

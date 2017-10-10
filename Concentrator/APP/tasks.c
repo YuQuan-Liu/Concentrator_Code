@@ -68,6 +68,7 @@ void task_meter_raw(void *p_arg){
         case 0xFF: //188
           frame_len = *(p_buf_+10)+13;
           post_q_result = post_q_meter(p_buf_,frame_len);
+          break;
         case 0xEE: //188 bad
           frame_len = *(p_buf_+10)+13;
           post_q_result = post_q_meter(p_buf_,frame_len);
@@ -574,13 +575,16 @@ void task_read(void *p_arg){
     wait_q_read(&p_buf,&msg_size,0);
     
     set_readding(1);
-    switch(*(p_buf+AFN_POSITION)){
-    case AFN_CONTROL:
-      meter_control(p_buf,msg_size);
-      break;
-    case AFN_CURRENT:
-      meter_read(p_buf,msg_size);
-      break;
+    if(lock_mem4k()){
+      switch(*(p_buf+AFN_POSITION)){
+      case AFN_CONTROL:
+        meter_control(p_buf,msg_size);
+        break;
+      case AFN_CURRENT:
+        meter_read(p_buf,msg_size);
+        break;
+      }
+      unlock_mem4k();
     }
     set_readding(0);
     

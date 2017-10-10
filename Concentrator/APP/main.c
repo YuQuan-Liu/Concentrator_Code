@@ -120,12 +120,12 @@ void TaskStart(void *p_arg){
   cnts = cpu_clk_freq / (CPU_INT32U)OS_CFG_TICK_RATE_HZ;
   OS_CPU_SysTickInit(cnts);
   
+  ObjCreate();
   //≥ı ºªØFLASH  w25x16
   sFLASH_Init();
   BSP_USART_Init();
   /**/
   TaskCreate();
-  ObjCreate();
   
   //Open the IWDG;
   //BSP_IWDG_Init();
