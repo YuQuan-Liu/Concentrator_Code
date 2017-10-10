@@ -484,9 +484,9 @@ void sFLASH_Init(void){
 }
 
 void sFLASH_PoolInit(void){
-  int16_t i;
-  uint32_t sectionaddr;
-  uint32_t nextaddr;
+  int16_t i = 0;
+  uint32_t sectionaddr = 0;
+  uint32_t nextaddr = 0;
   
   //the flash need init
   sFLASH_EraseBulk();    //erase the chip

@@ -38,7 +38,7 @@ extern OS_Q Q_CONFIG;  //Q_SERVER  Q_CJQ 处理后去设置的帧
  * 检查CS  + 
  */
 uint8_t check_cs(uint8_t * start,uint16_t len){
-  uint16_t i;
+  uint16_t i = 0;
   uint8_t cs = 0;
   for(i = 0;i < len;i++){
     cs += *(start+i);
@@ -50,7 +50,7 @@ uint8_t check_cs(uint8_t * start,uint16_t len){
  * 检查CS ^
  */
 uint8_t check_eor(uint8_t * start,uint16_t len){
-  uint16_t i;
+  uint16_t i = 0;
   uint8_t cs = 0;
   for(i = 0;i < len;i++){
     cs ^= *(start+i);
@@ -80,8 +80,7 @@ uint8_t check_frame(uint8_t * start){
 }
 
 void replace_str00(uint8_t * start,uint8_t * end){
-  uint8_t * s;
-  s = start;
+  uint8_t * s = start;
   while(*s == 0x00 && s < end){
     *s++ = '\r';
   }
@@ -374,7 +373,7 @@ uint8_t signal_cjqack(void){
 
 uint8_t check_lora_data2frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
   uint8_t result = 0;   //2~放弃   0~数据不够  1~帧正确
-  uint8_t lora_model;  //1~tran 2~api 3~ok
+  uint8_t lora_model = 0;  //1~tran 2~api 3~ok
   
   switch(*(p_buf_start)){
   case 0x68:

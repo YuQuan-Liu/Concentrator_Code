@@ -68,7 +68,7 @@ uint8_t ate_(void){
 ¼ì²éSIM¿¨×´Ì¬
 */
 uint8_t at_cpin(void){
-  uint8_t i;
+  uint8_t i = 0;
   uint8_t result = 0;
   uint8_t * p_buf = 0;
   uint8_t * p_buf_ = 0;
@@ -95,7 +95,7 @@ uint8_t at_cpin(void){
 
 
 uint8_t at_csq(void){
-  uint8_t i;
+  uint8_t i = 0;
   uint8_t result = 0;
   uint8_t good = 0;
   
@@ -141,7 +141,7 @@ uint8_t at_csq(void){
 }
 
 uint8_t at_creg(void){
-  uint8_t i;
+  uint8_t i = 0;
   uint8_t result = 0;
   uint8_t * p_buf = 0;
   uint8_t * p_buf_ = 0;
@@ -168,7 +168,7 @@ uint8_t at_creg(void){
 
 
 uint8_t check_cgatt(void){
-  uint8_t i;
+  uint8_t i = 0;
   uint8_t result = 0;
   uint8_t * p_buf = 0;
   uint8_t * p_buf_ = 0;
@@ -239,7 +239,7 @@ uint8_t at_apn(void){
 
 
 uint8_t at_xiic(void){
-  uint8_t i;
+  uint8_t i = 0;
   uint8_t result = 0;
   uint8_t * p_buf = 0;
   uint8_t * p_buf_ = 0;
@@ -266,7 +266,7 @@ uint8_t at_xiic(void){
 
 
 uint8_t check_xiic(void){
-  uint8_t i;
+  uint8_t i = 0;
   uint8_t result = 0;
   uint8_t * p_buf = 0;
   uint8_t * p_buf_ = 0;

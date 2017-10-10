@@ -14,7 +14,7 @@ uint8_t * volatile p_server_ = 0;     //记录中断的开始指针
  * 处理SIM800G GPRS
  */
 void USART1_Handler(void){
-  uint8_t rx_byte;
+  uint8_t rx_byte = 0;
   
   if(USART_GetFlagStatus(USART1,USART_FLAG_RXNE) && USART_GetITStatus(USART1,USART_IT_RXNE)){
     rx_byte = USART_ReceiveData(USART1);
@@ -37,8 +37,8 @@ void USART1_Handler(void){
  * 处理采集器  集中器之间通信
  */
 void USART2_Handler(void){
-  uint8_t rx_byte;
-  uint8_t *p_mem;
+  uint8_t rx_byte = 0;
+  uint8_t *p_mem = 0;
   
   if(USART_GetFlagStatus(USART2,USART_FLAG_RXNE) && USART_GetITStatus(USART2,USART_IT_RXNE)){
     rx_byte = USART_ReceiveData(USART2);
@@ -62,8 +62,8 @@ void USART2_Handler(void){
 * 处理MBUS 485 抄表
 */
 void USART3_Handler(void){
-  uint8_t rx_byte;
-  uint8_t *p_mem;
+  uint8_t rx_byte = 0;
+  uint8_t *p_mem = 0;
   
   if(USART_GetFlagStatus(USART3,USART_FLAG_RXNE) && USART_GetITStatus(USART3,USART_IT_RXNE)){
     rx_byte = USART_ReceiveData(USART3);
@@ -87,8 +87,8 @@ void USART3_Handler(void){
 * 处理LORA无线通信
 */
 void UART4_Handler(void){
-  uint8_t rx_byte;
-  uint8_t *p_mem;
+  uint8_t rx_byte = 0;
+  uint8_t *p_mem = 0;
   
   //receive the byte
   if(USART_GetFlagStatus(UART4,USART_FLAG_RXNE) && USART_GetITStatus(UART4,USART_IT_RXNE)){
@@ -114,7 +114,7 @@ void UART4_Handler(void){
 * 通过U4 往LORA发送数据
 */
 uint8_t write_lora(uint8_t * data,uint16_t count){
-  uint16_t i;
+  uint16_t i = 0;
   
   for(i = 0;i < count;i++){
     USART_SendData(UART4,*(data+i));
@@ -127,7 +127,7 @@ uint8_t write_lora(uint8_t * data,uint16_t count){
 * 通过U2 给采集器发送数据
 */
 uint8_t write_cjq(uint8_t * data,uint16_t count){
-  uint16_t i;
+  uint16_t i = 0;
   
   CTRL_485_CJQ_SEND();
   for(i = 0;i < count;i++){
@@ -143,7 +143,7 @@ uint8_t write_cjq(uint8_t * data,uint16_t count){
 * 通过U3 给 MBUS 485 表发送数据
 */
 uint8_t write_meter(uint8_t * data,uint16_t count){
-  uint16_t i;
+  uint16_t i = 0;
   
   CTRL_485_METER_SEND();
   for(i = 0;i < count;i++){
@@ -157,7 +157,7 @@ uint8_t write_meter(uint8_t * data,uint16_t count){
 
 
 uint8_t write_server(uint8_t * data,uint16_t count){
-  uint16_t i;
+  uint16_t i = 0;
   
   for(i = 0;i < count;i++){
     USART_SendData(USART1,*(data+i));

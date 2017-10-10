@@ -12,7 +12,7 @@
 
 
 void param_config(uint8_t * p_buf,uint16_t msg_size){
-  uint8_t * p_temp;
+  uint8_t * p_temp = 0;
   uint8_t server_seq_ = *(p_buf + SEQ_POSITION) & 0x0F;
 
   uint16_t port = 0;
@@ -290,11 +290,11 @@ void param_query(uint8_t * p_buf,uint16_t msg_size){
 }
 
 void device_ack(uint8_t desc,uint8_t server_seq_,uint8_t * p_data,uint8_t data_len,uint8_t afn,uint8_t fn){
-  uint8_t * p_temp;
-  uint8_t * p_buf;
-  uint8_t * p_buf_;
-  uint16_t * p_buf_16;
-  uint8_t i;
+  uint8_t * p_temp = 0;
+  uint8_t * p_buf = 0;
+  uint8_t * p_buf_ = 0;
+  uint16_t * p_buf_16 = 0;
+  uint8_t i = 0;
 
   p_buf = get_membuf();
   if(p_buf > 0){
@@ -336,7 +336,7 @@ void device_ack(uint8_t desc,uint8_t server_seq_,uint8_t * p_data,uint8_t data_l
     default:
       if(lock_cjq()){
         write_cjq(p_buf_,17+data_len);
-        lock_cjq();
+        unlock_cjq();
       }
       break;
     }
@@ -347,11 +347,11 @@ void device_ack(uint8_t desc,uint8_t server_seq_,uint8_t * p_data,uint8_t data_l
 
 
 void device_ack_cjq(uint8_t desc,uint8_t server_seq_,uint8_t * p_data,uint8_t data_len,uint8_t afn,uint8_t fn){
-  uint8_t * p_temp;
-  uint8_t * p_buf;
-  uint8_t * p_buf_;
-  uint16_t * p_buf_16;
-  uint8_t i;
+  uint8_t * p_temp = 0;
+  uint8_t * p_buf = 0;
+  uint8_t * p_buf_ = 0;
+  uint16_t * p_buf_16 = 0;
+  uint8_t i = 0;
 
   p_buf = get_membuf();
   if(p_buf > 0){
@@ -393,7 +393,7 @@ void device_ack_cjq(uint8_t desc,uint8_t server_seq_,uint8_t * p_data,uint8_t da
     default:
       if(lock_cjq()){
         write_cjq(p_buf_,17+data_len);
-        lock_cjq();
+        unlock_cjq();
       }
       break;
     }
@@ -404,10 +404,10 @@ void device_ack_cjq(uint8_t desc,uint8_t server_seq_,uint8_t * p_data,uint8_t da
 
 
 void ack_query_ip(uint8_t desc,uint8_t server_seq_){
-  uint8_t * p_temp;
-  uint8_t * p_buf;
-  uint8_t * p_buf_;
-  uint16_t * p_buf_16;
+  uint8_t * p_temp = 0;
+  uint8_t * p_buf = 0;
+  uint8_t * p_buf_ = 0;
+  uint16_t * p_buf_16 = 0;
 
   p_buf = get_membuf();
   if(p_buf > 0){
@@ -460,10 +460,10 @@ void ack_query_ip(uint8_t desc,uint8_t server_seq_){
 
 
 void ack_query_cjq(uint8_t desc,uint8_t server_seq_){
-  uint8_t * p_temp;
-  uint8_t * p_buf;
-  uint8_t * p_buf_;
-  uint16_t * p_buf_16;
+  uint8_t * p_temp = 0;
+  uint8_t * p_buf = 0;
+  uint8_t * p_buf_ = 0;
+  uint16_t * p_buf_16 = 0;
 
   uint16_t cjq_count;
   uint32_t block_cjq;
@@ -522,7 +522,7 @@ void ack_query_cjq(uint8_t desc,uint8_t server_seq_){
 
 
 uint8_t * ack_mulit_header(uint8_t *p_buf,uint8_t *p_device_addr,uint8_t frame_type,uint16_t len,uint8_t afn,uint8_t seq_,uint8_t fn){
-  uint16_t * p_buf_16;
+  uint16_t * p_buf_16 = 0;
 
   *p_buf++ = FRAME_HEAD;
   p_buf_16 = (uint16_t *)p_buf;
@@ -600,12 +600,12 @@ void ack_query_meter_all(uint8_t desc,uint8_t server_seq_){
 }
 
 void ack_query_meter_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t frame_times_start,uint8_t desc,uint8_t server_seq_){
-  uint8_t * p_buf;
-  uint8_t * p_buf_;
-  uint16_t * p_buf_16;
-  uint16_t i;
-  uint8_t j;
-  uint8_t k;
+  uint8_t * p_buf = 0;
+  uint8_t * p_buf_ = 0;
+  uint16_t * p_buf_16 = 0;
+  uint16_t i = 0;
+  uint8_t j = 0;
+  uint8_t k = 0;
   uint8_t frame_meter_count = 0;
   uint8_t meter_addr[7];
   uint8_t cjq_addr[5];
@@ -694,7 +694,7 @@ void ack_query_meter_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t f
         case 0x00:
           if(lock_cjq()){
             write_cjq(p_buf_,p_buf - p_buf_);
-            lock_cjq();
+            unlock_cjq();
           }
           break;
         }
@@ -706,10 +706,10 @@ void ack_query_meter_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t f
 }
 
 void ack_query_meter_single(uint8_t *p_cjqaddr,uint8_t * p_meteraddr,uint8_t desc,uint8_t server_seq_){
-  uint8_t * p_temp;
-  uint8_t * p_buf;
-  uint8_t * p_buf_;
-  uint16_t i;
+  uint8_t * p_temp = 0;
+  uint8_t * p_buf = 0;
+  uint8_t * p_buf_ = 0;
+  uint16_t i = 0;
 
   uint32_t block_cjq = 0;
 
@@ -764,7 +764,7 @@ void ack_query_meter_single(uint8_t *p_cjqaddr,uint8_t * p_meteraddr,uint8_t des
         case 0x00:
           if(lock_cjq()){
             write_cjq(p_buf_,17+5+7+4);
-            lock_cjq();
+            unlock_cjq();
           }
           break;
         }
@@ -997,7 +997,7 @@ uint32_t search_meter(uint32_t block_cjq,uint8_t * p_meteraddr){
   uint32_t block_current = 0;
   uint16_t meter_count = 0;
   uint8_t meter_addr[7];
-  uint16_t i;
+  uint16_t i = 0;
 
   sFLASH_ReadBuffer((uint8_t *)&meter_count,block_cjq+CJQ_FLASH_INDEX_METERCOUNT,2);
   sFLASH_ReadBuffer((uint8_t *)&block_current,block_cjq+CJQ_FLASH_INDEX_FIRSTMETER,3);
@@ -1134,7 +1134,7 @@ void sync_data2cjq(uint8_t * p_cjqaddr){
   //3下载通道中的所有的数据
 
   uint32_t block_cjq = 0;
-  uint8_t cjq_seq;
+  uint8_t cjq_seq = 0;
   uint16_t c = 0;
   uint8_t i = 0;
   uint8_t frame_data[6];
@@ -1196,8 +1196,8 @@ void sync_data2cjq(uint8_t * p_cjqaddr){
 
 
 uint8_t addcjq_meter_data(uint32_t block_cjq_){
-  uint8_t * p_buf;
-  uint8_t * p_buf_;
+  uint8_t * p_buf = 0;
+  uint8_t * p_buf_ = 0;
 
   uint8_t frame_meter_count = 0;
   uint8_t meter_addr[7];
@@ -1209,12 +1209,12 @@ uint8_t addcjq_meter_data(uint32_t block_cjq_){
   uint16_t times = 0;
   uint8_t remain = 0;
   uint16_t times_ = 0;      //一共要发送多少帧
-  uint8_t i;
-  uint8_t j;
-  uint8_t k;
-  uint8_t cjq_seq;
+  uint8_t i = 0;
+  uint8_t j = 0;
+  uint8_t k = 0;
+  uint8_t cjq_seq = 0;
   uint8_t addmeter_ok = 0;
-  uint8_t meter_type ;
+  uint8_t meter_type = 0;
   
   p_buf = get_membuf();
   if(p_buf > 0){
@@ -1291,7 +1291,7 @@ uint8_t addcjq_meter_data(uint32_t block_cjq_){
           case 0xAA:
             if(lock_cjq()){
               write_cjq(p_buf_,p_buf - p_buf_);
-              lock_cjq();
+              unlock_cjq();
             }
             break;
           }
@@ -1315,24 +1315,24 @@ uint8_t addcjq_meter_data(uint32_t block_cjq_){
 
 
 void check_sync_data2cjq(uint8_t * p_cjqaddr,uint8_t desc,uint8_t server_seq_){
-  uint32_t block_meter;
-  uint32_t block_cjq;
+  uint32_t block_meter = 0;
+  uint32_t block_cjq = 0;
   uint8_t frame_data[6];
-  uint16_t meter_count;  //集中器中当前采集器通道表的数量
-  uint16_t cjq_return_meter_count;   //当前采集器返回的表的数量
-  uint16_t no_meter_count;   //当前采集器返回的表 集中器中没有的数量
+  uint16_t meter_count = 0;  //集中器中当前采集器通道表的数量
+  uint16_t cjq_return_meter_count = 0;   //当前采集器返回的表的数量
+  uint16_t no_meter_count = 0;   //当前采集器返回的表 集中器中没有的数量
   
-  uint16_t all_frames;
-  uint16_t this_frame;
-  uint8_t frame_metercount;
+  uint16_t all_frames = 0;
+  uint16_t this_frame = 0;
+  uint8_t frame_metercount = 0;
   
-  uint8_t i;
-  uint8_t cjq_seq;
-  uint8_t timeout_count;
-  uint8_t * p_response;
-  uint16_t msg_size;
+  uint8_t i = 0;
+  uint8_t cjq_seq = 0;
+  uint8_t timeout_count = 0;
+  uint8_t * p_response = 0;
+  uint16_t msg_size = 0;
   
-  uint8_t * p_meteraddr;
+  uint8_t * p_meteraddr = 0;
   
   
   block_cjq = search_cjq(p_cjqaddr);

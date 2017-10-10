@@ -93,7 +93,7 @@ void meter_read_c_all(uint8_t * p_frame,uint16_t frame_len){
   uint8_t cjq_count_inbuf = 0;  //MEMBUF中一共有多少个采集器
 
   uint8_t frame_data[1];
-  uint8_t cjq_seq;
+  uint8_t cjq_seq = 0;
   uint8_t ack = 0;
   uint8_t i = 0;
 
@@ -103,17 +103,17 @@ void meter_read_c_all(uint8_t * p_frame,uint16_t frame_len){
   uint8_t cjq_state = 0;   //当前采集器的抄表状态
   uint8_t read_over = 2;  //0~抄表中  1~抄表结束  2~超时  查询采集器是否在抄表 对应的状态
 
-  uint8_t * p_response;
-  uint16_t msg_size;
+  uint8_t * p_response = 0;
+  uint16_t msg_size = 0;
 
-  uint16_t all_frames;
-  uint16_t this_frame;
-  uint8_t frame_metercount;
+  uint16_t all_frames = 0;
+  uint16_t this_frame = 0;
+  uint8_t frame_metercount = 0;
 
 
   uint8_t * p_meteraddr = 0;
-  uint8_t * p_meter_read;
-  uint8_t * p_meter_status;
+  uint8_t * p_meter_read = 0;
+  uint8_t * p_meter_status = 0;
 
   p_all_cjq = get_membuf();
   if(p_all_cjq > 0){
@@ -296,8 +296,8 @@ void meter_read_c_channel(uint8_t * p_frame,uint16_t frame_len){
   uint8_t * p_meteraddr = 0;
 
   uint8_t frame_data[6];
-  uint8_t * p_meter_read;
-  uint8_t * p_meter_status;
+  uint8_t * p_meter_read = 0;
+  uint8_t * p_meter_status = 0;
 
   uint8_t * p_response = 0;
   uint16_t msg_size = 0;
@@ -308,7 +308,7 @@ void meter_read_c_channel(uint8_t * p_frame,uint16_t frame_len){
   uint16_t all_frames = 10;  //表示一共会返回多少帧
   uint16_t this_frame = 0;   //表示这是所有帧中的第几帧
   uint8_t frame_metercount = 0;  //接收到的帧中有几块表的数据
-  uint8_t meter_type;
+  uint8_t meter_type = 0;
 
 
   p_cjqaddr = p_frame+DATA_POSITION+1;
@@ -374,8 +374,8 @@ void meter_read_c_meter(uint8_t * p_frame,uint16_t frame_len){
   uint8_t * p_meteraddr = 0;
 
   uint8_t frame_data[13];
-  uint8_t * p_meter_read;
-  uint8_t * p_meter_status;
+  uint8_t * p_meter_read = 0;
+  uint8_t * p_meter_status = 0;
 
   uint8_t * p_response = 0;
   uint16_t msg_size = 0;
@@ -425,10 +425,10 @@ void meter_read_c_meter(uint8_t * p_frame,uint16_t frame_len){
 
 
 uint8_t write_frame_cjq(uint8_t * p_cjqaddr,uint8_t * p_data,uint8_t data_len,uint8_t afn,uint8_t fn,uint8_t server_seq_){
-  uint8_t * p_buf;
-  uint8_t * p_buf_;
-  uint16_t * p_buf_16;
-  uint8_t i;
+  uint8_t * p_buf = 0;
+  uint8_t * p_buf_ = 0;
+  uint16_t * p_buf_16 = 0;
+  uint8_t i = 0;
   uint8_t result = 0;
 
   p_buf = get_membuf();
@@ -511,10 +511,10 @@ uint8_t meter_read_save(uint32_t block_meter,uint8_t * meter_read,uint8_t * mete
 
 //抄单个表时  发送单个表数据
 void send_meter_data_single(uint8_t * p_meteraddr,uint8_t * meter_read ,uint8_t * meter_status,uint8_t meter_type,uint8_t desc){
-  uint8_t * p_buf;
-  uint8_t * p_buf_;
-  uint16_t * p_buf_16;
-  uint8_t i;
+  uint8_t * p_buf = 0;
+  uint8_t * p_buf_ = 0;
+  uint16_t * p_buf_16 = 0;
+  uint8_t i = 0;
   uint8_t frame_seq = 0;
   uint8_t frame_data_len = 0;
 
@@ -638,12 +638,12 @@ void send_meter_data_all(uint8_t desc,uint8_t * p_all_cjq){
 
 //发送采集器单个通道的数据     帧的地址域为当前采集器地址
 void send_meter_data_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t frame_times_start,uint8_t meter_type,uint8_t desc,uint8_t cjq_timeout){
-  uint8_t * p_buf;
-  uint8_t * p_buf_;
-  uint16_t * p_buf_16;
-  uint16_t i;
-  uint8_t j;
-  uint8_t k;
+  uint8_t * p_buf = 0;
+  uint8_t * p_buf_ = 0;
+  uint16_t * p_buf_16 = 0;
+  uint16_t i = 0;
+  uint8_t j = 0;
+  uint8_t k = 0;
   uint8_t frame_meter_count = 0;
   uint8_t meter_addr[7];
   uint8_t meter_read[4];
@@ -753,7 +753,7 @@ void send_meter_data_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t f
           case 0x00:
             if(lock_cjq()){
               write_cjq(p_buf_,p_buf-p_buf_);
-              lock_cjq();
+              unlock_cjq();
             }
             break;
           }
