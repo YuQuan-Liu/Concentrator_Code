@@ -370,7 +370,7 @@ void ack_query_ip(uint8_t desc,uint8_t server_seq_){
     
     if(lock_cjq()){
       write_cjq(p_buf_,23);
-      lock_cjq();
+      unlock_cjq();
     }
     put_membuf(p_buf_);
   }
@@ -428,7 +428,7 @@ void ack_query_cjq(uint8_t desc,uint8_t server_seq_){
     
     if(lock_cjq()){
       write_cjq(p_buf_,17+cjq_count*5);
-      lock_cjq();
+      unlock_cjq();
     }
     put_membuf(p_buf_);
   }
@@ -609,7 +609,7 @@ void ack_query_meter_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t f
         case 0x00:
           if(lock_cjq()){
             write_cjq(p_buf_,p_buf - p_buf_);
-            lock_cjq();
+            unlock_cjq();
           }
           break;
         }
@@ -679,7 +679,7 @@ void ack_query_meter_single(uint8_t *p_cjqaddr,uint8_t * p_meteraddr,uint8_t des
         case 0x00:
           if(lock_cjq()){
             write_cjq(p_buf_,17+5+7+4);
-            lock_cjq();
+            unlock_cjq();
           }
           break;
         }
