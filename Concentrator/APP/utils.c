@@ -531,7 +531,7 @@ uint8_t cjq_data_tome(uint8_t * p_frame,uint8_t frame_len){
      0xFF == *(p_frame + ADDR_POSITION + 2) && 
      0xFF == *(p_frame + ADDR_POSITION + 3) && 
      0xFF == *(p_frame + ADDR_POSITION + 4)){
-    return 1;
+    return 2;
   }
   
   return 0;

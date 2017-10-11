@@ -253,7 +253,7 @@ uint8_t at_xiic(void){
         delayms(200);
       }
       p_buf = send_at_recv(ats[9],p_buf_,2000);
-      if(Str_Str(p_buf,"OK")){
+      if(Str_Str(p_buf_,"OK")){
         result = 1;
         break;
       }
@@ -280,7 +280,7 @@ uint8_t check_xiic(void){
         delayms(200);
       }
       p_buf = send_at_recv(ats[10],p_buf_,100);
-      if(Str_Str(p_buf,".")){
+      if(Str_Str(p_buf_,".")){
         result = 1;
         break;
       }

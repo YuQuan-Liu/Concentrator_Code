@@ -149,7 +149,7 @@ void task_cjq_raw(void *p_arg){
         default:
           //TODO...这个地方应该差一个ACK  告诉采集器 哥收到了  
           //到这个地方的有采集器返回的抄表数据  读取采集器所有表的数据
-          device_ack_cjq(0,*(p_buf_ + SEQ_POSITION),(uint8_t *)0,0,AFN_ACK,FN_ACK);
+          device_ack_cjq(0,server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
           
           post_q_result = post_q_cjq(p_buf_, frame_len);  
           if(post_q_result){
@@ -252,7 +252,7 @@ void task_lora_raw(void *p_arg){
       break;
     case 1: //当前帧接收完毕
       if(*(p_buf_) == 0x68){
-        
+        server_seq_ = *(p_buf_+SEQ_POSITION) & 0x0F;
         switch(cjq_data_tome(p_buf_,frame_len)){
         case 1:  //我正在处理的采集器   除ACK外 全部post到q_cjq
           switch(*(p_buf_+AFN_POSITION)){
@@ -265,7 +265,7 @@ void task_lora_raw(void *p_arg){
           default:
             //TODO...这个地方应该差一个ACK  告诉采集器 哥收到了 
             //到这个地方的有采集器返回的抄表数据  读取采集器所有表的数据
-            device_ack_cjq(1,*(p_buf_ + SEQ_POSITION),(uint8_t *)0,0,AFN_ACK,FN_ACK);
+            device_ack_cjq(1,server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
             
             post_q_result = post_q_cjq(p_buf_, frame_len);  
             if(post_q_result){
