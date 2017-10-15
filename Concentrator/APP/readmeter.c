@@ -92,7 +92,7 @@ void meter_read_c_all(uint8_t * p_frame,uint16_t frame_len){
   uint8_t cjq_addr[5];
   uint8_t cjq_count_inbuf = 0;  //MEMBUF中一共有多少个采集器
 
-  uint8_t frame_data[1];
+  uint8_t frame_data[2];
   uint8_t cjq_seq = 0;
   uint8_t ack = 0;
   uint8_t i = 0;
@@ -115,6 +115,10 @@ void meter_read_c_all(uint8_t * p_frame,uint16_t frame_len){
   uint8_t * p_meter_read = 0;
   uint8_t * p_meter_status = 0;
 
+  uint8_t m = 0;
+  uint8_t z = 0;
+  uint8_t * p_cjqaddr = 0;
+  
   p_all_cjq = get_membuf();
   if(p_all_cjq > 0){
     /*
@@ -145,14 +149,13 @@ void meter_read_c_all(uint8_t * p_frame,uint16_t frame_len){
     //依次给采集器发送抄表指令
     for(c = 0; c < cjq_count_inbuf;c++){
       frame_data[0] = 0xFF;  //抄采集器全部表
-      sFLASH_ReadBuffer((uint8_t *)&cjq_addr,block_cjq+CJQ_FLASH_INDEX_ADDR,5);
       cjq_seq = add_cjq_seq();
       set_cjq_data_seq(cjq_seq);
 
       ack = 0;
       for(i = 0;i < 3;i++){  //给采集发送指令 尝试3次
-        set_cjq_addr(cjq_addr);
-        if(write_frame_cjq(cjq_addr, frame_data, 1,AFN_CURRENT,FN_METER,cjq_seq)){ //给采集器发送抄表指令
+        set_cjq_addr(p_all_cjq+10*c);
+        if(write_frame_cjq(p_all_cjq+10*c, frame_data, 1,AFN_CURRENT,FN_METER,cjq_seq)){ //给采集器发送抄表指令
           if(wait_cjqack(10000)){  //等待10s采集器对抄表指令ACK
             ack = 1;
             break;
@@ -164,7 +167,6 @@ void meter_read_c_all(uint8_t * p_frame,uint16_t frame_len){
       }else{
         p_all_cjq[10*c+5] = 0x22;
       }
-      sFLASH_ReadBuffer((uint8_t *)&block_cjq,block_cjq+FLASH_POOL_NEXT_INDEX,3);
     }
 
     //每10s遍历一遍所有的采集器  看是否抄表完成  等待5min
@@ -176,7 +178,6 @@ void meter_read_c_all(uint8_t * p_frame,uint16_t frame_len){
       delayms(10000);
 
       for(c = 0; c < cjq_count_inbuf;c++){
-        sFLASH_ReadBuffer((uint8_t *)&cjq_addr,block_cjq+CJQ_FLASH_INDEX_ADDR,5);
         cjq_state = p_all_cjq[10*c+5];
         if(cjq_state == 0x00){   //判断采集器状态  还在抄表...
           cjq_seq = add_cjq_seq();
@@ -184,8 +185,8 @@ void meter_read_c_all(uint8_t * p_frame,uint16_t frame_len){
 
           read_over = 2;  //0~抄表中  1~抄表结束  2~超时
           for(i = 0;i < 3;i++){  //给采集发送指令 尝试3次
-            set_cjq_addr(cjq_addr);
-            if(write_frame_cjq(cjq_addr, (uint8_t *)0, 0,AFN_QUERY,FN_READING,cjq_seq)){ //给采集器发送询问是否在抄表
+            set_cjq_addr(p_all_cjq+10*c);
+            if(write_frame_cjq(p_all_cjq+10*c, (uint8_t *)0, 0,AFN_QUERY,FN_READING,cjq_seq)){ //给采集器发送询问是否在抄表
               if(wait_q_cjq(&p_response,&msg_size,10000)){
                 //判断采集器是否抄表完成
                 if(*(p_response + DATA_POSITION)){  //还在抄表
@@ -199,20 +200,19 @@ void meter_read_c_all(uint8_t * p_frame,uint16_t frame_len){
             }
           }
           switch(read_over){
-            case 0:
+          case 0:
             p_all_cjq[10*c+5] = 0x00;
             break;
-            case 1:
+          case 1:
             p_all_cjq[10*c+5] = 0x11;
             read_over_cjq++;
             break;
-            case 2:
+          case 2:
             read_over_cjq++;
             p_all_cjq[10*c+5] = 0x22;
             break;
           }
         }
-        sFLASH_ReadBuffer((uint8_t *)&block_cjq,block_cjq+FLASH_POOL_NEXT_INDEX,3);
       }
       
       //往上层发送抄表进度帧
@@ -229,34 +229,44 @@ void meter_read_c_all(uint8_t * p_frame,uint16_t frame_len){
     if(all_read_over){//全部抄表完成
       //依次遍历所有抄表完成的采集器  获取最新的数据
       for(c = 0; c < cjq_count_inbuf;c++){
-        sFLASH_ReadBuffer((uint8_t *)&cjq_addr,block_cjq+CJQ_FLASH_INDEX_ADDR,5);
         cjq_state = p_all_cjq[10*c+5];
         if(cjq_state == 0x11){   //判断采集器状态为抄表完成
           cjq_seq = add_cjq_seq();
           set_cjq_data_seq(cjq_seq);
 
           for(i = 0;i < 3;i++){  //给采集发送指令 尝试3次
-            set_cjq_addr(cjq_addr);
-            if(write_frame_cjq(cjq_addr, (uint8_t *)0, 0,AFN_QUERY,FN_ALL_READDATA,cjq_seq)){ //给采集器发送把全部表的抄表结果交出来
+            set_cjq_addr(p_all_cjq+10*c);
+            if(write_frame_cjq(p_all_cjq+10*c, (uint8_t *)0, 0,AFN_QUERY,FN_ALL_READDATA,cjq_seq)){ //给采集器发送把全部表的抄表结果交出来
               timeout_count = 10;
               while(timeout_count > 0){
                 if(wait_q_cjq(&p_response,&msg_size,10000)){
+                  msg_size = check_frame(p_response);
                   //帧的长度msg_size  计算此帧中一共有多少表 frame_metercount
                   //一共有多少帧all_frames  这是第几帧this_frame
-                  all_frames = *(p_response + DATA_POSITION) + *(p_response +DATA_POSITION+1)<<8;
-                  this_frame = *(p_response + DATA_POSITION+2) + *(p_response + DATA_POSITION+3)<<8;
+                  all_frames = *(p_response + DATA_POSITION) | *(p_response +DATA_POSITION+1)<<8;
+                  this_frame = *(p_response + DATA_POSITION+2) | *(p_response + DATA_POSITION+3)<<8;
                   frame_metercount = (msg_size-8-9-5)/14;
 
-                  for(i = 0;i < frame_metercount;i++){
+                  for(m = 0;m < frame_metercount;m++){
                     //从帧中获取  表地址 表的读数  表的状态
-                    p_meteraddr = p_response + DATA_POSITION + 5 + 14 * i;
-                    p_meter_read = p_response + DATA_POSITION + 5 + 8 + 14 * i;
-                    p_meter_status = p_response + DATA_POSITION + 5 + 8 + 4 + 14 * i;
+                    p_meteraddr = p_response + DATA_POSITION + 5 + 14 * m;
+                    p_meter_read = p_response + DATA_POSITION + 5 + 8 + 14 * m;
+                    p_meter_status = p_response + DATA_POSITION + 5 + 8 + 4 + 14 * m;
 
-                    block_meter = search_meter(block_cjq,p_meteraddr);
-                    if(block_meter){  //保存数据
-                      meter_read_save(block_meter,p_meter_read,p_meter_status);
+                    //根据当前查询的采集器地址  搜索采集器块 表块
+                    p_cjqaddr = get_cjq_addr();
+                    for(z = 1;z <= 3;z++){
+                      *(p_cjqaddr) = z;
+                      block_cjq = search_cjq(p_cjqaddr);
+                      if(block_cjq){
+                        block_meter = search_meter(block_cjq,p_meteraddr);
+                        if(block_meter){  //保存数据
+                          meter_read_save(block_meter,p_meter_read,p_meter_status);
+                          break;
+                        }
+                      }
                     }
+                    *(p_cjqaddr) = 0;
                   }
                   put_membuf(p_response);
                   if(all_frames == this_frame){
@@ -274,7 +284,10 @@ void meter_read_c_all(uint8_t * p_frame,uint16_t frame_len){
             }
           }
         }
-        sFLASH_ReadBuffer((uint8_t *)&block_cjq,block_cjq+FLASH_POOL_NEXT_INDEX,3);
+        //往上层发送读采集器抄表结果进度帧
+        frame_data[0] = c+1;
+        frame_data[1] = cjq_count_inbuf;
+        device_ack(*(p_frame+frame_len),add_server_seq(),frame_data,2,AFN_FAKE,FN_ACK);
       }
 
       //所有最新的采集器的数据  全部接收到了集中器中
@@ -581,6 +594,12 @@ uint8_t check_cjq_timeout(uint8_t * p_all_cjq,uint8_t * cjq_addr){
   for(i = 0; i < cjq_count_inbuf;i++){
     if(Mem_Cmp(p_all_cjq+10*i+1, cjq_addr+1, 4)){
       cjq_result = *(p_all_cjq+10*i+6);
+      if(cjq_result == 0x00){
+        cjq_result = 1;
+      }
+      if(cjq_result == 0x11){
+        cjq_result = 0;
+      }
       break;
     }
   }

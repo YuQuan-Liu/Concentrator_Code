@@ -49,7 +49,7 @@ CPU_STK STK_LED[APP_START_TASK_STK_SIZE];
 */
 //OS_MEMs
 OS_MEM MEM_Buf;
-uint8_t mem_buf[6][256];
+uint8_t mem_buf[8][256];
 
 OS_MEM MEM_ISR;  //be used in the ISR   get the data from the usart*  post it to the deal task
 uint8_t mem_isr[30][4];
@@ -285,7 +285,7 @@ void ObjCreate(void){
   OSMemCreate((OS_MEM *)&MEM_Buf,
               (CPU_CHAR *)"",
               (void *)&mem_buf[0][0],
-              (OS_MEM_QTY)6,
+              (OS_MEM_QTY)8,
               (OS_MEM_SIZE)256,
               (OS_ERR *)&err);
   if(err != OS_ERR_NONE){

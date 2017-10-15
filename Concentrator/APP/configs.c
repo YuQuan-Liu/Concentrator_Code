@@ -220,6 +220,7 @@ void param_query(uint8_t * p_buf,uint16_t msg_size){
   uint8_t server_seq_ = *(p_buf + SEQ_POSITION) & 0x0F;
   uint32_t block_cjq = 0;
   uint8_t temp = 0;
+  uint8_t * p_temp = 0;
   switch(*(p_buf + FN_POSITION)){
   case FN_IP_PORT:
     ack_query_ip(*(p_buf+msg_size),server_seq_);
@@ -285,6 +286,12 @@ void param_query(uint8_t * p_buf,uint16_t msg_size){
   case FN_SYN:
     device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
     check_sync_data2cjq(p_buf+DATA_POSITION,*(p_buf+msg_size),server_seq_);//检查 CJQ当前通道与 JZQ 同步情况
+    break;
+  case FN_ALL_READDATA:
+    p_temp = get_membuf();
+    if(p_temp > 0){
+      send_meter_data_all(*(p_buf + msg_size),p_temp);
+    }
     break;
   }
 }
@@ -358,8 +365,8 @@ void device_ack_cjq(uint8_t desc,uint8_t server_seq_,uint8_t * p_data,uint8_t da
     p_buf_ = p_buf;
     *p_buf++ = FRAME_HEAD;
     p_buf_16 = (uint16_t *)p_buf;
-    *p_buf_16++ = ((14+data_len) << 2) | 0x03;
-    *p_buf_16++ = ((14+data_len) << 2) | 0x03;
+    *p_buf_16++ = ((9+data_len) << 2) | 0x03;
+    *p_buf_16++ = ((9+data_len) << 2) | 0x03;
     p_buf = (uint8_t *)p_buf_16;
     *p_buf++ = FRAME_HEAD;
 
