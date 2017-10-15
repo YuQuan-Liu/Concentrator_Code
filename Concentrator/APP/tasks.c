@@ -152,17 +152,17 @@ void task_cjq_raw(void *p_arg){
           if(*(p_buf_+AFN_POSITION) == AFN_QUERY && *(p_buf_+FN_POSITION)==FN_READING){
             //NO ACK
           }else{
-            device_ack_cjq(0,server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
+            if(*(p_buf_+AFN_POSITION) == AFN_QUERY && *(p_buf_+FN_POSITION)==FN_METER){
+              //NO ACK
+            }else{
+              device_ack_cjq(0,server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
+            }
           }
           
-          if(get_readding()){  //我在抄表   将结果post到CJQ_Q
-            post_q_result = post_q_cjq(p_buf_, frame_len);  
-            if(post_q_result){
-              p_buf_ = 0;
-              p_buf = 0;
-            }else{
-              p_buf = p_buf_;
-            }
+          post_q_result = post_q_cjq(p_buf_, frame_len);  
+          if(post_q_result){
+            p_buf_ = 0;
+            p_buf = 0;
           }else{
             p_buf = p_buf_;
           }
@@ -276,17 +276,17 @@ void task_lora_raw(void *p_arg){
             if(*(p_buf_+AFN_POSITION) == AFN_QUERY && *(p_buf_+FN_POSITION)==FN_READING){
               //NO ACK
             }else{
-              device_ack_cjq(1,server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
+              if(*(p_buf_+AFN_POSITION) == AFN_QUERY && *(p_buf_+FN_POSITION)==FN_METER){
+                //NO ACK
+              }else{
+                device_ack_cjq(1,server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
+              }
             }
             
-            if(get_readding()){  //我在抄表   将结果post到CJQ_Q
-              post_q_result = post_q_cjq(p_buf_, frame_len);  
-              if(post_q_result){
-                p_buf_ = 0;
-                p_buf = 0;
-              }else{
-                p_buf = p_buf_;
-              }
+            post_q_result = post_q_cjq(p_buf_, frame_len);  
+            if(post_q_result){
+              p_buf_ = 0;
+              p_buf = 0;
             }else{
               p_buf = p_buf_;
             }

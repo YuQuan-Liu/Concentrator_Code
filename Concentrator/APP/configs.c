@@ -1157,7 +1157,7 @@ void sync_data2cjq(uint8_t * p_cjqaddr){
   set_cjq_data_seq(cjq_seq);
   set_cjq_addr(p_cjqaddr);
   if(write_frame_cjq(p_cjqaddr, frame_data, 1,AFN_CONFIG,FN_CJQ,cjq_seq)){ //删除所有的采集器
-    if(wait_cjqack(10000)){
+    if(wait_cjqack(20000)){
       deletecjq_ok = 1;
     }
   }
@@ -1166,6 +1166,7 @@ void sync_data2cjq(uint8_t * p_cjqaddr){
   }
 
   for(c = 1;c <= 3;c++){
+    addcjq_ok = 0;
     *p_cjqaddr = c;
     block_cjq = search_cjq(p_cjqaddr);
     if(block_cjq){
@@ -1362,8 +1363,9 @@ void check_sync_data2cjq(uint8_t * p_cjqaddr,uint8_t desc,uint8_t server_seq_){
         if(wait_q_cjq(&p_response,&msg_size,10000)){
           //帧的长度msg_size  计算此帧中一共有多少表 frame_metercount
           //一共有多少帧all_frames  这是第几帧this_frame
-          all_frames = *(p_response + DATA_POSITION) + *(p_response +DATA_POSITION+1)<<8;
-          this_frame = *(p_response + DATA_POSITION+2) + *(p_response + DATA_POSITION+3)<<8;
+          msg_size = check_frame(p_response);
+          all_frames = *(p_response + DATA_POSITION) | *(p_response +DATA_POSITION+1)<<8;
+          this_frame = *(p_response + DATA_POSITION+2) | *(p_response + DATA_POSITION+3)<<8;
           frame_metercount = (msg_size-8-9-5-4)/7;
           cjq_return_meter_count = cjq_return_meter_count + frame_metercount;
           for(i = 0;i < frame_metercount;i++){
