@@ -279,6 +279,10 @@ void task_lora_raw(void *p_arg){
         signal_lora_ok();
         p_buf = p_buf_;
       }
+      if(*(p_buf_) == 0xFE){  //集中器信号测试
+        device_ack(0,0,p_buf-2,1,AFN_QUERY,FN_LORA_API);  //发送测试信号
+        p_buf = p_buf_;
+      }
       break;
     }
   }

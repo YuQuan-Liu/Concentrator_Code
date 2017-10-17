@@ -274,6 +274,8 @@ uint8_t check_lora_data2frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
     break;
   case 0x0D:
     lora_model = 2;
+  case 0xFE:
+    lora_model = 3;
   default:
     result = 2;
     break;
@@ -288,6 +290,9 @@ uint8_t check_lora_data2frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
     break;
   case 2:
     result = check_lora_ok_frame(p_buf_start,p_buf_end);
+    break;
+  case 3:
+    result = check_lora_api_frame(p_buf_start,p_buf_end);
     break;
   }
   
@@ -355,6 +360,38 @@ uint8_t check_lora_ok_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
     }
   }else{
     result = 0;
+  }
+  return result;
+}
+
+uint8_t check_lora_api_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
+  uint8_t result = 0;   //2~放弃   0~数据不够  1~帧正确
+  uint8_t msg_length = p_buf_end - p_buf_start;  //当前要检查数据长度
+  uint8_t header = 0;  //是否接收到帧头
+  uint16_t frame_len= 0;  //接收的帧的总长度
+  
+  if(header == 0){
+    if(p_buf_start[0] == 0xFE && msg_length >=4 && p_buf_start[3] == 0x7F){
+      header = 1;
+    }
+    if(header == 0){
+      //give up the data
+      result = 2;
+    }
+  }
+  if(header == 1){
+    frame_len = *(p_buf_start+1) + 5;
+    if(msg_length >= frame_len){
+      if(*(p_buf_end-1) == check_eor(p_buf_start+1,frame_len-2)){
+        //这一帧OK
+        result = 1;
+      }else{  //这一帧有错误  放弃
+        result = 2;
+      }
+    }else{
+      //收到的数据还不够
+      result = 0;
+    }
   }
   return result;
 }

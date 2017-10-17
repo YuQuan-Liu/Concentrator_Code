@@ -193,6 +193,15 @@ void param_config(uint8_t * p_buf,uint16_t msg_size){
     }
     device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
     break;
+  case FN_LORA_API:
+    if(lock_lora()){
+      write_lora("===",3); //进入API模式
+      if(wait_lora_ok(1000)){
+        device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
+      }
+      unlock_lora();
+    }
+    break;
   }
   
   unlock_mem4k();

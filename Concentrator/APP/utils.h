@@ -11,6 +11,7 @@ uint8_t check_frame(uint8_t * start);
 uint8_t check_lora_data2frame(uint8_t * p_buf_start,uint8_t * p_buf_end);
 uint8_t check_xintian_frame(uint8_t * p_buf_start,uint8_t * p_buf_end);
 uint8_t check_lora_ok_frame(uint8_t * p_buf_start,uint8_t * p_buf_end);
+uint8_t check_lora_api_frame(uint8_t * p_buf_start,uint8_t * p_buf_end);
 
 uint8_t check_meter_frame(uint8_t * p_buf_start,uint8_t * p_buf_end);
 uint8_t check_188_frame(uint8_t * p_buf_start,uint8_t * p_buf_end);
