@@ -3,6 +3,9 @@
 
 #include "stm32f10x_conf.h"
 
+//¹ıÔØÊÂ¼ş
+#define MBUSOVERLOAD (OS_FLAGS)0x0001
+void mbus_overload(void);
 
 uint8_t check_cs(uint8_t * start,uint16_t len);
 uint8_t check_eor(uint8_t * start,uint16_t len);

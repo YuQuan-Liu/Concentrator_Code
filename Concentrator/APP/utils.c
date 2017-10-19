@@ -27,6 +27,9 @@ extern OS_Q Q_METER;   //Q_METER_USART处理后的帧
 extern OS_Q Q_READ;    //去抄表的帧
 extern OS_Q Q_CONFIG;  //去设置的帧
 
+//OS_FLAG
+extern OS_FLAG_GRP FLAG_Event;
+
 /**
  * 检查CS  + 
  */
@@ -676,3 +679,17 @@ uint8_t post_q_conf(uint8_t * p_mem, uint16_t msg_size){
   }
 }
 
+
+void mbus_overload(void){
+  OS_ERR err;
+  if(EXTI_GetITStatus(EXTI_Line6) != RESET)
+  {
+    OSFlagPost(&FLAG_Event,
+               MBUSOVERLOAD,
+               OS_OPT_POST_FLAG_SET,
+               &err);
+    
+    // Clear the  EXTI line 6 pending bit
+    EXTI_ClearITPendingBit(EXTI_Line6);
+  }
+}

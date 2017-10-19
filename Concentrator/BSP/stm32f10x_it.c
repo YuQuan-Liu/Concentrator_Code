@@ -25,6 +25,7 @@
 #include "stm32f10x_it.h"
 #include "os_cpu.h"
 #include "serial.h"
+#include "utils.h"
 
 /** @addtogroup STM32F10x_StdPeriph_Template
   * @{
@@ -168,17 +169,21 @@ void SysTick_Handler(void)
 
 void USART2_IRQHandler(void)
 {
-    USART2_Handler();
+  USART2_Handler();
 }
 
 void USART3_IRQHandler(void)
 {
-    USART3_Handler();
+  USART3_Handler();
 }
 
 void UART4_IRQHandler(void)
 {
-    UART4_Handler();
+  UART4_Handler();
+}
+
+void EXTI9_5_IRQHandler(void){
+  mbus_overload();
 }
 
 

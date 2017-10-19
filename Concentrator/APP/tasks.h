@@ -13,4 +13,6 @@ void task_lora_check(void *p_arg);
 void task_config(void *p_arg);
 void task_led(void *p_arg);
 
+void task_overload(void *p_arg);
+
 #endif

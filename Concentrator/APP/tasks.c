@@ -444,3 +444,38 @@ void task_led(void *p_arg){
     }
   }
 }
+
+extern OS_FLAG_GRP FLAG_Event;
+//MBUS过载
+void task_overload(void *p_arg){
+  OS_ERR err;
+  CPU_TS ts;
+  uint8_t cnt = 0;
+  
+  while(DEF_TRUE){
+    
+    OSFlagPend(&FLAG_Event,
+               MBUSOVERLOAD,
+               0,
+               OS_OPT_PEND_FLAG_SET_ANY + OS_OPT_PEND_FLAG_CONSUME + OS_OPT_PEND_BLOCKING,
+               &ts,
+               &err);
+    
+    delayms(300);
+    if(GPIO_ReadInputDataBit(GPIOC,GPIO_Pin_6)){
+      cjq_relay_control(0,1); //关采集器通道
+      cjq_relay_control(0,2);
+      cjq_relay_control(0,3);
+      
+      while(cnt < 100){
+        LED3_ON();
+        delayms(100);
+        LED3_OFF();
+        delayms(100);
+        cnt++;
+      }
+      cnt = 0;
+    }
+    
+  }
+}

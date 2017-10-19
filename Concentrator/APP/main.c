@@ -36,6 +36,10 @@ CPU_STK STK_CONFIG[APP_START_TASK_STK_SIZE*3];
 OS_TCB TCB_LED;
 CPU_STK STK_LED[APP_START_TASK_STK_SIZE];
 
+//MBUS 超载
+OS_TCB TCB_OVERLORD;
+CPU_STK STK_OVERLORD[APP_START_TASK_STK_SIZE];
+
 /*
 * 所有需要的全局MEM
 */
@@ -63,6 +67,9 @@ OS_Q Q_LORA_USART;  //LORA USART接收数据
 OS_Q Q_METER;   //Q_METER_USART处理后的帧
 OS_Q Q_READ;    //去抄表的帧
 OS_Q Q_CONFIG;  //去设置的帧
+
+//OS_FLAG
+OS_FLAG_GRP FLAG_Event;
 
 void TaskStart(void *p_arg);
 void TaskCreate(void);
@@ -150,6 +157,21 @@ void TaskCreate(void){
                (void *) 0,
                (OS_PRIO )APP_START_TASK_PRIO + 1,
                (CPU_STK *)&STK_METER_RAW[0],
+               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
+               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
+               (OS_MSG_QTY) 0u,
+               (OS_TICK) 0u,
+               (void *) 0,
+               (OS_OPT) (OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+               (OS_ERR *)&err);
+  
+  //MBUS 过载
+  OSTaskCreate((OS_TCB  *)&TCB_OVERLORD,
+               (CPU_CHAR *)"",
+               (OS_TASK_PTR )task_overload,
+               (void *) 0,
+               (OS_PRIO )APP_START_TASK_PRIO + 2,
+               (CPU_STK *)&STK_OVERLORD[0],
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
                (OS_MSG_QTY) 0u,
@@ -345,6 +367,15 @@ void ObjCreate(void){
             "",
             4,
             &err);
+  if(err != OS_ERR_NONE){
+    return;
+  }
+  
+  //OS_FLAGS
+  OSFlagCreate(&FLAG_Event,
+               "",
+               (OS_FLAGS)0,
+               &err);
   if(err != OS_ERR_NONE){
     return;
   }
