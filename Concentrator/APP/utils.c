@@ -277,8 +277,10 @@ uint8_t check_lora_data2frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
     break;
   case 0x0D:
     lora_model = 2;
+    break;
   case 0xFE:
     lora_model = 3;
+    break;
   default:
     result = 2;
     break;
@@ -374,7 +376,7 @@ uint8_t check_lora_api_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
   uint16_t frame_len= 0;  //接收的帧的总长度
   
   if(header == 0){
-    if(p_buf_start[0] == 0xFE && msg_length >=4 && p_buf_start[3] == 0x7F){
+    if(p_buf_start[0] == 0xFE ){
       header = 1;
     }
     if(header == 0){
@@ -383,17 +385,19 @@ uint8_t check_lora_api_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
     }
   }
   if(header == 1){
-    frame_len = *(p_buf_start+1) + 5;
-    if(msg_length >= frame_len){
-      if(*(p_buf_end-1) == check_eor(p_buf_start+1,frame_len-2)){
-        //这一帧OK
-        result = 1;
-      }else{  //这一帧有错误  放弃
-        result = 2;
+    if(msg_length >=2){
+      frame_len = *(p_buf_start+1) + 5;
+      if(msg_length >= frame_len){
+        if(*(p_buf_end-1) == check_eor(p_buf_start+1,frame_len-2)){
+          //这一帧OK
+          result = 1;
+        }else{  //这一帧有错误  放弃
+          result = 2;
+        }
+      }else{
+        //收到的数据还不够
+        result = 0;
       }
-    }else{
-      //收到的数据还不够
-      result = 0;
     }
   }
   return result;
