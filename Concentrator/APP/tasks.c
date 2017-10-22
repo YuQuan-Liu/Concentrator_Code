@@ -102,6 +102,7 @@ void task_cjq_raw(void *p_arg){
   
   uint8_t * p_buf = 0;   //the buf used put the data in 
   uint8_t * p_buf_ = 0;       //keep the buf's ptr  used to release the buf
+  uint32_t * p_tmp_32 = 0;
   
   uint8_t post_q_result = 0;
   while(DEF_TRUE){
@@ -158,8 +159,9 @@ void task_cjq_raw(void *p_arg){
               device_ack_cjq(0,server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
             }
           }
-          
-          post_q_result = post_q_cjq(p_buf_, frame_len);  
+          p_tmp_32 = (uint32_t *)p_buf;
+          *p_tmp_32 = get_timestamp();
+          post_q_result = post_q_cjq(p_buf_, p_buf-p_buf_);  
           if(post_q_result){
             p_buf_ = 0;
             p_buf = 0;
@@ -229,6 +231,7 @@ void task_lora_raw(void *p_arg){
   
   uint8_t * p_buf = 0;   //the buf used put the data in 
   uint8_t * p_buf_ = 0;       //keep the buf's ptr  used to release the buf
+  uint32_t * p_tmp_32 = 0;
   
   uint8_t post_q_result = 0;
   while(DEF_TRUE){
@@ -283,7 +286,9 @@ void task_lora_raw(void *p_arg){
               }
             }
             
-            post_q_result = post_q_cjq(p_buf_, frame_len);  
+            p_tmp_32 = (uint32_t *)p_buf;
+            *p_tmp_32 = get_timestamp();
+            post_q_result = post_q_cjq(p_buf_, p_buf-p_buf_);  
             if(post_q_result){
               p_buf_ = 0;
               p_buf = 0;

@@ -119,6 +119,9 @@ void meter_read_c_all(uint8_t * p_frame,uint16_t frame_len){
   uint8_t z = 0;
   uint8_t * p_cjqaddr = 0;
   
+  uint32_t send_ts = 0;  //发送指令的时钟
+  uint32_t recv_ts = 0;  //接收映带时的时钟
+  
   p_all_cjq = get_membuf();
   if(p_all_cjq > 0){
     /*
@@ -187,12 +190,16 @@ void meter_read_c_all(uint8_t * p_frame,uint16_t frame_len){
           for(i = 0;i < 3;i++){  //给采集发送指令 尝试3次
             set_cjq_addr(p_all_cjq+10*c);
             if(write_frame_cjq(p_all_cjq+10*c, (uint8_t *)0, 0,AFN_QUERY,FN_READING,cjq_seq)){ //给采集器发送询问是否在抄表
+              send_ts = get_timestamp();
               if(wait_q_cjq(&p_response,&msg_size,10000)){
-                //判断采集器是否抄表完成
-                if(*(p_response + DATA_POSITION)){  //还在抄表
-                  read_over = 0;
-                }else{  //抄表结束
-                  read_over = 1;
+                recv_ts = *(uint32_t *)(p_response + msg_size);
+                if(send_ts < recv_ts){
+                  //判断采集器是否抄表完成
+                  if(*(p_response + DATA_POSITION)){  //还在抄表
+                    read_over = 0;
+                  }else{  //抄表结束
+                    read_over = 1;
+                  }
                 }
                 put_membuf(p_response);
                 break;
@@ -237,10 +244,15 @@ void meter_read_c_all(uint8_t * p_frame,uint16_t frame_len){
           for(i = 0;i < 3;i++){  //给采集发送指令 尝试3次
             set_cjq_addr(p_all_cjq+10*c);
             if(write_frame_cjq(p_all_cjq+10*c, (uint8_t *)0, 0,AFN_QUERY,FN_ALL_READDATA,cjq_seq)){ //给采集器发送把全部表的抄表结果交出来
+              send_ts = get_timestamp();
               timeout_count = 10;
               while(timeout_count > 0){
                 if(wait_q_cjq(&p_response,&msg_size,10000)){
-                  msg_size = check_frame(p_response);
+                  recv_ts = *(uint32_t *)(p_response + msg_size);
+                  if(send_ts > recv_ts){
+                    put_membuf(p_response);
+                    continue;
+                  }
                   //帧的长度msg_size  计算此帧中一共有多少表 frame_metercount
                   //一共有多少帧all_frames  这是第几帧this_frame
                   all_frames = *(p_response + DATA_POSITION) | *(p_response +DATA_POSITION+1)<<8;
@@ -323,7 +335,9 @@ void meter_read_c_channel(uint8_t * p_frame,uint16_t frame_len){
   uint8_t frame_metercount = 0;  //接收到的帧中有几块表的数据
   uint8_t meter_type = 0;
 
-
+  uint32_t send_ts = 0;  //发送指令的时钟
+  uint32_t recv_ts = 0;  //接收映带时的时钟
+  
   p_cjqaddr = p_frame+DATA_POSITION+1;
   block_cjq = search_cjq(p_cjqaddr);
 
@@ -338,9 +352,15 @@ void meter_read_c_channel(uint8_t * p_frame,uint16_t frame_len){
     set_cjq_data_seq(cjq_seq);
     set_cjq_addr(p_cjqaddr);
     if(write_frame_cjq(p_cjqaddr, frame_data, 6,AFN_CURRENT,FN_METER,cjq_seq)){ //给采集器发送抄表指令
+      send_ts = get_timestamp();
       if(wait_cjqack(10000)){  //等待10s采集器对抄表指令ACK
         while(timeout_count > 0){
           if(wait_q_cjq(&p_response,&msg_size,10000)){
+            recv_ts = *(uint32_t *)(p_response + msg_size);
+            if(send_ts > recv_ts){
+              put_membuf(p_response);
+              continue;
+            }
             //帧的长度msg_size  计算此帧中一共有多少表 frame_metercount
             //一共有多少帧all_frames  这是第几帧this_frame
             all_frames = *(p_response + DATA_POSITION) + *(p_response +DATA_POSITION+1)<<8;
@@ -396,6 +416,9 @@ void meter_read_c_meter(uint8_t * p_frame,uint16_t frame_len){
   uint8_t cjq_seq = 0;
   uint8_t meter_type = 0;
 
+  uint32_t send_ts = 0;  //发送指令的时钟
+  uint32_t recv_ts = 0;  //接收映带时的时钟
+  
   p_cjqaddr = p_frame+DATA_POSITION+1;
   p_meteraddr = p_cjqaddr + 5;
 
@@ -418,16 +441,20 @@ void meter_read_c_meter(uint8_t * p_frame,uint16_t frame_len){
       set_cjq_data_seq(cjq_seq);
       set_cjq_addr(p_cjqaddr);
       if(write_frame_cjq(p_cjqaddr, frame_data, 13,AFN_CURRENT,FN_METER,cjq_seq)){ //给采集器发送抄表指令
+        send_ts = get_timestamp();
         if(wait_cjqack(10000)){  //等待10s采集器对抄表指令ACK
           if(wait_q_cjq(&p_response,&msg_size,10000)){
-            //从帧中获取 表的读数  表的状态
-            meter_type = *(p_response + DATA_POSITION + 4);
-            p_meter_read = p_response + DATA_POSITION + 5 + 8;
-            p_meter_status = p_response + DATA_POSITION + 5 + 8 + 4;
-            //保存数据
-            meter_read_save(block_meter,p_meter_read,p_meter_status);
-            //send the data out  
-            send_meter_data_single(p_meteraddr,p_meter_read,p_meter_status,meter_type,*(p_frame+frame_len));
+            recv_ts = *(uint32_t *)(p_response + msg_size);
+            if(send_ts < recv_ts){
+              //从帧中获取 表的读数  表的状态
+              meter_type = *(p_response + DATA_POSITION + 4);
+              p_meter_read = p_response + DATA_POSITION + 5 + 8;
+              p_meter_status = p_response + DATA_POSITION + 5 + 8 + 4;
+              //保存数据
+              meter_read_save(block_meter,p_meter_read,p_meter_status);
+              //send the data out  
+              send_meter_data_single(p_meteraddr,p_meter_read,p_meter_status,meter_type,*(p_frame+frame_len));
+            }
             put_membuf(p_response);
           }
         }

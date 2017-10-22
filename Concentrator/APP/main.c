@@ -379,7 +379,7 @@ void ObjCreate(void){
   
   OSQCreate(&Q_CJQ,
             "",
-            4,
+            2,
             &err);
   if(err != OS_ERR_NONE){
     return;
@@ -387,7 +387,7 @@ void ObjCreate(void){
   
   OSQCreate(&Q_METER,
             "",
-            4,
+            2,
             &err);
   if(err != OS_ERR_NONE){
     return;
@@ -395,7 +395,7 @@ void ObjCreate(void){
   
   OSQCreate(&Q_READ,
             "",
-            4,
+            2,
             &err);
   if(err != OS_ERR_NONE){
     return;
@@ -403,7 +403,7 @@ void ObjCreate(void){
   
   OSQCreate(&Q_CONFIG,
             "",
-            4,
+            2,
             &err);
   if(err != OS_ERR_NONE){
     return;

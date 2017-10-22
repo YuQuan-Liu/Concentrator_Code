@@ -1344,7 +1344,11 @@ void check_sync_data2cjq(uint8_t * p_cjqaddr,uint8_t desc,uint8_t server_seq_){
   uint16_t msg_size = 0;
   
   uint8_t * p_meteraddr = 0;
+  uint8_t seq = 255;
+  uint8_t seq_ = 0;
   
+  uint32_t send_ts = 0;  //发送指令的时钟
+  uint32_t recv_ts = 0;  //接收映带时的时钟
   
   block_cjq = search_cjq(p_cjqaddr);
   if(block_cjq){
@@ -1358,12 +1362,37 @@ void check_sync_data2cjq(uint8_t * p_cjqaddr,uint8_t desc,uint8_t server_seq_){
     set_cjq_data_seq(cjq_seq);
     set_cjq_addr(p_cjqaddr);
     if(write_frame_cjq(p_cjqaddr, frame_data, 6,AFN_QUERY,FN_METER,cjq_seq)){ //查询当前采集器通道下所有的表
+      send_ts = get_timestamp();
       timeout_count = 10;
       while(timeout_count > 0){
         if(wait_q_cjq(&p_response,&msg_size,10000)){
+          recv_ts = *(uint32_t *)(p_response + msg_size);
+          seq_ = *(p_response + SEQ_POSITION) & 0x0F; // 当前帧的seq_
+          if(send_ts > recv_ts){
+            put_membuf(p_response);
+            continue;
+          }
+          
+          if(desc == 1){
+            switch(get_device_mode()){
+            case 0xFF:
+              device_ack_cjq(1,seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);  //发往LORA
+              break;
+            case 0xAA:
+              device_ack_cjq(0,seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);  //发往485
+              break;
+            }
+          }else{
+            device_ack_cjq(1,seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);  //485调试  发往LORA
+          }
+          
+          if(seq == seq_){
+            continue;
+          }
+          seq = seq_;
+          
           //帧的长度msg_size  计算此帧中一共有多少表 frame_metercount
           //一共有多少帧all_frames  这是第几帧this_frame
-          msg_size = check_frame(p_response);
           all_frames = *(p_response + DATA_POSITION) | *(p_response +DATA_POSITION+1)<<8;
           this_frame = *(p_response + DATA_POSITION+2) | *(p_response + DATA_POSITION+3)<<8;
           frame_metercount = (msg_size-8-9-5-4)/7;
