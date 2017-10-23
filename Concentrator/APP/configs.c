@@ -621,11 +621,14 @@ void ack_query_meter_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t f
   uint32_t block_meter = 0;
   uint16_t cjqmeter_count = 0;
   uint8_t frame_data_len = 0;
+  uint8_t frame_seq = 0;
 
   uint16_t times = 0;
   uint8_t remain = 0;
   uint16_t times_ = 0;      //一共要发送多少帧
 
+  uint8_t ack = 0;  //发送数据后是否得到ack
+  
   p_buf = get_membuf();
   if(p_buf > 0){
     p_buf_ = p_buf;
@@ -642,26 +645,29 @@ void ack_query_meter_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t f
 
       for(i=0;i< times_;i++){
         p_buf = p_buf_;
+        frame_seq = add_server_seq();
+        set_server_data_seq(frame_seq);
+        
         frame_data_len = 0;
         frame_meter_count = 0;
         if(times_==1){//单帧 0
           frame_meter_count = cjqmeter_count;
           frame_data_len = 9+7*frame_meter_count+5+4;
-          p_buf = ack_mulit_header(p_buf,get_device_addr(),0,(frame_data_len << 2) | 0x03,AFN_QUERY,server_seq_,FN_METER);
+          p_buf = ack_mulit_header(p_buf,get_device_addr(),0,(frame_data_len << 2) | 0x03,AFN_QUERY,frame_seq,FN_METER);
         }else{
           if(i==0){//首帧 1
             frame_meter_count = 5;
             frame_data_len = 9+7*frame_meter_count+5+4;
-            p_buf = ack_mulit_header(p_buf,get_device_addr(),1,(frame_data_len << 2) | 0x03,AFN_QUERY,server_seq_,FN_METER);
+            p_buf = ack_mulit_header(p_buf,get_device_addr(),1,(frame_data_len << 2) | 0x03,AFN_QUERY,frame_seq,FN_METER);
           }else{
             if(i==times_-1){//尾帧 3
               frame_meter_count = remain;
               frame_data_len = 9+7*frame_meter_count+5+4;
-              p_buf = ack_mulit_header(p_buf,get_device_addr(),3,(frame_data_len << 2) | 0x03,AFN_QUERY,server_seq_,FN_METER);
+              p_buf = ack_mulit_header(p_buf,get_device_addr(),3,(frame_data_len << 2) | 0x03,AFN_QUERY,frame_seq,FN_METER);
             }else{//中间帧 2
               frame_meter_count = 5;
               frame_data_len = 9+7*frame_meter_count+5+4;
-              p_buf = ack_mulit_header(p_buf,get_device_addr(),2,(frame_data_len << 2) | 0x03,AFN_QUERY,server_seq_,FN_METER);
+              p_buf = ack_mulit_header(p_buf,get_device_addr(),2,(frame_data_len << 2) | 0x03,AFN_QUERY,frame_seq,FN_METER);
             }
           }
         }
@@ -691,21 +697,32 @@ void ack_query_meter_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t f
         *p_buf++ = check_cs(p_buf_+6,frame_data_len);
         *p_buf++ = FRAME_END;
 
-        switch(desc){
-        case 0x01:
-          if(lock_lora()){
-            write_lora(p_buf_,p_buf - p_buf_);
-            unlock_lora();
+        for(k = 0;k < 3;k++){
+          ack = 0;
+          switch(desc){
+          case 0x01:
+            if(lock_gprs()){
+              write_server(p_buf_,p_buf-p_buf_);
+              unlock_gprs();
+            }
+            break;
+          case 0x00:
+            if(lock_cjq()){
+              write_cjq(p_buf_,p_buf-p_buf_);
+              unlock_cjq();
+            }
+            break;
           }
-          break;
-        case 0x00:
-          if(lock_cjq()){
-            write_cjq(p_buf_,p_buf - p_buf_);
-            unlock_cjq();
+          
+          if(wait_serverack(10000)){ //wait ack
+            ack = 1;
+            break;
           }
+          delayms(100);
+        }
+        if(!ack){
           break;
         }
-        delayms(100);
       }
     }
     put_membuf(p_buf_);
