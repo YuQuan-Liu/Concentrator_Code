@@ -172,7 +172,7 @@ uint8_t meter_read_single(uint32_t block_meter, uint8_t *p_meteraddr,uint8_t met
   meter_status[0] = 0x00;
   meter_status[1] = 0x00;
 
-  for(i = 0;i < 3;i++){
+  for(i = 0;success == 0 && i < 3;i++){
     success = 0;
     if(meter_read_frame_send(p_meteraddr,meter_type)){
       send_ts = get_timestamp();
