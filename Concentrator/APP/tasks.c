@@ -28,6 +28,7 @@ void task_meter_raw(void *p_arg){
   uint8_t * p_buf = 0;   //the buf used put the data in 
   uint8_t * p_buf_ = 0;       //keep the buf's ptr  used to release the buf
   uint8_t post_q_result = 0;
+  uint32_t * p_tmp_32 = 0;
   
   while(DEF_TRUE){
     //收到0x68之后  如果200ms 没有收到数据  就认为超时了
@@ -58,16 +59,10 @@ void task_meter_raw(void *p_arg){
       break;
     case 1: //当前帧接收完毕
       if(get_readding()){
-        switch(get_protocol()){
-        case 0xFF: //188
-          frame_len = *(p_buf_+10)+13;
-          post_q_result = post_q_meter(p_buf_,frame_len);
-          break;
-        case 0xEE: //188 bad
-          frame_len = *(p_buf_+10)+13;
-          post_q_result = post_q_meter(p_buf_,frame_len);
-          break;
-        }
+        
+        p_tmp_32 = (uint32_t *)p_buf;
+        *p_tmp_32 = get_timestamp();
+        post_q_result = post_q_meter(p_buf_,p_buf-p_buf_);
         
         if(post_q_result){
           p_buf_ = 0;

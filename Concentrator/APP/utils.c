@@ -683,6 +683,10 @@ uint8_t post_q_conf(uint8_t * p_mem, uint16_t msg_size){
   }
 }
 
+uint32_t get_timestamp(void){
+  OS_ERR err ;
+  return OSTimeGet(&err);
+}
 
 void mbus_overload(void){
   OS_ERR err;

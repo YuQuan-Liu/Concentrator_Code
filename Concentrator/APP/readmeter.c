@@ -162,7 +162,10 @@ uint8_t meter_read_single(uint32_t block_meter, uint8_t *p_meteraddr,uint8_t met
   uint16_t msg_size = 0;
   uint8_t i = 0;
   uint8_t j = 0;
-
+  uint32_t send_ts = 0;  //发送指令的时钟
+  uint32_t recv_ts = 0;  //接收映带时的时钟
+  uint8_t wait_cnt = 0;
+  
   for(i =0;i<4;i++){
     meter_read[i] = 0x00;
   }
@@ -172,29 +175,40 @@ uint8_t meter_read_single(uint32_t block_meter, uint8_t *p_meteraddr,uint8_t met
   for(i = 0;i < 3;i++){
     success = 0;
     if(meter_read_frame_send(p_meteraddr,meter_type)){
-      if(wait_q_meter(&p_meter_response,&msg_size,1200)){
-        switch(get_protocol()){ //根据协议  判断地址
-        case 0xFF:
-        case 0xEE:
-          if(Mem_Cmp(p_meteraddr,p_meter_response+2,7)){
-            success = 1;
-            meter_status[0] = *(p_meter_response + 31);//获取ST L
-            meter_status[1] = *(p_meter_response + 32);//获取ST H
-            for(j = 0;j < 4;j++){
-              meter_read[j] = *(p_meter_response + 14 + j);
-            }
+      send_ts = get_timestamp();
+      wait_cnt = 0;
+      while(wait_cnt < 3){
+        wait_cnt++;
+        if(wait_q_meter(&p_meter_response,&msg_size,1200)){
+          recv_ts = *(uint32_t *)(p_meter_response + msg_size);
+          if(send_ts > recv_ts){
+            put_membuf(p_meter_response);
+            continue;
           }
-          break;
+          switch(get_protocol()){ //根据协议  判断地址
+          case 0xFF:
+          case 0xEE:
+            if(Mem_Cmp(p_meteraddr,p_meter_response+2,7)){
+              success = 1;
+              meter_status[0] = *(p_meter_response + 31);//获取ST L
+              meter_status[1] = *(p_meter_response + 32);//获取ST H
+              for(j = 0;j < 4;j++){
+                meter_read[j] = *(p_meter_response + 14 + j);
+              }
+            }
+            break;
+          }
+          put_membuf(p_meter_response);
+          if(success){
+            break;
+          }
+        }else{
+          delayms(100);
+          break;  //接收数据失败
         }
-        put_membuf(p_meter_response);
-        if(success){
-          break;
-        }
-      }else{   //接收数据失败
-        delayms(200);
       }
     }else{   //发送数据失败
-      delayms(200);
+      delayms(100);
     }
   }
 
