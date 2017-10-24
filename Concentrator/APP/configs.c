@@ -1365,7 +1365,6 @@ void check_sync_data2cjq(uint8_t * p_cjqaddr,uint8_t desc,uint8_t server_seq_){
   uint8_t seq_ = 0;
   
   uint32_t send_ts = 0;  //发送指令的时钟
-  uint32_t recv_ts = 0;  //接收映带时的时钟
   
   block_cjq = search_cjq(p_cjqaddr);
   if(block_cjq){
@@ -1382,13 +1381,8 @@ void check_sync_data2cjq(uint8_t * p_cjqaddr,uint8_t desc,uint8_t server_seq_){
       send_ts = get_timestamp();
       timeout_count = 10;
       while(timeout_count > 0){
-        if(wait_q_cjq(&p_response,&msg_size,10000)){
-          recv_ts = *(uint32_t *)(p_response + msg_size);
+        if(wait_q_cjq_ts(&p_response,&msg_size,10000,send_ts)){
           seq_ = *(p_response + SEQ_POSITION) & 0x0F; // 当前帧的seq_
-          if(send_ts > recv_ts){
-            put_membuf(p_response);
-            continue;
-          }
           
           if(desc == 1){
             switch(get_device_mode()){
