@@ -63,6 +63,8 @@ uint8_t post_q_lora_usart(uint8_t * p_mem, uint16_t msg_size);
 uint8_t wait_q_meter(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout);
 uint8_t post_q_meter(uint8_t * p_mem, uint16_t msg_size);
 
+uint8_t wait_q_meter_ts(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout,uint32_t send_ts);
+
 uint8_t wait_q_read(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout);
 uint8_t post_q_read(uint8_t * p_mem, uint16_t msg_size);
 

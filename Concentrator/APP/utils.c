@@ -612,6 +612,31 @@ uint8_t wait_q_meter(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout){
   }
 }
 
+uint8_t wait_q_meter_ts(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout,uint32_t send_ts){
+  uint8_t result = 0;
+  uint8_t wait_cnt = 0;
+  uint32_t recv_ts = 0;
+  while(wait_cnt < 3){
+    wait_cnt++;
+    if(wait_q_meter(p_mem,p_msg_size,timeout)){
+      recv_ts = *(uint32_t *)(*p_mem + *p_msg_size);
+      if(send_ts > recv_ts){
+        put_membuf(*p_mem);
+        continue;
+      }else{  //接收到发送指令时间戳后的返回数据
+        result = 1;
+        break;
+      }
+    }else{   //等待超时
+      result = 0;
+      break;  //接收数据失败
+    }
+  }
+  return result;
+}
+
+
+
 uint8_t post_q_meter(uint8_t * p_mem, uint16_t msg_size){
   OS_ERR err;
   
