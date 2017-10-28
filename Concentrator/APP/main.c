@@ -21,9 +21,13 @@ CPU_STK STK_CJQ_RAW[APP_START_TASK_STK_SIZE];
 OS_TCB TCB_LORA_RAW;
 CPU_STK STK_LORA_RAW[APP_START_TASK_STK_SIZE];
 
-//´¦Àí·þÎñÆ÷·¢ËÍ¹ýÀ´µÄÊý¾Ý  ²¢´¦Àí "+TCPRECV"
+//´¦Àí·þÎñÆ÷·¢ËÍ¹ýÀ´µÄÊý¾Ý  
 OS_TCB TCB_SERVER;
 CPU_STK STK_SERVER[APP_START_TASK_STK_SIZE];
+
+//´¦Àí "+TCPRECV"
+OS_TCB TCB_SERVER_ACTION;
+CPU_STK STK_SERVER_ACTION[APP_START_TASK_STK_SIZE];
 
 //¼¯ÖÐÆ÷ÐÄÌø
 OS_TCB TCB_HEARTBEAT;
@@ -76,7 +80,7 @@ OS_Q Q_CJQ;  //LORA 485-CJQ ½ÓÊÕ·¢ËÍµÄÊý¾Ý  Q_CJQ_USART  Q_LORA_USART  ´¦ÀíºóµÄÖ
 OS_Q Q_METER;   //Q_METER_USART´¦ÀíºóµÄÖ¡
 OS_Q Q_READ;    //Q_SERVER  Q_CJQ ´¦ÀíºóÈ¥³­±íµÄÖ¡
 OS_Q Q_CONFIG;  //Q_SERVER  Q_CJQ ´¦ÀíºóÈ¥ÉèÖÃµÄÖ¡
-//OS_Q Q_SERVER_USART;  //·þÎñÆ÷·¢ËÍ¹ýÀ´µÄÊý¾Ý    Õâ¸ö²»ÐèÒªÁË°É ½ÓÊÕµ½Ö¡Ö®ºóÖ±½ÓpostÏàÓ¦¶ÓÁÐÍêÁË
+OS_Q Q_SERVER_ACTION;  //·þÎñÆ÷·¢ËÍ¹ýÀ´µÄÖ¸ÁîÊý¾Ý    Õâ¸ö²»ÐèÒªÁË°É ½ÓÊÕµ½Ö¡Ö®ºóÖ±½ÓpostÏàÓ¦¶ÓÁÐÍêÁË
 
 //OS_TMR
 OS_TMR TMR_CJQTIMEOUT;    //´ò¿ª²É¼¯Æ÷Í¨µÀÖ®ºó 20·ÖÖÓ³¬Ê± ×Ô¶¯¹Ø±ÕÍ¨µÀ
@@ -173,12 +177,28 @@ void TaskCreate(void){
                (OS_ERR *)&err);
   //OS_CFG_TICK_TASK_PRIO == 6 = APP_START_TASK_PRIO + 3
   
+  //deal the server data 
+  OSTaskCreate((OS_TCB  *)&TCB_SERVER_ACTION,
+               (CPU_CHAR *)"",
+               (OS_TASK_PTR )task_server_action,
+               (void *) 0,
+               (OS_PRIO )APP_START_TASK_PRIO + 4,
+               (CPU_STK *)&STK_SERVER_ACTION[0],
+               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
+               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
+               (OS_MSG_QTY) 0u,
+               (OS_TICK) 0u,
+               (void *) 0,
+               (OS_OPT) (OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+               (OS_ERR *)&err);
+  
+  
   //deal the lora data 
   OSTaskCreate((OS_TCB  *)&TCB_LORA_RAW,
                (CPU_CHAR *)"",
                (OS_TASK_PTR )task_lora_raw,
                (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 4,
+               (OS_PRIO )APP_START_TASK_PRIO + 5,
                (CPU_STK *)&STK_LORA_RAW[0],
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
@@ -193,7 +213,7 @@ void TaskCreate(void){
                (CPU_CHAR *)"",
                (OS_TASK_PTR )task_cjq_raw,
                (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 5,
+               (OS_PRIO )APP_START_TASK_PRIO + 6,
                (CPU_STK *)&STK_CJQ_RAW[0],
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
@@ -207,7 +227,7 @@ void TaskCreate(void){
                (CPU_CHAR *)"",
                (OS_TASK_PTR )task_read,
                (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 6,
+               (OS_PRIO )APP_START_TASK_PRIO + 7,
                (CPU_STK *)&STK_READ[0],
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE*3/10,
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE*3,
@@ -221,7 +241,7 @@ void TaskCreate(void){
                (CPU_CHAR *)"",
                (OS_TASK_PTR )task_heartbeat,
                (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 7,
+               (OS_PRIO )APP_START_TASK_PRIO + 8,
                (CPU_STK *)&STK_HEARTBEAT[0],
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
@@ -236,7 +256,7 @@ void TaskCreate(void){
                (CPU_CHAR *)"",
                (OS_TASK_PTR )task_lora_check,
                (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 8,
+               (OS_PRIO )APP_START_TASK_PRIO + 9,
                (CPU_STK *)&STK_LORA_CHECK[0],
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
@@ -251,7 +271,7 @@ void TaskCreate(void){
                (CPU_CHAR *)"",
                (OS_TASK_PTR )task_config,
                (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 9,
+               (OS_PRIO )APP_START_TASK_PRIO + 10,
                (CPU_STK *)&STK_CONFIG[0],
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE*3/10,
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE*3,
@@ -266,7 +286,7 @@ void TaskCreate(void){
                (CPU_CHAR *)"",
                (OS_TASK_PTR )task_led,
                (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 10,
+               (OS_PRIO )APP_START_TASK_PRIO + 11,
                (CPU_STK *)&STK_LED[0],
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
@@ -409,6 +429,13 @@ void ObjCreate(void){
     return;
   }
   
+  OSQCreate(&Q_SERVER_ACTION,
+            "",
+            2,
+            &err);
+  if(err != OS_ERR_NONE){
+    return;
+  }
   
   
   //OS_TMRs

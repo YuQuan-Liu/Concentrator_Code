@@ -33,6 +33,7 @@ extern OS_Q Q_CJQ;  //LORA 485-CJQ 接收发送的数据  Q_CJQ_USART  Q_LORA_USART  处
 extern OS_Q Q_METER;   //Q_METER_USART处理后的帧
 extern OS_Q Q_READ;    //Q_SERVER  Q_CJQ 处理后去抄表的帧
 extern OS_Q Q_CONFIG;  //Q_SERVER  Q_CJQ 处理后去设置的帧
+extern OS_Q Q_SERVER_ACTION;  //服务器发送过来的指令数据    这个不需要了吧 接收到帧之后直接post相应队列完了
 
 /**
  * 检查CS  + 
@@ -759,6 +760,35 @@ uint8_t post_q_conf(uint8_t * p_mem, uint16_t msg_size){
     return 0;
   }
 }
+
+uint8_t wait_q_server_action(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout){
+  OS_ERR err;
+  CPU_TS ts;
+  
+  *p_mem = OSQPend(&Q_SERVER_ACTION,timeout,OS_OPT_PEND_BLOCKING,p_msg_size,&ts,&err);
+  
+  if(err == OS_ERR_NONE){
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
+uint8_t post_q_server_action(uint8_t * p_mem, uint16_t msg_size){
+  OS_ERR err;
+  
+  OSQPost((OS_Q *)&Q_SERVER_ACTION,
+          (void *)p_mem,
+          msg_size,
+          OS_OPT_POST_FIFO,
+          &err);
+  if(err == OS_ERR_NONE){
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
 
 uint32_t get_timestamp(void){
   OS_ERR err ;

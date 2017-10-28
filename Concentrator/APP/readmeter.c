@@ -572,7 +572,7 @@ void send_meter_data_single(uint8_t * p_meteraddr,uint8_t * meter_read ,uint8_t 
       switch(desc){
       case 0x01:
         if(lock_gprs()){
-          write_server(p_buf_,p_buf-p_buf_);
+          send_server(p_buf_,p_buf-p_buf_);
           unlock_gprs();
         }
         break;
@@ -773,7 +773,7 @@ void send_meter_data_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t f
           switch(desc){
           case 0x01:
             if(lock_gprs()){
-              write_server(p_buf_,p_buf-p_buf_);
+              send_server(p_buf_,p_buf-p_buf_);
               unlock_gprs();
             }
             break;

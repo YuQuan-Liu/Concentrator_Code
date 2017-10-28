@@ -328,12 +328,6 @@ void task_server(void *p_arg){
   uint8_t getbuffail = 0;
   uint8_t connectfail = 0;
   
-  uint8_t *frame_start = 0; //接收到的帧的起始地址
-  uint8_t frame_len = 0;  //接收到帧的总长度
-  uint8_t server_seq_ = 0; //服务器发送过来的数据 的序列号
-  
-  uint8_t * p_buf_copy = 0;  //复制配置帧 抄表帧 post 到队列
-  uint8_t post_q_result = 0;
   while(DEF_TRUE){
     if(get_connect_state()){
       if(p_buf == 0){
@@ -371,53 +365,15 @@ void task_server(void *p_arg){
         
         if(Str_Str(p_buf_,"RECEIVE")){
           //oh it's the data  \r\n+TCPRECV:0,**,0x68 L L 0x68 C A     \r\n
-          frame_start = Str_Str(p_buf_,"\r\n\x68") + 2;
-          frame_len = check_frame(frame_start);  //check the frame get the length
-          if(frame_len){ //the frame is ok
-            server_seq_ = *(frame_start + SEQ_POSITION) & 0x0F;  //获得该帧的序列号
-            switch(*(frame_start+AFN_POSITION)){
-            case AFN_ACK:  //the ack of the server
-              if(server_seq_ == get_server_data_seq()){
-                signal_serverack();
-              }
-              break;
-            case AFN_CONFIG:
-            case AFN_QUERY:
-              p_buf_copy =  get_membuf();
-              if(p_buf_copy > 0){
-                Mem_Copy(p_buf_copy,frame_start,frame_len);
-                *(p_buf_copy + frame_len) = 0x01;  //标识这一帧来自服务器
-                post_q_result = post_q_conf(p_buf_copy, frame_len);
-                if(!post_q_result){
-                  put_membuf(p_buf_copy);
-                }
-              }
-              break;
-            case AFN_CONTROL:
-            case AFN_CURRENT:
-              device_ack(0x01,server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);  //ACK
-              if(!get_readding()){
-                p_buf_copy =  get_membuf();
-                if(p_buf_copy > 0){
-                  Mem_Copy(p_buf_copy,frame_start,frame_len);
-                  *(p_buf_copy + frame_len) = 0x01;  //标识这一帧来自服务器
-                  post_q_result = post_q_read(p_buf_copy, frame_len);
-                  if(!post_q_result){
-                    put_membuf(p_buf_copy);
-                  }
-                }
-              }
-              break;
-            case AFN_LINK_TEST: //never will come to here
-            case AFN_HISTORY://don't support
-              break;
-            default:
-              break;
-            }
+          if(post_q_server_action(p_buf_,p_buf - p_buf_)){
+            p_buf = 0;
+            p_buf_ = 0;
+            server_2buf(0);
+          }else{
+            p_buf = p_buf_;
+            Mem_Set(p_buf_,0x00,256); //clear the buf
+            server_2buf(p_buf);
           }
-          p_buf =p_buf_;
-          Mem_Set(p_buf_,0x00,256); //clear the buf
-          server_2buf(p_buf_);
           continue;
         }
         
@@ -461,6 +417,71 @@ void task_server(void *p_arg){
 //        }
       }
     }
+  }
+}
+
+/**
+ *
+ */
+void task_server_action(void *p_arg){
+  uint16_t msg_size = 0;
+  uint8_t * p_buf = 0;
+    
+  uint8_t *frame_start = 0; //接收到的帧的起始地址
+  uint8_t frame_len = 0;  //接收到帧的总长度
+  uint8_t server_seq_ = 0; //服务器发送过来的数据 的序列号
+  
+  uint8_t * p_buf_copy = 0;  //复制配置帧 抄表帧 post 到队列
+  uint8_t post_q_result = 0;
+  while(DEF_TRUE){
+    wait_q_server_action(&p_buf,&msg_size,0);
+    
+    frame_start = Str_Str(p_buf,"\r\n\x68") + 2;
+    frame_len = check_frame(frame_start);  //check the frame get the length
+    if(frame_len){ //the frame is ok
+      server_seq_ = *(frame_start + SEQ_POSITION) & 0x0F;  //获得该帧的序列号
+      switch(*(frame_start+AFN_POSITION)){
+      case AFN_ACK:  //the ack of the server
+        if(server_seq_ == get_server_data_seq()){
+          signal_serverack();
+        }
+        break;
+      case AFN_CONFIG:
+      case AFN_QUERY:
+        p_buf_copy =  get_membuf();
+        if(p_buf_copy > 0){
+          Mem_Copy(p_buf_copy,frame_start,frame_len);
+          *(p_buf_copy + frame_len) = 0x01;  //标识这一帧来自服务器
+          post_q_result = post_q_conf(p_buf_copy, frame_len);
+          if(!post_q_result){
+            put_membuf(p_buf_copy);
+          }
+        }
+        break;
+      case AFN_CONTROL:
+      case AFN_CURRENT:
+        device_ack(0x01,server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);  //ACK
+        if(!get_readding()){
+          p_buf_copy =  get_membuf();
+          if(p_buf_copy > 0){
+            Mem_Copy(p_buf_copy,frame_start,frame_len);
+            *(p_buf_copy + frame_len) = 0x01;  //标识这一帧来自服务器
+            post_q_result = post_q_read(p_buf_copy, frame_len);
+            if(!post_q_result){
+              put_membuf(p_buf_copy);
+            }
+          }
+        }
+        break;
+      case AFN_LINK_TEST: //never will come to here
+      case AFN_HISTORY://don't support
+        break;
+      default:
+        break;
+      }
+    }
+    
+    put_membuf(p_buf);
   }
 }
 
