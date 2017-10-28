@@ -1183,11 +1183,11 @@ void sync_data2cjq(uint8_t * p_cjqaddr){
   }
 
   for(c = 1;c <= 3;c++){
-    addcjq_ok = 0;
     *p_cjqaddr = c;
     block_cjq = search_cjq(p_cjqaddr);
     if(block_cjq){
       //Ìí¼ÓÍ¨µÀ
+      addcjq_ok = 0;
       frame_data[0] = 0x55;
       for(i = 0;i < 5;i++){
         frame_data[i+1] = p_cjqaddr[i];
