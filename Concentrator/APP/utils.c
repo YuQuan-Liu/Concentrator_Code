@@ -35,6 +35,9 @@ extern OS_Q Q_READ;    //Q_SERVER  Q_CJQ 处理后去抄表的帧
 extern OS_Q Q_CONFIG;  //Q_SERVER  Q_CJQ 处理后去设置的帧
 extern OS_Q Q_SERVER_ACTION;  //服务器发送过来的指令数据    这个不需要了吧 接收到帧之后直接post相应队列完了
 
+//OS_FLAG
+extern OS_FLAG_GRP FLAG_Event;
+
 /**
  * 检查CS  + 
  */
@@ -493,6 +496,42 @@ uint8_t check_lora_ok_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
 }
 
 
+uint8_t check_bad_188_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){  //TODO...
+  uint8_t result = 0;   //2~放弃   0~数据不够  1~帧正确
+  uint8_t msg_length = p_buf_end - p_buf_start;  //当前要检查数据长度
+  uint8_t header = 0;  //是否接收到帧头
+  uint16_t frame_len= 0;  //接收的帧的总长度
+  
+  if(header == 0){
+    if(p_buf_start[0] == 0x68){
+      header = 1;
+    }
+    if(header == 0){
+      //give up the data
+      result = 2;
+    }
+  }
+  if(header == 1){
+    if(msg_length >= 11){
+      frame_len = *(p_buf_start+10)+13;
+      
+      if(frame_len > 0 && msg_length >= frame_len){
+        if(*(p_buf_end - 2) == check_cs(p_buf_start,frame_len-2) && *(p_buf_end - 1) == 0x16){
+          //这一帧OK
+          result = 1;
+        }else{
+          //这一帧有错误  放弃
+          result = 2;
+        }
+      }
+    }else{
+      //收到的数据还不够
+      result = 0;
+    }
+  }
+  return result;
+}
+
 uint8_t check_188_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
   uint8_t result = 0;   //2~放弃   0~数据不够  1~帧正确
   uint8_t msg_length = p_buf_end - p_buf_start;  //当前要检查数据长度
@@ -534,8 +573,10 @@ uint8_t check_meter_frame(uint8_t * p_buf_start,uint8_t * p_buf_end){
   
   switch(get_protocol()){
   case 0xFF: //188
-  case 0xEE: //188 bad
     result = check_188_frame(p_buf_start,p_buf_end);
+    break;
+  case 0xEE: //188 bad
+    result = check_bad_188_frame(p_buf_start,p_buf_end);
     break;
   }
   
@@ -715,6 +756,29 @@ uint8_t wait_q_meter(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout){
   }
 }
 
+uint8_t wait_q_meter_ts(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout,uint32_t send_ts){
+  uint8_t result = 0;
+  uint8_t wait_cnt = 0;
+  uint32_t recv_ts = 0;
+  while(wait_cnt < 3){
+    wait_cnt++;
+    if(wait_q_meter(p_mem,p_msg_size,timeout)){
+      recv_ts = *(uint32_t *)(*p_mem + *p_msg_size);
+      if(send_ts > recv_ts){
+        put_membuf(*p_mem);
+        continue;
+      }else{  //接收到发送指令时间戳后的返回数据
+        result = 1;
+        break;
+      }
+    }else{   //等待超时
+      result = 0;
+      break;  //接收数据失败
+    }
+  }
+  return result;
+}
+
 uint8_t post_q_meter(uint8_t * p_mem, uint16_t msg_size){
   OS_ERR err;
   
@@ -820,4 +884,16 @@ uint32_t get_timestamp(void){
   return OSTimeGet(&err);
 }
 
-
+void mbus_overload(void){
+  OS_ERR err;
+  if(EXTI_GetITStatus(EXTI_Line6) != RESET)
+  {
+    OSFlagPost(&FLAG_Event,
+               MBUSOVERLOAD,
+               OS_OPT_POST_FLAG_SET,
+               &err);
+    
+    // Clear the  EXTI line 6 pending bit
+    EXTI_ClearITPendingBit(EXTI_Line6);
+  }
+}

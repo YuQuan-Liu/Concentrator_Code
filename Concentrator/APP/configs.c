@@ -220,7 +220,6 @@ void param_query(uint8_t * p_buf,uint16_t msg_size){
   uint8_t server_seq_ = *(p_buf + SEQ_POSITION) & 0x0F;
   uint32_t block_cjq = 0;
   uint8_t temp = 0;
-  uint8_t * p_temp = 0;
   switch(*(p_buf + FN_POSITION)){
   case FN_IP_PORT:
     ack_query_ip(*(p_buf+msg_size),server_seq_);
@@ -288,10 +287,7 @@ void param_query(uint8_t * p_buf,uint16_t msg_size){
     check_sync_data2cjq(p_buf+DATA_POSITION,*(p_buf+msg_size),server_seq_);//检查 CJQ当前通道与 JZQ 同步情况
     break;
   case FN_ALL_READDATA:
-    p_temp = get_membuf();
-    if(p_temp > 0){
-      send_meter_data_all(*(p_buf + msg_size),p_temp);
-    }
+    send_meter_data_all(*(p_buf + msg_size),0);
     break;
   }
 }

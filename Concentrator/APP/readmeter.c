@@ -10,6 +10,7 @@
 #include "bsp.h"
 #include "lib_str.h"
 #include "lib_mem.h"
+#include "gprs.h"
 
 void meter_control(uint8_t * p_frame,uint16_t frame_len){
   switch(get_slave()){
@@ -37,17 +38,17 @@ void meter_read(uint8_t * p_frame,uint16_t frame_len){
   switch(get_slave()){
   case 0xAA:
   case 0xFF://底层设备 表  TODO...
-//    switch(*(p_frame+DATA_POSITION)){  //单个表  单个采集器(通道)  全部表(全部通道)
-//    case 0xFF: //全部表
-//      meter_read_m_all(p_frame,frame_len);
-//      break;
-//    case 0xAA: //单个采集器通道
-//      meter_read_m_channel(p_frame,frame_len);
-//      break;
-//    case 0x11: //单个表
-//      meter_read_m_meter(p_frame,frame_len);
-//      break;
-//    }
+    switch(*(p_frame+DATA_POSITION)){  //单个表  单个采集器(通道)  全部表(全部通道)
+    case 0xFF: //全部表
+      meter_read_m_all(p_frame,frame_len);
+      break;
+    case 0xAA: //单个采集器通道
+      meter_read_m_channel(p_frame,frame_len);
+      break;
+    case 0x11: //单个表
+      meter_read_m_meter(p_frame,frame_len);
+      break;
+    }
     break;
   case 0xBB://底层设备CJQ
     switch(*(p_frame+DATA_POSITION)){  //单个表  单个采集器(通道)  全部表(全部通道)
@@ -645,10 +646,14 @@ void send_meter_data_all(uint8_t desc,uint8_t * p_all_cjq){
   
   for(c = 0;c < cjq_count;c++){
     //判断采集器是否超时
-    if(check_cjq_timeout(p_all_cjq,cjq_addr)){//采集器超时
-      send_meter_data_channel(block_cjq,send_times,sended,0x10,desc,1);
-    }else{  //没有超时
+    if(p_all_cjq == 0){
       send_meter_data_channel(block_cjq,send_times,sended,0x10,desc,0);
+    }else{
+      if(check_cjq_timeout(p_all_cjq,cjq_addr)){//采集器超时
+        send_meter_data_channel(block_cjq,send_times,sended,0x10,desc,1);
+      }else{  //没有超时
+        send_meter_data_channel(block_cjq,send_times,sended,0x10,desc,0);
+      }
     }
     
     sFLASH_ReadBuffer((uint8_t *)&meter_count,block_cjq+CJQ_FLASH_INDEX_METERCOUNT,2);
@@ -800,7 +805,262 @@ void send_meter_data_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t f
   }
 }
 
+/*
+ * 下面为集中器直接抄表
+ */
 
+//抄采集器所有通道表
+void meter_read_m_all(uint8_t * p_frame,uint16_t frame_len){
+  uint32_t block_meter = 0;
+  uint32_t block_cjq = 0;
+  uint8_t meter_type = 0;
+
+  uint8_t i = 0;
+  uint8_t c = 1;  //采集器通道计数
+  uint16_t meter_count = 0;
+  uint16_t cjq_count = 0;
+
+  uint8_t meter_read[4];
+  uint8_t meter_status[2];
+  uint8_t meter_addr[7];
+  uint8_t cjq_addr[5];
+
+  sFLASH_ReadBuffer((uint8_t *)&cjq_count,sFLASH_CJQ_COUNT,2);  //采集器数量
+  sFLASH_ReadBuffer((uint8_t *)&block_cjq,sFLASH_CJQ_Q_START,3);  //采集器队列头
+
+  for(c = 0;c < cjq_count;c++){
+
+    sFLASH_ReadBuffer((uint8_t *)&block_meter,block_cjq+CJQ_FLASH_INDEX_FIRSTMETER,3);
+    sFLASH_ReadBuffer((uint8_t *)&meter_count,block_cjq+CJQ_FLASH_INDEX_METERCOUNT,2);
+    sFLASH_ReadBuffer((uint8_t *)&cjq_addr,block_cjq+CJQ_FLASH_INDEX_ADDR,5);
+
+    cjq_relay_control(1,*(cjq_addr));  //开采集器通道
+    for(i = 0;i < meter_count;i++){   //遍历抄采集器通道下的所有的表
+      sFLASH_ReadBuffer((uint8_t *)&meter_addr,block_meter+METER_FLASH_INDEX_ADDR,7);
+      sFLASH_ReadBuffer((uint8_t *)&meter_type,block_meter+METER_FLASH_INDEX_TYPE,1);
+
+      meter_read_single(block_meter, meter_addr, meter_type, meter_read, meter_status);
+
+      sFLASH_ReadBuffer((uint8_t *)&block_meter,block_meter+FLASH_POOL_NEXT_INDEX,3);
+    }
+    cjq_relay_control(0,*(cjq_addr)); //关采集器通道
+
+    sFLASH_ReadBuffer((uint8_t *)&block_cjq,block_cjq+FLASH_POOL_NEXT_INDEX,3);
+  }
+
+  send_meter_data_all(*(p_frame + frame_len),0);
+}
+
+//抄采集器单个通道
+void meter_read_m_channel(uint8_t * p_frame,uint16_t frame_len){
+  uint32_t block_meter = 0;
+  uint32_t block_cjq = 0;
+  uint8_t meter_type = 0;
+
+  uint8_t * p_cjqaddr = 0;
+  uint8_t i = 0;
+  uint16_t meter_count = 0;
+
+  uint8_t meter_read[4];
+  uint8_t meter_status[2];
+  uint8_t meter_addr[7];
+
+  p_cjqaddr = p_frame+DATA_POSITION+1;
+
+  block_cjq = search_cjq(p_cjqaddr);
+
+  if(block_cjq){  //find the cjq
+    sFLASH_ReadBuffer((uint8_t *)&block_meter,block_cjq+CJQ_FLASH_INDEX_FIRSTMETER,3);
+    sFLASH_ReadBuffer((uint8_t *)&meter_count,block_cjq+CJQ_FLASH_INDEX_METERCOUNT,2);
+
+    cjq_relay_control(1,*(p_cjqaddr));  //开采集器通道
+    for(i = 0;i < meter_count;i++){   //遍历抄采集器通道下的所有的表
+      sFLASH_ReadBuffer((uint8_t *)&meter_addr,block_meter+METER_FLASH_INDEX_ADDR,7);
+      sFLASH_ReadBuffer((uint8_t *)&meter_type,block_meter+METER_FLASH_INDEX_TYPE,1);
+
+      meter_read_single(block_meter, meter_addr, meter_type, meter_read, meter_status);
+
+      sFLASH_ReadBuffer((uint8_t *)&block_meter,block_meter+FLASH_POOL_NEXT_INDEX,3);
+    }
+    cjq_relay_control(0,*(p_cjqaddr)); //关采集器通道
+
+    //send the data out
+    send_meter_data_channel(block_cjq,0,0,meter_type,*(p_frame+frame_len),0);
+  }
+}
+
+//抄单个表
+void meter_read_m_meter(uint8_t * p_frame,uint16_t frame_len){
+  uint32_t block_meter = 0;
+  uint32_t block_cjq = 0;
+  uint8_t meter_type = 0;
+
+  uint8_t * p_cjqaddr = 0;
+  uint8_t * p_meteraddr = 0;
+
+  uint8_t meter_read[4];
+  uint8_t meter_status[2];
+
+
+  p_cjqaddr = p_frame+DATA_POSITION+1;
+  p_meteraddr = p_cjqaddr + 5;
+
+  block_cjq = search_cjq(p_cjqaddr);
+
+  if(block_cjq){
+    block_meter = search_meter(block_cjq,p_meteraddr);
+    if(block_meter){
+      //find the meter under the cjq
+      cjq_relay_control(1,*(p_cjqaddr));
+      sFLASH_ReadBuffer((uint8_t *)&meter_type,block_meter+METER_FLASH_INDEX_TYPE,1);
+      if(meter_read_single(block_meter, p_meteraddr, meter_type, meter_read, meter_status)){
+        //send the data out
+        send_meter_data_single(p_meteraddr,meter_read,meter_status,meter_type,*(p_frame+frame_len));
+      }
+      cjq_relay_control(0,*(p_cjqaddr));
+    }
+  }
+}
+
+//只管抄表
+uint8_t meter_read_single(uint32_t block_meter, uint8_t *p_meteraddr,uint8_t meter_type,uint8_t * meter_read,uint8_t * meter_status){
+  uint8_t success = 0;
+  uint8_t * p_meter_response = 0;
+  uint16_t msg_size = 0;
+  uint8_t i = 0;
+  uint8_t j = 0;
+  uint32_t send_ts = 0;  //发送指令的时钟
+  uint32_t recv_ts = 0;  //接收映带时的时钟
+  uint8_t wait_cnt = 0;
+  
+  for(i =0;i<4;i++){
+    meter_read[i] = 0x00;
+  }
+  meter_status[0] = 0x00;
+  meter_status[1] = 0x00;
+
+  for(i = 0;i < 3;i++){
+    success = 0;
+    if(meter_read_frame_send(p_meteraddr,meter_type)){
+      send_ts = get_timestamp();
+      if(wait_q_meter_ts(&p_meter_response,&msg_size,1200,send_ts)){
+        switch(get_protocol()){ //根据协议  判断地址
+        case 0xFF:
+        case 0xEE:
+          if(Mem_Cmp(p_meteraddr,p_meter_response+2,7)){
+            success = 1;
+            meter_status[0] = *(p_meter_response + 31);//获取ST L
+            meter_status[1] = *(p_meter_response + 32);//获取ST H
+            for(j = 0;j < 4;j++){
+              meter_read[j] = *(p_meter_response + 14 + j);
+            }
+          }
+          break;
+        }
+        put_membuf(p_meter_response);
+        if(success){
+          break;
+        }
+      }else{  //接收数据超时
+        delayms(100);
+      }
+    }else{   //发送数据失败
+      delayms(100);
+    }
+  }
+
+  if(!success){
+    meter_status[0] = 0x40;
+  }
+
+  meter_read_save(block_meter,meter_read,meter_status);   //如果是188协议表  保存表信息
+  if(success){
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
+
+//根据协议发送抄表帧
+uint8_t meter_read_frame_send(uint8_t * p_meteraddr,uint8_t meter_type){
+  uint8_t * p_buf = 0;
+  uint8_t * p_buf_ = 0;
+  uint8_t i = 0;
+
+  p_buf = get_membuf();
+  if(p_buf > 0){  //get the buf
+    p_buf_ = p_buf;
+
+    switch(get_protocol()){
+    case 0xFF:
+    case 0xEE:
+      *p_buf++ = 0xFE;
+      *p_buf++ = 0xFE;
+      *p_buf++ = 0xFE;
+      *p_buf++ = 0xFE;
+      *p_buf++ = FRAME_HEAD;
+      *p_buf++ = meter_type;
+      for(i=0;i<7;i++){
+        *p_buf++ = *(p_meteraddr + i);
+      }
+      *p_buf++ = 0x01; //C
+      *p_buf++ = 0x03; //len
+      switch(get_di_seq()){
+      case 0xFF: //默认低位在前
+        *p_buf++ = DATAFLAG_RD_L;
+        *p_buf++ = DATAFLAG_RD_H;
+        break;
+      case 0xAA:
+        *p_buf++ = DATAFLAG_RD_H;
+        *p_buf++ = DATAFLAG_RD_L;
+        break;
+      }
+      *p_buf++ = 0x01;
+      *p_buf++ = check_cs(p_buf_+4,11+3);
+      *p_buf++ = FRAME_END;
+      break;
+    }
+    write_meter(p_buf_,p_buf-p_buf_);
+    put_membuf(p_buf_);
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
+//采集器通道开关控制
+uint8_t cjq_relay_control(uint8_t cmd,uint8_t cjq){
+  switch(cmd){
+  case 1: //开继电器
+    switch(cjq){
+    case 1:
+      RELAY1_ON();
+      break;
+    case 2:
+      RELAY2_ON();
+      break;
+    case 3:
+      RELAY3_ON();
+      break;
+    }
+    break;
+  case 0: //关继电器
+    switch(cjq){
+    case 1:
+      RELAY1_OFF();
+      break;
+    case 2:
+      RELAY2_OFF();
+      break;
+    case 3:
+      RELAY3_OFF();
+      break;
+    }
+    break;
+  }
+  return 1;
+}
 
 
 

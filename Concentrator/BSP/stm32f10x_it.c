@@ -25,6 +25,7 @@
 #include "stm32f10x_it.h"
 #include "os_cpu.h"
 #include "serial.h"
+#include "utils.h"
 
 /** @addtogroup STM32F10x_StdPeriph_Template
   * @{
@@ -185,6 +186,9 @@ void UART4_IRQHandler(void)
     UART4_Handler();
 }
 
+void EXTI9_5_IRQHandler(void){
+  mbus_overload();
+}
 
 
 /******************* (C) COPYRIGHT 2011 STMicroelectronics *****END OF FILE****/

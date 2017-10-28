@@ -3,6 +3,9 @@
 
 #include "stm32f10x_conf.h"
 
+//过载事件
+#define MBUSOVERLOAD (OS_FLAGS)0x0001
+void mbus_overload(void);
 
 uint8_t check_cs(uint8_t * start,uint16_t len);
 uint8_t check_eor(uint8_t * start,uint16_t len);
@@ -14,7 +17,7 @@ uint8_t check_lora_ok_frame(uint8_t * p_buf_start,uint8_t * p_buf_end);
 
 uint8_t check_meter_frame(uint8_t * p_buf_start,uint8_t * p_buf_end);
 uint8_t check_188_frame(uint8_t * p_buf_start,uint8_t * p_buf_end);
-
+uint8_t check_bad_188_frame(uint8_t * p_buf_start,uint8_t * p_buf_end);
 
 //将start开始的end结束的字符串 开头的0x00替换成‘\r’
 void replace_str00(uint8_t * start,uint8_t * end);
@@ -79,6 +82,8 @@ uint8_t wait_q_cjq_ts(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout,
 
 uint8_t wait_q_meter(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout);
 uint8_t post_q_meter(uint8_t * p_mem, uint16_t msg_size);
+
+uint8_t wait_q_meter_ts(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout,uint32_t send_ts);
 
 uint8_t wait_q_read(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout);
 uint8_t post_q_read(uint8_t * p_mem, uint16_t msg_size);
