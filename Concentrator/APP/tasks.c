@@ -618,12 +618,32 @@ void task_read(void *p_arg){
     
     set_readding(1);
     if(lock_mem4k()){
-      switch(*(p_buf+AFN_POSITION)){
-      case AFN_CONTROL:
-        meter_control(p_buf,msg_size);
+      switch(*(p_buf+msg_size)){
+      case 0x01:
+        if(lock_gprs()){
+          switch(*(p_buf+AFN_POSITION)){
+          case AFN_CONTROL:
+            meter_control(p_buf,msg_size);
+            break;
+          case AFN_CURRENT:
+            meter_read(p_buf,msg_size);
+            break;
+          }
+          unlock_gprs();
+        }
         break;
-      case AFN_CURRENT:
-        meter_read(p_buf,msg_size);
+      default:
+        if(lock_cjq()){
+          switch(*(p_buf+AFN_POSITION)){
+          case AFN_CONTROL:
+            meter_control(p_buf,msg_size);
+            break;
+          case AFN_CURRENT:
+            meter_read(p_buf,msg_size);
+            break;
+          }
+          unlock_cjq();
+        }
         break;
       }
       unlock_mem4k();
