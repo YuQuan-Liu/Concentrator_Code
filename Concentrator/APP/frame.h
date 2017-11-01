@@ -79,6 +79,7 @@
 #define FN_READING                      21  //是否在读表
 #define FN_ALL_READDATA                 22  //查询采集器下所有的抄表结果
 #define FN_SIMCARD                      23  //联通移动卡
+#define FN_SYNING                       24  //是否在同步数据
 
 #define FN_VERSION                   255  //程序版本号  
 

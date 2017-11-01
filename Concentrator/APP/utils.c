@@ -24,7 +24,7 @@ extern OS_SEM SEM_HEART_BEAT;
 extern OS_SEM SEM_SERVER_ACK;
 extern OS_SEM SEM_SEND_GPRS;
 extern OS_SEM SEM_CJQ_ACK;
-
+extern OS_SEM SEM_SYN;      //去同步cjqaddr 对应的采集器的数据
 
 extern OS_Q Q_CJQ_USART;  //CJQ USART接收数据
 extern OS_Q Q_METER_USART; //METER USART接收数据
@@ -396,7 +396,28 @@ uint8_t signal_cjqack(void){
   return 1;
 }
 
+uint8_t wait_syn(uint32_t timeout){
+  OS_ERR err;
+  CPU_TS ts;
+  
+  OSSemPend(&SEM_SYN,
+            timeout,
+            OS_OPT_PEND_BLOCKING,
+            &ts,
+            &err);
+  if(err == OS_ERR_NONE){
+    return 1;
+  }
+  return 0;
+}
 
+uint8_t signal_syn(void){
+  OS_ERR err;
+  OSSemPost(&SEM_SYN,
+            OS_OPT_POST_1,
+            &err);
+  return 1;
+}
 
 
 

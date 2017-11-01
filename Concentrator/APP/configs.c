@@ -209,9 +209,8 @@ void param_config(uint8_t * p_buf,uint16_t msg_size){
     break;
   case FN_SYN:
     device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)0,0,AFN_ACK,FN_ACK);
-    set_readding(1);
-    sync_data2cjq(p_buf + DATA_POSITION);//同步CJQ所有通道数据到 采集器
-    set_readding(0);
+    set_cjq_addr(p_buf + DATA_POSITION);
+    signal_syn();
     break;
   }
 
@@ -290,6 +289,10 @@ void param_query(uint8_t * p_buf,uint16_t msg_size){
     break;
   case FN_ALL_READDATA:
     send_meter_data_all(*(p_buf + msg_size),0);
+    break;
+  case FN_SYNING:
+    temp = get_syning();
+    device_ack(*(p_buf+msg_size),server_seq_,(uint8_t *)&temp,1,AFN_QUERY,FN_SYNING);
     break;
   }
 }

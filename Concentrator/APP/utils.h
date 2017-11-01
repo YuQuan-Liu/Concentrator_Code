@@ -64,6 +64,8 @@ uint8_t signal_sendgprs(void);
 uint8_t wait_cjqack(uint32_t timeout);
 uint8_t signal_cjqack(void);
 
+uint8_t wait_syn(uint32_t timeout);
+uint8_t signal_syn(void);
 
 
 uint8_t wait_q_cjq_usart(uint8_t ** p_mem, uint16_t * p_msg_size, uint32_t timeout);

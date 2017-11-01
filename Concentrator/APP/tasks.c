@@ -557,7 +557,7 @@ void task_lora_check(void *p_arg){
   while(DEF_TRUE){
     //2min  每2分钟检测一次
     delayms(120000);
-    if(get_readding()){
+    if(get_readding() || get_syning()){
       continue;
     }
     
@@ -756,5 +756,29 @@ void task_overload(void *p_arg){
       cnt = 0;
     }
     
+  }
+}
+
+
+void task_syn(void *p_arg){
+  
+  while(DEF_TRUE){
+    wait_syn(0);
+    set_syning(1);
+    switch(get_device_mode()){
+    case 0xFF:
+      if(lock_lora()){
+        sync_data2cjq(get_cjq_addr());//同步CJQ所有通道数据到 采集器
+        unlock_lora();
+      }
+      break;
+    case 0xAA:
+      if(lock_cjq()){
+        sync_data2cjq(get_cjq_addr());//同步CJQ所有通道数据到 采集器
+        unlock_cjq();
+      }
+      break;
+    }
+    set_syning(0);
   }
 }

@@ -17,6 +17,8 @@ volatile uint8_t connectstate = 0;       //0 didn't connect to the server   1 co
 volatile uint8_t reading = 0;   //0 didn't reading meters    1  reading meters
 volatile uint8_t lora_test = 0;  //每3s发送TEST到LORA
 
+volatile uint8_t syn = 0;   //0 didn't syning meters    1  syning meters
+
 uint8_t version = 100;    //版本从100开始算
 uint8_t meter_baud = 0x24;  //96H——9600 bps; 48H——4800 bps; 24H——2400 bps; 12H——1200 bps
 
@@ -180,4 +182,17 @@ void set_server_data_seq(uint8_t data_seq_){
 
 uint8_t get_server_data_seq(void){
   return server_data_seq;
+}
+
+
+void set_syning(uint8_t syn_){
+  CPU_SR_ALLOC();
+  CPU_CRITICAL_ENTER();
+  syn = syn_;
+  CPU_CRITICAL_EXIT();
+  
+}
+
+uint8_t get_syning(void){
+  return syn;
 }

@@ -45,6 +45,9 @@ CPU_STK STK_READ[APP_START_TASK_STK_SIZE*3];
 OS_TCB TCB_CONFIG;
 CPU_STK STK_CONFIG[APP_START_TASK_STK_SIZE*3];
 
+OS_TCB TCB_SYN;
+CPU_STK STK_SYN[APP_START_TASK_STK_SIZE];
+
 OS_TCB TCB_LED;
 CPU_STK STK_LED[APP_START_TASK_STK_SIZE];
 
@@ -75,6 +78,7 @@ OS_SEM SEM_HEART_BEAT;   //服务器对心跳的ACK
 OS_SEM SEM_SERVER_ACK;   //服务器对数据的ACK
 OS_SEM SEM_SEND_GPRS;    //got the '>'  we can send the data now  可以发送数据
 OS_SEM SEM_CJQ_ACK;      //采集器对抄表指令的ACK
+OS_SEM SEM_SYN;      //去同步cjqaddr 对应的采集器的数据
 
 //OS_Qs
 OS_Q Q_CJQ_USART;  //CJQ USART接收数据
@@ -302,12 +306,27 @@ void TaskCreate(void){
                (OS_OPT) (OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
                (OS_ERR *)&err);
   
+  //syn
+  OSTaskCreate((OS_TCB  *)&TCB_SYN,
+               (CPU_CHAR *)"",
+               (OS_TASK_PTR )task_syn,
+               (void *) 0,
+               (OS_PRIO )APP_START_TASK_PRIO + 12,
+               (CPU_STK *)&STK_SYN[0],
+               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
+               (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
+               (OS_MSG_QTY) 0u,
+               (OS_TICK) 0u,
+               (void *) 0,
+               (OS_OPT) (OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+               (OS_ERR *)&err);
+  
   //blink the led 
   OSTaskCreate((OS_TCB  *)&TCB_LED,
                (CPU_CHAR *)"",
                (OS_TASK_PTR )task_led,
                (void *) 0,
-               (OS_PRIO )APP_START_TASK_PRIO + 12,
+               (OS_PRIO )APP_START_TASK_PRIO + 13,
                (CPU_STK *)&STK_LED[0],
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE/10,
                (CPU_STK_SIZE)APP_START_TASK_STK_SIZE,
@@ -385,6 +404,14 @@ void ObjCreate(void){
   }
     
   OSSemCreate(&SEM_CJQ_ACK,
+              "",
+              0,
+              &err);
+  if(err != OS_ERR_NONE){
+    return;
+  }
+  
+  OSSemCreate(&SEM_SYN,
               "",
               0,
               &err);
