@@ -662,7 +662,11 @@ void ack_query_meter_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t f
             p_buf = ack_mulit_header(p_buf,get_device_addr(),1,(frame_data_len << 2) | 0x03,AFN_QUERY,frame_seq,FN_METER);
           }else{
             if(i==times_-1){//尾帧 3
-              frame_meter_count = remain;
+              if(remain == 0){
+                frame_meter_count = 5;
+              }else{
+                frame_meter_count = remain;
+              }
               frame_data_len = 9+7*frame_meter_count+5+4;
               p_buf = ack_mulit_header(p_buf,get_device_addr(),3,(frame_data_len << 2) | 0x03,AFN_QUERY,frame_seq,FN_METER);
             }else{//中间帧 2
@@ -1278,7 +1282,11 @@ uint8_t addcjq_meter_data(uint32_t block_cjq_){
             p_buf = ack_mulit_header(p_buf,cjq_addr,1,(frame_data_len << 2) | 0x03,AFN_CONFIG,cjq_seq,FN_METER);
           }else{
             if(i==times_-1){//尾帧 3
-              frame_meter_count = remain;
+              if(remain == 0){
+                frame_meter_count = 5;
+              }else{
+                frame_meter_count = remain;
+              }
               frame_data_len = 9+7*frame_meter_count+5+2;
               p_buf = ack_mulit_header(p_buf,cjq_addr,3,(frame_data_len << 2) | 0x03,AFN_CONFIG,cjq_seq,FN_METER);
             }else{//中间帧 2
