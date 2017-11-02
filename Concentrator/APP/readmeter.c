@@ -472,7 +472,11 @@ void send_meter_data_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t f
             p_buf = ack_mulit_header(p_buf,1,(frame_data_len << 2) | 0x03,AFN_CURRENT,frame_seq,FN_CURRENT_METER);
           }else{
             if(i==times_-1){//β֡ 3
-              frame_meter_count = remain;
+              if(remain == 0){
+                frame_meter_count = 5;
+              }else{
+                frame_meter_count = remain;
+              }
               frame_data_len = 9+14*frame_meter_count+5;
               p_buf = ack_mulit_header(p_buf,3,(frame_data_len << 2) | 0x03,AFN_CURRENT,frame_seq,FN_CURRENT_METER);
             }else{//�м�֡ 2
