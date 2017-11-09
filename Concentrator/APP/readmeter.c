@@ -633,8 +633,8 @@ void send_meter_data_all(uint8_t desc,uint8_t * p_all_cjq){
   //获取所有通道所有的表加起来一共要发送多少次
   for(c = 0;c < cjq_count;c++){
     sFLASH_ReadBuffer((uint8_t *)&meter_count,block_cjq+CJQ_FLASH_INDEX_METERCOUNT,2);
-    remains = meter_count%5;
-    send_times = send_times + meter_count/5;
+    remains = meter_count%10;
+    send_times = send_times + meter_count/10;
     if(remains){
       send_times = send_times + 1;
     }
@@ -657,8 +657,8 @@ void send_meter_data_all(uint8_t desc,uint8_t * p_all_cjq){
     }
     
     sFLASH_ReadBuffer((uint8_t *)&meter_count,block_cjq+CJQ_FLASH_INDEX_METERCOUNT,2);
-    remains = meter_count%5;
-    sended = sended + meter_count/5;
+    remains = meter_count%10;
+    sended = sended + meter_count/10;
     if(remains){
       sended = sended + 1;
     }
