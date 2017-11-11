@@ -149,6 +149,7 @@ void meter_read_c_all(uint8_t * p_frame,uint16_t frame_len){
     //集中器下挂的采集器设备的个数
     cjq_count_inbuf = p_all_cjq[255];
 
+    read_over_cjq = 0;   //抄表完成的采集器(包括超时)
     //依次给采集器发送抄表指令
     for(c = 0; c < cjq_count_inbuf;c++){
       frame_data[0] = 0xFF;  //抄采集器全部表
@@ -169,12 +170,12 @@ void meter_read_c_all(uint8_t * p_frame,uint16_t frame_len){
         p_all_cjq[10*c+5] = 0x00;
       }else{
         p_all_cjq[10*c+5] = 0x22;
+        read_over_cjq++;
       }
     }
 
     //每10s遍历一遍所有的采集器  看是否抄表完成  等待5min
     timeout_count = 30;
-    read_over_cjq = 0;   //抄表完成的采集器(包括超时)
     all_read_over = 0;  //所有的采集器是否都抄表完成了
     while(timeout_count > 0){
       timeout_count++;
