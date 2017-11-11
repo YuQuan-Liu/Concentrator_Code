@@ -135,7 +135,7 @@ void TaskStart(void *p_arg){
   }
   
   //Open the IWDG;
-  //BSP_IWDG_Init();
+  BSP_IWDG_Init();
   
   while(DEF_TRUE){
     IWDG_ReloadCounter();  //Reload IWDG counter
