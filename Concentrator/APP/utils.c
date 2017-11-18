@@ -907,14 +907,14 @@ uint32_t get_timestamp(void){
 
 void mbus_overload(void){
   OS_ERR err;
-  if(EXTI_GetITStatus(EXTI_Line6) != RESET)
+  if(EXTI_GetITStatus(EXTI_Line12) != RESET)
   {
     OSFlagPost(&FLAG_Event,
                MBUSOVERLOAD,
                OS_OPT_POST_FLAG_SET,
                &err);
     
-    // Clear the  EXTI line 6 pending bit
-    EXTI_ClearITPendingBit(EXTI_Line6);
+    // Clear the  EXTI line 12 pending bit
+    EXTI_ClearITPendingBit(EXTI_Line12);
   }
 }

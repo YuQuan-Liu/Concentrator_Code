@@ -205,11 +205,12 @@ void BSP_GPIO_Init(void){
   GPIOB
   0 ~ RELAY2 
   1 ~ RELAY3 
+  2 ~ RELAY4
   13 ~ 485CTRL : L  Meter USART3
   14 ~ 485CTRL : L  CJQ   USAER2
   15 ~ RELAY_VALVE
   */
-  gpio_init.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15;
+  gpio_init.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15;
   gpio_init.GPIO_Mode = GPIO_Mode_Out_PP;
   gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(GPIOB,&gpio_init);
@@ -217,27 +218,28 @@ void BSP_GPIO_Init(void){
   /*
   GPIOC
   0 ~ LED3
-  1 ~ LED2
+  1 ~ LED4
   2 ~ LED1
+  3 ~ LED2
   
   4 ~ 485 PWR CTRL
   5 ~ RELAY1
-  6 ~ MBUS CURRENT OVER INPUT INPUT INPUT
+  12 ~ MBUS CURRENT OVER INPUT INPUT INPUT
   
   */
-  gpio_init.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_4 | GPIO_Pin_5;
+  gpio_init.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3 | GPIO_Pin_4 | GPIO_Pin_5;
   gpio_init.GPIO_Mode = GPIO_Mode_Out_PP;
   gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(GPIOC,&gpio_init);
   
   
-  gpio_init.GPIO_Pin = GPIO_Pin_6;
+  gpio_init.GPIO_Pin = GPIO_Pin_12;
   gpio_init.GPIO_Mode = GPIO_Mode_IPU;
   GPIO_Init(GPIOC,&gpio_init);
-  GPIO_EXTILineConfig(GPIO_PortSourceGPIOC, GPIO_PinSource6);
+  GPIO_EXTILineConfig(GPIO_PortSourceGPIOC, GPIO_PinSource12);
   
-  /* Configure EXTI6 line */
-  exti_init.EXTI_Line = EXTI_Line6;
+  /* Configure EXTI12 line */
+  exti_init.EXTI_Line = EXTI_Line12;
   exti_init.EXTI_Mode = EXTI_Mode_Interrupt;
   exti_init.EXTI_Trigger = EXTI_Trigger_Falling;  
   exti_init.EXTI_LineCmd = ENABLE;
@@ -278,8 +280,23 @@ void BSP_USART_Init(void){
   USART_ITConfig(USART2, USART_IT_TXE, DISABLE);
   USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
   
+  /*USART3  LORA*/
+  usart_init.USART_BaudRate = 115200;
+  usart_init.USART_WordLength = USART_WordLength_8b;
+  usart_init.USART_Parity = USART_Parity_No;
+  usart_init.USART_StopBits = USART_StopBits_1;
+  usart_init.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+  usart_init.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
   
-  /*USART3  MBUS 485 Meter*/
+  USART_Init(USART3, &usart_init);
+  USART_Cmd(USART3, ENABLE);
+  
+  USART_ITConfig(USART3, USART_IT_TC, DISABLE);
+  USART_ITConfig(USART3, USART_IT_TXE, DISABLE);
+  USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
+  
+  
+  /*UART4  MBUS 485 Meter*/
   switch(get_meter_baud()){
   case 0x12:
     meter_baud_ = 1200;
@@ -302,28 +319,13 @@ void BSP_USART_Init(void){
   usart_init.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
   usart_init.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
   
-  USART_Init(USART3, &usart_init);
-  USART_Cmd(USART3, ENABLE);
-  
-  USART_ITConfig(USART3, USART_IT_TC, DISABLE);
-  USART_ITConfig(USART3, USART_IT_TXE, DISABLE);
-  USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
-  
-  
-  /*UART4  LORA*/
-  usart_init.USART_BaudRate = 115200;
-  usart_init.USART_WordLength = USART_WordLength_8b;
-  usart_init.USART_Parity = USART_Parity_No;
-  usart_init.USART_StopBits = USART_StopBits_1;
-  usart_init.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-  usart_init.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-  
   USART_Init(UART4, &usart_init);
   USART_Cmd(UART4, ENABLE);
   
   USART_ITConfig(UART4, USART_IT_TC, DISABLE);
   USART_ITConfig(UART4, USART_IT_TXE, DISABLE);
   USART_ITConfig(UART4, USART_IT_RXNE, ENABLE);
+  
 }
 
 void BSP_NVIC_Init(void){
@@ -356,8 +358,8 @@ void BSP_NVIC_Init(void){
   nvic_init.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&nvic_init);
   
-  /* Enable the EXTI9_5 Interrupt */
-  nvic_init.NVIC_IRQChannel = EXTI9_5_IRQn;
+  /* Enable the EXTI15_10 Interrupt */
+  nvic_init.NVIC_IRQChannel = EXTI15_10_IRQn;
   nvic_init.NVIC_IRQChannelSubPriority = 4;
   nvic_init.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&nvic_init);

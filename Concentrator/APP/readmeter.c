@@ -1048,6 +1048,9 @@ uint8_t cjq_relay_control(uint8_t cmd,uint8_t cjq){
     case 3:
       RELAY3_ON();
       break;
+    case 4:
+      RELAY4_ON();
+      break;
     }
     break;
   case 0: //¹Ø¼ÌµçÆ÷
@@ -1060,6 +1063,9 @@ uint8_t cjq_relay_control(uint8_t cmd,uint8_t cjq){
       break;
     case 3:
       RELAY3_OFF();
+      break;
+    case 4:
+      RELAY4_OFF();
       break;
     }
     break;
