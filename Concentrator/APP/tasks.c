@@ -741,7 +741,7 @@ void task_overload(void *p_arg){
                &err);
     
     delayms(300);
-    if(GPIO_ReadInputDataBit(GPIOC,GPIO_Pin_6)){
+    if(GPIO_ReadInputDataBit(GPIOC,GPIO_Pin_12)){
       cjq_relay_control(0,1); //关采集器通道
       cjq_relay_control(0,2);
       cjq_relay_control(0,3);

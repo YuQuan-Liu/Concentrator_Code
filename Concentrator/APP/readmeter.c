@@ -1052,6 +1052,7 @@ uint8_t cjq_relay_control(uint8_t cmd,uint8_t cjq){
       RELAY4_ON();
       break;
     }
+    delayms(2000);
     break;
   case 0: //¹Ø¼ÌµçÆ÷
     switch(cjq){
