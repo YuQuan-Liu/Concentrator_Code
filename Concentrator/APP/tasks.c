@@ -747,14 +747,6 @@ void task_overload(void *p_arg){
       cjq_relay_control(0,3);
       cjq_relay_control(0,4);
       
-      while(cnt < 100){
-        LED3_ON();
-        delayms(100);
-        LED3_OFF();
-        delayms(100);
-        cnt++;
-      }
-      cnt = 0;
     }
     
   }
