@@ -336,31 +336,31 @@ void BSP_NVIC_Init(void){
   
   /* Enable the USART1 Interrupt */
   nvic_init.NVIC_IRQChannel = USART1_IRQn;
-  nvic_init.NVIC_IRQChannelSubPriority = 0;
+  nvic_init.NVIC_IRQChannelSubPriority = 1;
   nvic_init.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&nvic_init);
   
   /* Enable the USART2 Interrupt */
   nvic_init.NVIC_IRQChannel = USART2_IRQn;
-  nvic_init.NVIC_IRQChannelSubPriority = 1;
+  nvic_init.NVIC_IRQChannelSubPriority = 2;
   nvic_init.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&nvic_init);
   
   /* Enable the USART3 Interrupt */
   nvic_init.NVIC_IRQChannel = USART3_IRQn;
-  nvic_init.NVIC_IRQChannelSubPriority = 2;
+  nvic_init.NVIC_IRQChannelSubPriority = 3;
   nvic_init.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&nvic_init);
   
   /* Enable the UART4 Interrupt */
   nvic_init.NVIC_IRQChannel = UART4_IRQn;
-  nvic_init.NVIC_IRQChannelSubPriority = 3;
+  nvic_init.NVIC_IRQChannelSubPriority = 4;
   nvic_init.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&nvic_init);
   
   /* Enable the EXTI15_10 Interrupt */
   nvic_init.NVIC_IRQChannel = EXTI15_10_IRQn;
-  nvic_init.NVIC_IRQChannelSubPriority = 4;
+  nvic_init.NVIC_IRQChannelSubPriority = 0;
   nvic_init.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&nvic_init);
 }
