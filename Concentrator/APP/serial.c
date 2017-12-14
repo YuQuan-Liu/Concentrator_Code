@@ -35,43 +35,17 @@ void USART2_Handler(void){
 /*
 * 处理MBUS 485 抄表
 */
-void USART3_Handler(void){
-  uint8_t rx_byte = 0;
-  uint8_t *p_mem = 0;
-  
-  if(USART_GetFlagStatus(USART3,USART_FLAG_RXNE) && USART_GetITStatus(USART3,USART_IT_RXNE)){
-    rx_byte = USART_ReceiveData(USART3);
-    
-    p_mem = get_memisr();
-    if(p_mem){
-      *p_mem = rx_byte;
-      if(!post_q_meter_usart(p_mem,1)){
-        put_memisr(p_mem);//没有放进队列  放回MEMPool
-      }
-    }
-  }
-  
-  if(USART_GetFlagStatus(USART3,USART_FLAG_ORE)){
-    rx_byte = USART_ReceiveData(USART3);
-  }
-  
-}
-
-/*
-* 处理LORA无线通信
-*/
 void UART4_Handler(void){
   uint8_t rx_byte = 0;
   uint8_t *p_mem = 0;
   
-  //receive the byte
   if(USART_GetFlagStatus(UART4,USART_FLAG_RXNE) && USART_GetITStatus(UART4,USART_IT_RXNE)){
     rx_byte = USART_ReceiveData(UART4);
     
     p_mem = get_memisr();
     if(p_mem){
       *p_mem = rx_byte;
-      if(!post_q_lora_usart(p_mem,1)){
+      if(!post_q_meter_usart(p_mem,1)){
         put_memisr(p_mem);//没有放进队列  放回MEMPool
       }
     }
@@ -83,16 +57,42 @@ void UART4_Handler(void){
   
 }
 
+/*
+* 处理LORA无线通信
+*/
+void USART3_Handler(void){
+  uint8_t rx_byte = 0;
+  uint8_t *p_mem = 0;
+  
+  //receive the byte
+  if(USART_GetFlagStatus(USART3,USART_FLAG_RXNE) && USART_GetITStatus(USART3,USART_IT_RXNE)){
+    rx_byte = USART_ReceiveData(USART3);
+    
+    p_mem = get_memisr();
+    if(p_mem){
+      *p_mem = rx_byte;
+      if(!post_q_lora_usart(p_mem,1)){
+        put_memisr(p_mem);//没有放进队列  放回MEMPool
+      }
+    }
+  }
+  
+  if(USART_GetFlagStatus(USART3,USART_FLAG_ORE)){
+    rx_byte = USART_ReceiveData(USART3);
+  }
+  
+}
+
 
 /*
-* 通过U4 往LORA发送数据
+* 通过U3 往LORA发送数据
 */
 uint8_t write_lora(uint8_t * data,uint16_t count){
   uint16_t i;
   
   for(i = 0;i < count;i++){
-    USART_SendData(UART4,*(data+i));
-    while(USART_GetFlagStatus(UART4, USART_FLAG_TC) == RESET){}
+    USART_SendData(USART3,*(data+i));
+    while(USART_GetFlagStatus(USART3, USART_FLAG_TC) == RESET){}
   }
   return 1;
 }
@@ -114,18 +114,18 @@ uint8_t write_cjq(uint8_t * data,uint16_t count){
 }
 
 /*
-* 通过U3 给 MBUS 485 表发送数据
+* 通过U4 给 MBUS 485 表发送数据
 */
 uint8_t write_meter(uint8_t * data,uint16_t count){
   uint16_t i;
   
   CTRL_485_METER_SEND();
-  USART_ITConfig(USART3,USART_IT_RXNE,DISABLE);
+  USART_ITConfig(UART4,USART_IT_RXNE,DISABLE);
   for(i = 0;i < count;i++){
-    USART_SendData(USART3,*(data+i));
-    while(USART_GetFlagStatus(USART3, USART_FLAG_TC) == RESET){}
+    USART_SendData(UART4,*(data+i));
+    while(USART_GetFlagStatus(UART4, USART_FLAG_TC) == RESET){}
   }
-  USART_ITConfig(USART3,USART_IT_RXNE,ENABLE);
+  USART_ITConfig(UART4,USART_IT_RXNE,ENABLE);
   CTRL_485_METER_RECV();
   return 1;
 }

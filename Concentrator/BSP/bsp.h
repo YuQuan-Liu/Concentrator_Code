@@ -9,16 +9,19 @@
 #define  APP_START_TASK_STK_SIZE      256u
 #define  APP_START_TASK_PRIO      3u
 
-//#define  GPRS_MIC29302  //当GPRS小板使用的电源芯片为MIC29302时使用 默认为LM2596
+#define  GPRS_MIC29302  //当GPRS小板使用的电源芯片为MIC29302时使用 默认为LM2596
 
 #define LED1_ON()         GPIO_SetBits(GPIOC, GPIO_Pin_2)
 #define LED1_OFF()         GPIO_ResetBits(GPIOC, GPIO_Pin_2)
 
-#define LED2_ON()         GPIO_SetBits(GPIOC, GPIO_Pin_1)
-#define LED2_OFF()         GPIO_ResetBits(GPIOC, GPIO_Pin_1)
+#define LED2_ON()         GPIO_SetBits(GPIOC, GPIO_Pin_3)
+#define LED2_OFF()         GPIO_ResetBits(GPIOC, GPIO_Pin_3)
 
 #define LED3_ON()         GPIO_SetBits(GPIOC, GPIO_Pin_0)
 #define LED3_OFF()         GPIO_ResetBits(GPIOC, GPIO_Pin_0)
+
+#define LED4_ON()         GPIO_SetBits(GPIOC, GPIO_Pin_1)
+#define LED4_OFF()         GPIO_ResetBits(GPIOC, GPIO_Pin_1)
 
 #define RELAY1_ON()         GPIO_SetBits(GPIOC, GPIO_Pin_5)
 #define RELAY1_OFF()         GPIO_ResetBits(GPIOC, GPIO_Pin_5)
@@ -28,6 +31,9 @@
 
 #define RELAY3_ON()         GPIO_SetBits(GPIOB, GPIO_Pin_1)
 #define RELAY3_OFF()         GPIO_ResetBits(GPIOB, GPIO_Pin_1)
+
+#define RELAY4_ON()         GPIO_SetBits(GPIOB, GPIO_Pin_2)
+#define RELAY4_OFF()         GPIO_ResetBits(GPIOB, GPIO_Pin_2)
 
 
 #define RELAY_VALVE_ON()         GPIO_SetBits(GPIOB, GPIO_Pin_15)
