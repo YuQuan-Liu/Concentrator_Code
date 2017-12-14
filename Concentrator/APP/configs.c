@@ -1187,7 +1187,7 @@ void sync_data2cjq(uint8_t * p_cjqaddr){
     return;
   }
 
-  for(c = 1;c <= 3;c++){
+  for(c = 1;c <= 4;c++){
     *p_cjqaddr = c;
     block_cjq = search_cjq(p_cjqaddr);
     if(block_cjq){
@@ -1215,7 +1215,7 @@ void sync_data2cjq(uint8_t * p_cjqaddr){
   }
 
   //添加每个采集器通道的表
-  for(c = 1;c <= 3;c++){
+  for(c = 1;c <= 4;c++){
     *p_cjqaddr = c;
     block_cjq = search_cjq(p_cjqaddr);
     if(block_cjq){
