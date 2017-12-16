@@ -260,7 +260,7 @@ void meter_read_c_all(uint8_t * p_frame,uint16_t frame_len){
 
                     //根据当前查询的采集器地址  搜索采集器块 表块
                     p_cjqaddr = get_cjq_addr();
-                    for(z = 1;z <= 3;z++){
+                    for(z = 1;z <= 4;z++){
                       *(p_cjqaddr) = z;
                       block_cjq = search_cjq(p_cjqaddr);
                       if(block_cjq){
