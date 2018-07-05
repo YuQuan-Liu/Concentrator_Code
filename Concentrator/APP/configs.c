@@ -707,7 +707,7 @@ void ack_query_meter_channel(uint32_t block_cjq_,uint16_t frame_times,uint16_t f
           switch(desc){
           case 0x01:
             if(lock_gprs()){
-              write_server(p_buf_,p_buf-p_buf_);
+              send_server(p_buf_,p_buf-p_buf_);
               unlock_gprs();
             }
             break;
